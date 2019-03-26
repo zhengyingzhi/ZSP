@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Root>
+    <Account>
+        <AccountInfo name="Lion" id="038313" password="qwert" brokerid="9999"/>
+        <TradeAPI name="ctp" addr="tcp://180.168.146.187:10000"/>
+        <MdAPI name="ctp" addr="tcp://180.168.146.187:10010"/>
+        <Strategy>
+            <StrategyName name="EMAStrategy.dll"/>
+            <StrategySymbols symbol="rb1809,ni1811"/>
+        </Strategy>
+        <Strategy>
+            <StrategyName name="BollStrategy.dll"/>
+            <StrategySymbols symbol="rb1809,au1811"/>
+        </Strategy>
+    </Account>
+    <Account>
+        <AccountInfo name="Jaguar" id="0001000001" password="123"/>
+        <TradeAPI name="xspeed" addr="tcp://203.187.171.250:10910"/>
+        <MdAPI name="xspeed" addr="tcp://203.187.171.250:10915"/>
+        <Strategy>
+            <StrategyName name="EMAStrategy.dll"/>
+            <StrategySymbols symbol="m1809,CF1811"/>
+        </Strategy>
+    </Account>
+    <Logger name="zs_system.log" type="2" level="info"/>
+    <!--RunMode mode="backtest"/-->
+</Root>

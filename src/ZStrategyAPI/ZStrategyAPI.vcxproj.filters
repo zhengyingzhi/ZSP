@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="zs_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_api_object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_position.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_broker_api.h">
+      <Filter>Brokerage</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_broker_entry.h">
+      <Filter>Brokerage</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_event_engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_algorithm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_blotter.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_strategy_api.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_strategy_demo.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_simulator.h">
+      <Filter>Backtest</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_commission.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_trading_calendar.h">
+      <Filter>Backtest</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_configs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_protocol.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_algorithm_api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_slippage.h">
+      <Filter>Backtest</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_risk_control.h">
+      <Filter>Risk</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_assets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_strategy_engine.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_data_feed.h">
+      <Filter>Backtest</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_data_portal.h">
+      <Filter>Backtest</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_broker_backtest.h">
+      <Filter>Brokerage</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_order_list.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_blotter_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_position_tracker.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_account.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_hashdict.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{5dec028d-2a58-4eaa-b240-b5a9e4bcc5aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{81130e62-d007-45f6-a183-c677b06b6716}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Finance">
+      <UniqueIdentifier>{71e520df-f7b0-4342-a92c-acbe2ef48fac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Brokerage">
+      <UniqueIdentifier>{6bfd4455-c7a9-43a1-a750-08fc0c72deb0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{28d11943-df4b-4834-8cde-e07094a44f37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Strategy">
+      <UniqueIdentifier>{c9baf691-876d-4f76-acac-266883f5734b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Backtest">
+      <UniqueIdentifier>{729d8b9c-9fdc-4f2d-aeb2-1125da1318aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Risk">
+      <UniqueIdentifier>{2659c48c-02fb-4217-bc26-54cf26cfa018}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="zs_position.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_broker_entry.c">
+      <Filter>Brokerage</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_event_engine.c">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_algorithm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_blotter.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_strategy_demo.c">
+      <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_simulator.c">
+      <Filter>Backtest</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_commission.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_assets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_trading_calendar.c">
+      <Filter>Backtest</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_configs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_protocol.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_algorithm_api.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_slippage.c">
+      <Filter>Backtest</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_risk_control.c">
+      <Filter>Risk</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_strategy_engine.c">
+      <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_data_feed.c">
+      <Filter>Backtest</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_data_portal.c">
+      <Filter>Backtest</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_broker_backtest.c">
+      <Filter>Brokerage</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_order_list.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_blotter_manager.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_position_tracker.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_account.c">
+      <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_hashdict.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+
+# 账户配置文件列表，表示多个账户的配置
+Account=accountZheng.txt accountLuo.txt
+
+#Log文件名
+LogName=strategy_trade.log
+#Log输出方式：0-file, 1-screen, 2-debugview, 4-file&debugview
+LogType=2
+#Log输出级别：1-debug 2-info 3-warning 4-error，默认为2
+LogLevel=1
+
