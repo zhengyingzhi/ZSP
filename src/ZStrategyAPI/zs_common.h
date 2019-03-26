@@ -135,15 +135,15 @@ typedef enum
 typedef enum 
 {
     ZS_RM_Backtest,
-    ZS_RM_Liverun,
+    ZS_RM_Liverun
 }ZSRunMode;
 
 /* 价格类型 */
 typedef enum 
 {
-    ZS_P_PreRight,
+    ZS_P_PreAdjusted,
     ZS_P_Real,
-    ZS_P_PostRight
+    ZS_P_PostAdjusted
 }ZSPriceType;
 
 /* 投机套保标志 */
@@ -153,6 +153,18 @@ typedef enum
     ZS_HF_Arbitrage,
     ZS_HF_Hedge
 }ZSHedgeFlag;
+
+/* 合约状态 */
+typedef enum
+{
+    ZS_IS_BeforeTrading,
+    ZS_IS_NoTrading,
+    ZS_IS_Continous,
+    ZS_IS_AuctionOrdering,
+    ZS_IS_AuctionBalance,
+    ZS_IS_AuctionMatch,
+    ZS_IS_Closed
+}ZSInstrumentStatus;
 
 
 #endif//_ZS_COMMON_H_INCLUDED_

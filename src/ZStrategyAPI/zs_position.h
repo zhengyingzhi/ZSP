@@ -74,6 +74,8 @@ typedef struct zs_position_engine_s zs_position_engine_t;
 // 创建持仓管理对象
 zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contract);
 
+void zs_position_release(zs_position_engine_t* pos);
+
 // 报单更新
 int zs_position_req_order(zs_position_engine_t* pos, zs_order_req_t* order_req);
 

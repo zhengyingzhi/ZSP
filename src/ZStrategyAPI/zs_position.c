@@ -90,7 +90,10 @@ static int _zs_position_new_order(zs_position_engine_t* pos, ZSDirectionType dir
 zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contract)
 {
     zs_position_engine_t* pos;
-    pos = (zs_position_engine_t*)ztl_pcalloc(pool, sizeof(zs_position_engine_t));
+    if (pool)
+        pos = (zs_position_engine_t*)ztl_pcalloc(pool, sizeof(zs_position_engine_t));
+    else
+        pos = (zs_position_engine_t*)malloc(sizeof(zs_position_engine_t));
     pos->Pool = pool;
     pos->Contract = contract;
     if (contract)
@@ -105,6 +108,13 @@ zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contra
     pos->FinishedOrders = dictCreate(&oidHashDictType, pos);
     pos->PositionDetails = ztl_dlist_create(64);
     return pos;
+}
+
+void zs_position_release(zs_position_engine_t* pos)
+{
+    if (!pos->Pool) {
+        free(pos);
+    }
 }
 
 int zs_position_req_order(zs_position_engine_t* pos, zs_order_req_t* order_req)
