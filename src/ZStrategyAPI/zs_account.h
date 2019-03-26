@@ -8,6 +8,8 @@
 #define _ZS_ACCOUNT_H_INCLUDED_
 
 #include <ZToolLib/ztl_map.h>
+#include <ZToolLib/ztl_mempool.h>
+#include <ZToolLib/ztl_palloc.h>
 
 #include "zs_common.h"
 
@@ -33,8 +35,9 @@ struct zs_account_s
 {
     zs_fund_account_t   FundAccount;
     char                TradingDay[12];
-    ztl_map_t*          FinishedOrders;
+    ztl_pool_t*         Pool;
     ztl_map_t*          FrozenDetails;  // <sid, list>
+    ztl_mempool_t*      FrozenDetailMP;
 
     int         MaxMarginSide;
     double      FrozenMargin;
@@ -45,7 +48,8 @@ struct zs_account_s
 typedef struct zs_account_s zs_account_t;
 
 
-zs_account_t* zs_account_create();
+// 创建账户管理对象
+zs_account_t* zs_account_create(ztl_pool_t* pool);
 
 void zs_account_release(zs_account_t* account);
 

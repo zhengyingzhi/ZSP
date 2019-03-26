@@ -4,7 +4,9 @@
 
 #include "zs_account.h"
 
-static double calculate_margin(double price, int volume, int multiplier, int margin_ratio)
+
+
+static double calculate_margin(double price, int volume, int multiplier, double margin_ratio)
 {
     return price * volume * multiplier * margin_ratio;
 }
@@ -23,13 +25,13 @@ static void add_frozen_detail(zs_account_t* account, char* symbol, uint64_t sid,
     double margin, double price, int volume, char* userid)
 {
     zs_frozen_detail_t* detail;
-    detail = (zs_frozen_detail_t*)malloc(sizeof(zs_frozen_detail_t));
+    detail = (zs_frozen_detail_t*)ztl_mp_alloc(account->FrozenDetailMP);
     detail->Margin = margin;
     detail->Price = price;
     detail->Volume = volume;
     detail->Sid = sid;
-    strcpy(detail->Symbol, symbol);
-    strcpy(detail->UserID, userid);
+    strncpy(detail->Symbol, symbol, sizeof(detail->Symbol) - 1);
+    strncpy(detail->UserID, userid, sizeof(detail->UserID) - 1);
 
     ztl_dlist_t* dlist;
     dlist = ztl_map_find(account->FrozenDetails, sid);
@@ -77,7 +79,7 @@ static void update_frozen_detail(zs_account_t* account, char* symbol, uint64_t s
             volume -= detail->Volume;
             ztl_dlist_erase(dlist, iter);
 
-            free(detail);
+            ztl_mp_free(account->FrozenDetailMP, detail);
         }
     }
 }
@@ -184,17 +186,57 @@ static void free_frozen_commission(zs_account_t* account, ZSOffsetFlag offset, d
 }
 
 
-zs_account_t* zs_account_create()
+zs_account_t* zs_account_create(ztl_pool_t* pool)
 {
     zs_account_t* account;
-    account = (zs_account_t*)malloc(sizeof(zs_account_t));
+    if (pool) {
+        account = (zs_account_t*)ztl_palloc(pool, sizeof(zs_account_t));
+        memset(account, 0, sizeof(zs_account_t));
+        account->Pool = pool;
+    }
+    else {
+        account = (zs_account_t*)malloc(sizeof(zs_account_t));
+        memset(account, 0, sizeof(zs_account_t));
+    }
+
+    account->FrozenDetails = ztl_map_create(16);
+    account->FrozenDetailMP = ztl_mp_create(sizeof(zs_frozen_detail_t), 16, 1);
     return account;
+}
+
+
+static void _frozen_detail_map_access(ztl_map_t* pmap, 
+    void* context1, int context2, uint64_t key, void* value)
+{
+    ztl_dlist_t* dlist;
+    dlist = (ztl_dlist_t*)value;
+    if (!value) {
+        return;
+    }
+
+    // no need release each element
+
+    ztl_dlist_release(dlist);
 }
 
 void zs_account_release(zs_account_t* account)
 {
-    if (account)
-    {
+    if (!account) {
+        return;
+    }
+
+    if (account->FrozenDetails) {
+        ztl_map_traverse(account->FrozenDetails, _frozen_detail_map_access, account, 0);
+        ztl_map_release(account->FrozenDetails);
+        account->FrozenDetails = NULL;
+    }
+
+    if (account->FrozenDetailMP) {
+        ztl_mp_release(account->FrozenDetailMP);
+        account->FrozenDetailMP = NULL;
+    }
+
+    if (!account->Pool) {
         free(account);
     }
 }
@@ -215,21 +257,6 @@ int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs
 
 int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contract_t* contract)
 {
-    ZSOrderStatus status;
-    status = order->Status;
-    if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
-    {
-        if (ztl_map_find(account->FinishedOrders, order->Sid)) {
-            return 0;
-        }
-
-        ztl_map_add(account->FinishedOrders, order->Sid, 0);
-    }
-    else
-    {
-        return 0;
-    }
-
     int vol = order->Quantity - order->Filled;
     if (vol <= 0) {
         // do not process the order filled

@@ -5,22 +5,7 @@
 #include "zs_order_list.h"
 
 
-static void* _zs_oid_keydup(void* priv, const void* key) {
-    zs_position_engine_t* pos = (zs_position_engine_t*)priv;
-    return zs_str_keydup(key, ztl_palloc, pos->Pool);
-}
-
-static dictType oidHashDictType = {
-    zs_str_hash,
-    _zs_oid_keydup,
-    NULL,
-    zs_str_cmp,
-    NULL,
-    NULL
-};
-
-
-static double calculate_margin(double price, int volume, int multiplier, int margin_ratio)
+static double calculate_margin(double price, int volume, int multiplier, double margin_ratio)
 {
     return price * volume * multiplier * margin_ratio;
 }
@@ -105,13 +90,17 @@ zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contra
         pos->ShortMarginRatio = contract->ShortMarginRateByMoney;
     }
 
-    pos->FinishedOrders = dictCreate(&oidHashDictType, pos);
     pos->PositionDetails = ztl_dlist_create(64);
     return pos;
 }
 
 void zs_position_release(zs_position_engine_t* pos)
 {
+    if (pos->PositionDetails) {
+        // TODO
+        ztl_dlist_release(pos->PositionDetails);
+    }
+
     if (!pos->Pool) {
         free(pos);
     }
@@ -136,13 +125,6 @@ int zs_position_rtn_order(zs_position_engine_t* pos, zs_order_t* order)
     if (order->Status != ZS_OS_Canceld && order->Status != ZS_OS_Rejected) {
         return 0;
     }
-
-    // 订单已处理过
-    ZStrKey key = { (int)strlen(order->OrderSysID), order->OrderSysID };
-    if (dictFind(pos->FinishedOrders, &key)) {
-        return 0;
-    }
-    dictAdd(pos->FinishedOrders, &key, 0);
 
     int volume = order->Quantity - order->Filled;
 

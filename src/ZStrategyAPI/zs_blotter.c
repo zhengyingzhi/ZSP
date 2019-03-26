@@ -14,6 +14,22 @@
 #include "zs_risk_control.h"
 
 
+static void* _zs_order_sysid_keydup(void* priv, const void* key) {
+    zs_blotter_t* blotter = (zs_blotter_t*)priv;
+    return zs_str_keydup(key, ztl_palloc, blotter->Pool);
+}
+
+static dictType sysidHashDictType = {
+    zs_str_hash,
+    _zs_order_sysid_keydup,
+    NULL,
+    zs_str_cmp,
+    NULL,
+    NULL
+};
+
+
+
 zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo)
 {
     ztl_pool_t* pool;
@@ -21,10 +37,11 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo)
 
     pool = algo->Pool;
     blotter = (zs_blotter_t*)ztl_pcalloc(pool, sizeof(zs_blotter_t));
+    blotter->Pool = pool;
 
     blotter->Algorithm = algo;
 
-    blotter->OrderDict = ztl_map_create(1024);
+    blotter->OrderDict = dictCreate(&sysidHashDictType, blotter);
     blotter->WorkOrderList = zs_orderlist_create();
 
     ztl_array_init(&blotter->Trades, pool, 8192, sizeof(void*));
@@ -53,6 +70,11 @@ void zs_blotter_release(zs_blotter_t* blotter)
 {
     if (!blotter) {
         return;
+    }
+
+    if (blotter->OrderDict) {
+        dictRelease(blotter->OrderDict);
+        blotter->OrderDict = NULL;
     }
 
     if (blotter->WorkOrderList) {
@@ -178,11 +200,24 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
         return -1;
     }
 
+    ZSOrderStatus status = order->Status;
+    if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
+    {
+        ZStrKey key = { (int)strlen(order->OrderSysID), order->OrderSysID };
+        if (dictFind(blotter->OrderDict, &key)) {
+            return 0;
+        }
+
+        dictAdd(blotter->OrderDict, &key, 0);
+    }
+
     strcpy(lorder->OrderSysID, order->OrderSysID);
     lorder->Filled = order->Filled;
     lorder->Status = order->Status;
     lorder->OrderTime = order->OrderTime;
     lorder->CancelTime = order->CancelTime;
+
+    // zs_account_on_order_rtn(blotter->Account,)
 
     if (order->Status == ZS_OS_Canceld || order->Status == ZS_OS_PartCancled)
     {

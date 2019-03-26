@@ -20,6 +20,8 @@
 
 #include "zs_core.h"
 
+#include "zs_hashdict.h"
+
 #include "zs_order_list.h"
 
 #include "zs_position.h"
@@ -37,9 +39,10 @@ extern "C" {
 struct zs_blotter_s
 {
     zs_algorithm_t*     Algorithm;
+    ztl_pool_t*         Pool;
 
     // 订单管理
-    ztl_map_t*          OrderDict;
+    ztl_dict_t*         OrderDict;
     zs_orderlist_t*     WorkOrderList;
 
     // 成交管理

@@ -15,7 +15,6 @@
 
 #include "zs_api_object.h"
 #include "zs_assets.h"
-#include "zs_hashdict.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +33,6 @@ struct zs_position_engine_s
     double          ShortMarginRatio;
 
     ztl_pool_t*     Pool;
-    ztl_dict_t*     FinishedOrders;
     ztl_dlist_t*    PositionDetails;
 
     char            TradingDay[12];
