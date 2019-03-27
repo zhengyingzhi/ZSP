@@ -199,6 +199,7 @@ zs_account_t* zs_account_create(ztl_pool_t* pool)
         memset(account, 0, sizeof(zs_account_t));
     }
 
+    account->AccountID = account->FundAccount.AccountID;
     account->FrozenDetails = ztl_map_create(16);
     account->FrozenDetailMP = ztl_mp_create(sizeof(zs_frozen_detail_t), 16, 1);
     return account;
@@ -271,6 +272,12 @@ int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contrac
 
     return 0;
 }
+
+int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
+{
+    return 0;
+}
+
 
 int zs_account_on_order_trade(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
 {

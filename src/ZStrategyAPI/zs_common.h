@@ -19,6 +19,7 @@
 /* exchange name */
 #define ZS_EXG_SSE          "SSE"
 #define ZS_EXG_SZSE         "SZSE"
+#define ZS_EXG_NEEQ         "NEEQ"
 #define ZS_EXG_CFFEX        "CFFEX"
 #define ZS_EXG_SHFE         "SHFE"
 #define ZS_EXG_DCE          "DCE"
@@ -29,6 +30,21 @@
 #define ZS_EXG_TEST         "TEST"
 
 /* 市场ID */
+typedef enum
+{
+    ZS_EI_Unkown,
+    ZS_EI_SSE,
+    ZS_EI_SZSE,
+    ZS_EI_NEEQ,
+    ZS_EI_CFFEX,
+    ZS_EI_SHFE,
+    ZS_EI_DCE,
+    ZS_EI_CZCE,
+    ZS_EI_INE,
+    ZS_EI_SGE,
+    ZS_EI_CFE,
+    ZS_EI_TEST
+}ZSExchangeID;
 
 
 /* 数据类型 */

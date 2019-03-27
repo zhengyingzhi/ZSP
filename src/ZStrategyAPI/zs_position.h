@@ -75,13 +75,13 @@ zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contra
 void zs_position_release(zs_position_engine_t* pos);
 
 // 报单更新
-int zs_position_req_order(zs_position_engine_t* pos, zs_order_req_t* order_req);
+int zs_position_on_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req);
 
 // 订单更新
-int zs_position_rtn_order(zs_position_engine_t* pos, zs_order_t* order);
+int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order);
 
 // 成交更新
-double zs_position_rtn_trade(zs_position_engine_t* pos, zs_trade_t* trade);
+double zs_position_on_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade);
 
 
 void zs_position_sync_last_price(zs_position_engine_t* pos, double lastpx);

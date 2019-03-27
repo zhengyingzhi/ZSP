@@ -39,28 +39,7 @@ int zs_orderlist_remove(zs_orderlist_t* orderList, zs_order_t* pOrder)
     return 0;
 }
 
-zs_order_t* zs_order_find_byid(zs_orderlist_t* orderList, int64_t orderId)
-{
-    zs_order_t* order = NULL;
-    ztl_dlist_iterator_t* iter;
-    iter = ztl_dlist_iter_new(orderList, ZTL_DLSTART_HEAD);
-    while (iter)
-    {
-        zs_order_t* lpOrd;
-        lpOrd = (zs_order_t*)iter->nodelink;    // TODO: we should get iter's data
-        if (lpOrd->OrderID == orderId) {
-            order = lpOrd;
-            break;
-        }
-
-        iter = ztl_dlist_next(orderList, iter);
-    }
-
-    ztl_dlist_iter_del(orderList, iter);
-    return order;
-}
-
-zs_order_t* zs_order_find(zs_orderlist_t* orderList, const char exchangeID[], 
+zs_order_t* zs_order_find(zs_orderlist_t* orderList, ZSExchangeID exchangeID,
     const char aOrderSysID[])
 {
     zs_order_t* order = NULL;
@@ -68,10 +47,10 @@ zs_order_t* zs_order_find(zs_orderlist_t* orderList, const char exchangeID[],
     iter = ztl_dlist_iter_new(orderList, ZTL_DLSTART_HEAD);
     while (iter)
     {
-        zs_order_t* lpOrd;
-        lpOrd = (zs_order_t*)iter->nodelink;    // TODO: we should get iter's data
-        if (strcmp(lpOrd->OrderSysID, aOrderSysID) == 0) {
-            order = lpOrd;
+        zs_order_t* temp;
+        temp = (zs_order_t*)iter->nodelink;    // TODO: we should get iter's data
+        if (temp->ExchangeID == exchangeID && strcmp(temp->OrderSysID, aOrderSysID) == 0) {
+            order = temp;
             break;
         }
 

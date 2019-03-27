@@ -106,7 +106,7 @@ void zs_position_release(zs_position_engine_t* pos)
     }
 }
 
-int zs_position_req_order(zs_position_engine_t* pos, zs_order_req_t* order_req)
+int zs_position_on_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req)
 {
     if (order_req->Offset == ZS_OF_Open) {
         return 0;
@@ -115,7 +115,7 @@ int zs_position_req_order(zs_position_engine_t* pos, zs_order_req_t* order_req)
     return _zs_position_new_order(pos, order_req->Direction, order_req->Offset, order_req->Quantity);
 }
 
-int zs_position_rtn_order(zs_position_engine_t* pos, zs_order_t* order)
+int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
 {
     if (order->Offset == ZS_OF_Open) {
         return 0;
@@ -167,7 +167,7 @@ int zs_position_rtn_order(zs_position_engine_t* pos, zs_order_t* order)
     return 0;
 }
 
-double zs_position_rtn_trade(zs_position_engine_t* pos, zs_trade_t* trade)
+double zs_position_on_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade)
 {
     double margin, realized_pnl;
     double price;

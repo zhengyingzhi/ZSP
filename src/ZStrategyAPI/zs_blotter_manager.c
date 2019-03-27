@@ -19,9 +19,9 @@ void zs_blotter_manager_init(zs_blotter_manager_t* blotterMgr, zs_algorithm_t* a
 
 void zs_blotter_manager_add(zs_blotter_manager_t* blotterMgr, zs_blotter_t* blotter)
 {
-    char* accountID = blotter->pFundAccount->AccountID;
+    char* account_id = blotter->Account->AccountID;
 
-    dictAdd(blotterMgr->BlotterDict, accountID, blotter);
+    dictAdd(blotterMgr->BlotterDict, account_id, blotter);
 
     ztl_array_push_back(&blotterMgr->BlotterArray, blotter);
 }

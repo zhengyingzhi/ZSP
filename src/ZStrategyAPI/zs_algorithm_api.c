@@ -110,7 +110,8 @@ int zs_order_cancel(zs_algorithm_t* algo, int64_t orderId)
     zs_blotter_t* blotter;
 
     blotter = zs_blotter_manager_get(&algo->BlotterMgr, NULL);
-    order = zs_get_order_byid(blotter, orderId);
+    // order = zs_get_order_byid(blotter, orderId);
+    order = NULL;
     if (!orderId)
     {
         return -2;
@@ -124,7 +125,7 @@ int zs_order_cancel(zs_algorithm_t* algo, int64_t orderId)
 
     zs_cancel_req_t cancel_req = { 0 };
     strcpy(cancel_req.Symbol, order->Symbol);
-    strcpy(cancel_req.Exchange, order->Exchange);
+    cancel_req.ExchangeID = order->ExchangeID;
     //strcpy(cancel_req.AccountID, blotter->pAccount->AccountID);
     strcpy(cancel_req.OrderSysID, order->OrderSysID);
     cancel_req.OrderID = orderId;

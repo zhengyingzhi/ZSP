@@ -268,7 +268,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
     // fake contract info
     zs_contract_t contract = { 0 };
     strcpy(contract.Symbol, "000001.SZA");
-    strcpy(contract.Exchange, "SZSE");
+    contract.ExchangeID = ZS_EI_SZSE;
     contract.ProductClass = ZS_PC_Stock;
     contract.Multiplier = 1;
     contract.PriceTick = 0.01f;
@@ -291,7 +291,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
     zs_blotter_t* blotter;
     blotter = zs_blotter_create(algo);
 
-    strcpy(blotter->pFundAccount->AccountID, "000100000002");
+    strcpy(blotter->Account->AccountID, "000100000002");
     zs_blotter_manager_add(&algo->BlotterMgr, blotter);
 
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）

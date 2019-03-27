@@ -52,6 +52,7 @@
     <ClInclude Include="zs_data_portal.h" />
     <ClInclude Include="zs_event_engine.h" />
     <ClInclude Include="zs_hashdict.h" />
+    <ClInclude Include="zs_helper.h" />
     <ClInclude Include="zs_order_list.h" />
     <ClInclude Include="zs_position.h" />
     <ClInclude Include="zs_blotter.h" />

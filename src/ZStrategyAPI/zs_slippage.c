@@ -321,8 +321,8 @@ int zs_slippage_process_bytick(zs_slippage_t* slippage, zs_tick_t* tickData)
 static void zs_generate_order(zs_order_t* order, const zs_order_req_t* orderReq, int fillVolume)
 {
     strcpy(order->Symbol, orderReq->Symbol);
-    strcpy(order->Exchange, orderReq->Exchange);
     strcpy(order->AccountID, orderReq->AccountID);
+    order->ExchangeID = orderReq->ExchangeID;
     order->Sid = orderReq->Sid;
     order->Price = orderReq->Price;
     order->Quantity = orderReq->Quantity;
@@ -374,7 +374,7 @@ static void zs_update_order(zs_order_t* order, int fillVolume)
 static void zs_generate_trade(zs_trade_t* trade, const zs_order_t* order, float fillPrice, int fillVolume)
 {
     strcpy(trade->Symbol, order->Symbol);
-    strcpy(trade->Exchange, order->Exchange);
+    trade->ExchangeID = order->ExchangeID;
     strcpy(trade->AccountID, order->AccountID);
 
     uint32_t tid = ztl_atomic_add(&_zs_trade_id, 1);

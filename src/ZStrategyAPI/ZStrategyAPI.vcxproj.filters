@@ -88,6 +88,9 @@
     <ClInclude Include="zs_hashdict.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="zs_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

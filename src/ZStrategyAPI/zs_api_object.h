@@ -11,6 +11,8 @@
 
 #include "zs_common.h"
 
+#define ORDER_SYSID_LEN     16
+#define ACCOUNT_ID_LEN      16
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,7 +57,7 @@ typedef struct zs_error_data_s zs_error_data_t;
 /* login */
 struct zs_login_s
 {
-    char            AccountID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
     int             Result;
 };
 typedef struct zs_login_s zs_login_t;
@@ -63,7 +65,7 @@ typedef struct zs_login_s zs_login_t;
 /* logout */
 struct zs_logout_s
 {
-    char            AccountID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
     int             Result;
 };
 typedef struct zs_logout_s zs_logout_t;
@@ -72,7 +74,7 @@ typedef struct zs_logout_s zs_logout_t;
 struct zs_tick_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     int64_t         UpdateTime;
     uint64_t        Sid;
     int32_t         TradingDay;
@@ -110,7 +112,7 @@ typedef struct zs_tick_s zs_tick_t;
 struct zs_l2_tick_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     int64_t         UpdateTime;
     uint64_t        Sid;
     int32_t         TradingDay;
@@ -146,7 +148,7 @@ typedef struct zs_l2_tick_s zs_l2_tick_t;
 struct zs_bar_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     int64_t         BarTime;            // 20181201093500
     uint64_t        Sid;
 
@@ -167,12 +169,12 @@ typedef struct zs_bar_s zs_bar_t;
 struct zs_trade_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
-    char            AccountID[16];
-    char            UserID[16];
+    ZSExchangeID    ExchangeID;
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
 
-    char            OrderSysID[16];
-    char            TradeID[16];
+    char            OrderSysID[ORDER_SYSID_LEN];
+    char            TradeID[ORDER_SYSID_LEN];
     int64_t         OrderID;
 
     uint64_t        Sid;
@@ -195,10 +197,10 @@ typedef struct zs_trade_s zs_trade_t;
 struct zs_order_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     char            BrokerID[8];
-    char            AccountID[16];
-    char            UserID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
     double          Price;
@@ -209,7 +211,7 @@ struct zs_order_s
     ZSOrderType     OrderType;
     ZSOrderStatus   Status;
     int64_t         OrderID;
-    char            OrderSysID[16];
+    char            OrderSysID[ORDER_SYSID_LEN];
     int64_t         OrderTime;
     int64_t         CancelTime;
     int64_t         UpdateTime;
@@ -228,10 +230,10 @@ typedef struct zs_quote_order_s zs_quote_order_t;
 struct zs_position_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     char            BrokerID[8];
-    char            AccountID[16];
-    char            UserID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
     ZSDirectionType Direction;
@@ -254,10 +256,10 @@ typedef struct zs_position_s zs_position_t;
 struct zs_position_detail_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     char            BrokerID[8];
-    char            AccountID[16];
-    char            UserID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
     ZSDirectionType Direction;
@@ -282,7 +284,7 @@ typedef struct zs_position_detail_s zs_position_detail_t;
 struct zs_fund_account_s
 {
     char            BrokerID[8];
-    char            AccountID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
     char            AccountName[24];
     double          PreBalance;
     double          Balance;
@@ -305,7 +307,7 @@ struct zs_contract_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     char            SymbolName[ZS_SYMBOL_NAME_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     uint64_t        Sid;
     double          PriceTick;
     ZSProductClass  ProductClass;
@@ -339,10 +341,10 @@ typedef struct zs_contract_s zs_contract_t;
 struct zs_order_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
+    ZSExchangeID    ExchangeID;
     char            BrokerID[8];
-    char            AccountID[16];
-    char            UserID[16];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
     double          Price;
@@ -356,18 +358,20 @@ struct zs_order_req_s
     // IB
     ZSProductClass  ProductClass;
     char            Currency[4];
+
+    void*           Contract;
 };
 typedef struct zs_order_req_s zs_order_req_t;
 
 struct zs_cancel_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
-    char            AccountID[16];
+    ZSExchangeID    ExchangeID;
+    char            AccountID[ACCOUNT_ID_LEN];
 
     int64_t         OrderID;
     int64_t         CancelTime;
-    char            OrderSysID[12];
+    char            OrderSysID[ORDER_SYSID_LEN];
 
     int             FrontID;
     int             SessionID;
@@ -378,9 +382,9 @@ typedef struct zs_cancel_req_s zs_cancel_req_t;
 struct zs_quote_order_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
-    char            Exchange[8];
-    char            AccountID[16];
-    char            UserID[16];
+    ZSExchangeID    ExchangeID;
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
 
     float           BidPrice;
     float           AskPrice;

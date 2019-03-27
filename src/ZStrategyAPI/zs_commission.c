@@ -20,9 +20,9 @@ typedef union
 
 static uint32_t zs_get_variety_int(const char* symbol);
 
-float zs_per_share_calculate(zs_commission_model_t* commModel, 
+double zs_per_share_calculate(zs_commission_model_t* commModel,
     const zs_order_t* order, const zs_trade_t* trade);
-float zs_per_contract_calculate(zs_commission_model_t* commModel, 
+double zs_per_contract_calculate(zs_commission_model_t* commModel, 
     const zs_order_t* order, const zs_trade_t* trade);
 
 static zs_commission_model_t zs_per_share_model = {
@@ -127,7 +127,7 @@ static uint32_t zs_get_variety_int(const char* symbol)
     return vi.i;
 }
 
-float zs_per_share_calculate(zs_commission_model_t* commModel, 
+double zs_per_share_calculate(zs_commission_model_t* commModel,
     const zs_order_t* order, const zs_trade_t* trade)
 {
     zs_commission_t* comm;
@@ -163,16 +163,16 @@ float zs_per_share_calculate(zs_commission_model_t* commModel,
 
     commission = ztl_max(commission, per_share->MinCost);
 
-    return (float)commission;
+    return commission;
 }
 
-float zs_per_contract_calculate(zs_commission_model_t* commModel, 
+double zs_per_contract_calculate(zs_commission_model_t* commModel, 
     const zs_order_t* order, const zs_trade_t* trade)
 {
     zs_commission_t* comm;
     const char* symbol;
-    float multiplier;
-    float price;
+    double multiplier;
+    double price;
     int volume;
     uint32_t vi;
     ZSOffsetFlag offset;
@@ -239,6 +239,6 @@ float zs_per_contract_calculate(zs_commission_model_t* commModel,
             commission = price * volume * per_contract->ClostTodayCost * multiplier;
     }
 
-    return (float)commission;
+    return commission;
 }
 

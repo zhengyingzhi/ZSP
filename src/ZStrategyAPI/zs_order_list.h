@@ -29,8 +29,7 @@ void zs_orderlist_release(zs_orderlist_t* orderList);
 int zs_orderlist_append(zs_orderlist_t* orderList, zs_order_t* pOrder);
 int zs_orderlist_remove(zs_orderlist_t* orderList, zs_order_t* pOrder);
 
-zs_order_t* zs_order_find_byid(zs_orderlist_t* orderList, int64_t orderId);
-zs_order_t* zs_order_find(zs_orderlist_t* orderList, const char exchangeID[],
+zs_order_t* zs_order_find(zs_orderlist_t* orderList, ZSExchangeID exchangeID,
     const char OrderSysID[]);
 
 

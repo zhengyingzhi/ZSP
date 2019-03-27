@@ -1,5 +1,7 @@
 #include <ZToolLib/ztl_array.h>
 #include <ZToolLib/ztl_palloc.h>
+#include <ZToolLib/ztl_memcpy.h>
+#include <ZToolLib/ztl_utils.h>
 
 #include "zs_algorithm.h"
 
@@ -14,20 +16,54 @@
 #include "zs_risk_control.h"
 
 
-static void* _zs_order_sysid_keydup(void* priv, const void* key) {
-    zs_blotter_t* blotter = (zs_blotter_t*)priv;
-    return zs_str_keydup(key, ztl_palloc, blotter->Pool);
+typedef struct  
+{
+    uint16_t    ExchangeID;
+    uint16_t    Length;
+    char*       pOrderSysID;
+}ZSOrderKey;
+
+
+static uint64_t _zs_order_keyhash(const void *key) {
+    ZSOrderKey* skey = (ZSOrderKey*)key;
+    return dictGenHashFunction((unsigned char*)skey->pOrderSysID, skey->Length);
 }
 
-static dictType sysidHashDictType = {
-    zs_str_hash,
-    _zs_order_sysid_keydup,
-    NULL,
-    zs_str_cmp,
+static void* _zs_order_keydup(void* priv, const void* key) {
+    zs_blotter_t* blotter = (zs_blotter_t*)priv;
+    ZSOrderKey* skey = (ZSOrderKey*)key;
+    ZSOrderKey* dup_key = (ZSOrderKey*)ztl_palloc(blotter->Pool, ztl_align(sizeof(ZStrKey) + skey->Length, 4));
+    dup_key->ExchangeID = skey->ExchangeID;
+    dup_key->Length = skey->Length;
+    dup_key->pOrderSysID = (char*)(dup_key + 1);
+    memcpy(dup_key->pOrderSysID, skey->pOrderSysID, skey->Length);  // could be use a faster copy
+    return dup_key;
+}
+
+static void* _zs_order_valdup(void* priv, const void* obj) {
+    zs_blotter_t* blotter = (zs_blotter_t*)priv;
+    zs_order_t* dupord = ztl_palloc(blotter->Pool, sizeof(zs_order_t));
+    ztl_memcpy(dupord, obj, sizeof(zs_order_t));
+    return dupord;
+}
+
+static int _zs_order_keycmp(void* priv, const void* s1, const void* s2) {
+    (void)priv;
+    ZSOrderKey* k1 = (ZSOrderKey*)s1;
+    ZSOrderKey* k2 = (ZSOrderKey*)s2;
+    if (k1->ExchangeID == k2->ExchangeID && memcmp(k1->pOrderSysID, k2->pOrderSysID, k2->Length) == 0)
+        return 1;
+    return 0;
+}
+
+static dictType orderHashDictType = {
+    _zs_order_keyhash,
+    _zs_order_keydup,
+    _zs_order_valdup,
+    _zs_order_keycmp,
     NULL,
     NULL
 };
-
 
 
 zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo)
@@ -41,23 +77,23 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo)
 
     blotter->Algorithm = algo;
 
-    blotter->OrderDict = dictCreate(&sysidHashDictType, blotter);
+    blotter->OrderDict = dictCreate(&orderHashDictType, blotter);
     blotter->WorkOrderList = zs_orderlist_create();
 
     ztl_array_init(&blotter->Trades, pool, 8192, sizeof(void*));
 
     blotter->Positions = ztl_map_create(64);
 
-    blotter->pFundAccount = (zs_fund_account_t*)ztl_pcalloc(pool, sizeof(zs_fund_account_t));
+    blotter->Account = zs_account_create(blotter->Pool);
     blotter->pPortfolio = (zs_portfolio_t*)ztl_pcalloc(pool, sizeof(zs_portfolio_t));
 
     blotter->Commission = zs_commission_create(blotter->Algorithm);
 
     // demo debug
-    zs_fund_account_t* account = blotter->pFundAccount;
-    strcpy(account->AccountID, "000100000002");
-    account->Available = 1000000;
-    account->Balance = 1000000;
+    zs_fund_account_t* fund_account = &blotter->Account->FundAccount;
+    strcpy(fund_account->AccountID, "000100000002");
+    fund_account->Available = 1000000;
+    fund_account->Balance = 1000000;
 
     blotter->RiskControl = algo->RiskControl;
 
@@ -70,6 +106,11 @@ void zs_blotter_release(zs_blotter_t* blotter)
 {
     if (!blotter) {
         return;
+    }
+
+    if (blotter->Account) {
+        zs_account_release(blotter->Account);
+        blotter->Account = NULL;
     }
 
     if (blotter->OrderDict) {
@@ -91,6 +132,7 @@ void zs_blotter_release(zs_blotter_t* blotter)
         zs_commission_release(blotter->Commission);
         blotter->Commission = NULL;
     }
+
 }
 
 int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
@@ -117,6 +159,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         zs_order_t order = { 0 };
         strcpy(order.AccountID, order_req->AccountID);
         strcpy(order.Symbol, order_req->Symbol);
+        order.ExchangeID = order_req->ExchangeID;
         order.Sid = order_req->Sid;
         order.Status = ZS_OS_Rejected;
         // other fields...
@@ -135,12 +178,10 @@ int zs_blotter_quote_order(zs_blotter_t* blotter, zs_quote_order_req_t* quoteOrd
 }
 
 
-zs_order_t* zs_get_order_byid(zs_blotter_t* blotter, int64_t orderId)
+zs_order_t* zs_get_order_byid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid)
 {
     zs_order_t* order;
-
-    order = zs_order_find_byid(blotter->WorkOrderList, orderId);
-
+    order = zs_order_find(blotter->WorkOrderList, exchange_id, order_sysid);
     return order;
 }
 
@@ -160,11 +201,21 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     // 1. 风控
     // 2. 开仓-冻结资金, 平仓-冻结持仓
     // 3. 手续费
-    zs_fund_account_t*      account;
+    zs_account_t*           account;
     zs_position_engine_t*   position;
     zs_contract_t*          contract;
 
-    account = blotter->pFundAccount;
+    if (order_req->Contract)
+        contract = (zs_contract_t*)order_req->Contract;
+    else
+        contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order_req->Sid);
+
+    if (!contract) {
+        // ERRORID: not find the contract data
+        return -1;
+    }
+
+    account = blotter->Account;
 
     // 自成交检测
     // blotter->WorkWorkOrderList
@@ -175,40 +226,63 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     position = zs_get_position_engine(blotter, order_req->Sid);
     if (position)
     {
-        zs_position_req_order(position, order_req);
+        zs_position_on_order_req(position, order_req);
     }
 
     // 资金
+    zs_account_on_order_req(account, order_req, contract);
 
-    /* 需要一个访问实时行情的接口 */
     return 0;
 }
 
 int zs_handle_quote_order_submit(zs_blotter_t* blotter,
-    zs_quote_order_req_t* quoteOrderReq)
+    zs_quote_order_req_t* quote_req)
 {
     return -1;
 }
 
 int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 {
-    // 更新订单状态
-    zs_order_t* lorder;
-    lorder = zs_get_order_byid(blotter, order->OrderID);
+    zs_order_t*     lorder;
+    zs_contract_t*  contract;
+    ZSOrderStatus   status;
+    ZSOrderKey      key;
+
+    key.ExchangeID = order->ExchangeID;
+    key.Length = (int)strlen(order->OrderSysID);
+    key.pOrderSysID = order->OrderSysID;
+
+    contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
+
+    // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
+
+    status = order->Status;
+    dictEntry* entry;
+    entry = dictFind(blotter->OrderDict, &key);
+    if (entry)
+    {
+        zs_order_t* old_order;
+        old_order = (zs_order_t*)entry->v.val;
+        if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
+        {
+            // 重复订单
+            if (status == old_order->Status) {
+                return 0;
+            }
+        }
+
+        // 更新订单状态
+    }
+    else
+    {
+        dictAdd(blotter->OrderDict, &key, order);
+    }
+
+    // working order
+    lorder = zs_get_order_byid(blotter, order->ExchangeID, order->OrderSysID);
     if (!lorder)
     {
         return -1;
-    }
-
-    ZSOrderStatus status = order->Status;
-    if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
-    {
-        ZStrKey key = { (int)strlen(order->OrderSysID), order->OrderSysID };
-        if (dictFind(blotter->OrderDict, &key)) {
-            return 0;
-        }
-
-        dictAdd(blotter->OrderDict, &key, 0);
     }
 
     strcpy(lorder->OrderSysID, order->OrderSysID);
@@ -217,7 +291,7 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
     lorder->OrderTime = order->OrderTime;
     lorder->CancelTime = order->CancelTime;
 
-    // zs_account_on_order_rtn(blotter->Account,)
+    zs_account_on_order_rtn(blotter->Account, lorder, contract);
 
     if (order->Status == ZS_OS_Canceld || order->Status == ZS_OS_PartCancled)
     {
@@ -225,7 +299,7 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
         position = zs_get_position_engine(blotter, order->Sid);
         if (position)
         {
-            zs_position_rtn_order(position, order);
+            zs_position_on_order_rtn(position, order);
         }
     }
 
@@ -237,7 +311,7 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     // 开仓单成交：调整持仓，重新计算占用资金，计算持仓成本
     // 平仓单成交：解冻持仓，回笼资金
     zs_order_t* lorder;
-    lorder = zs_get_order_byid(blotter, trade->OrderID);
+    lorder = zs_get_order_byid(blotter, trade->ExchangeID, trade->OrderSysID);
     if (!lorder)
     {
         return -1;
@@ -253,7 +327,7 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     position = zs_get_position_engine(blotter, trade->Sid);
     if (position)
     {
-        zs_position_rtn_trade(position, trade);
+        zs_position_on_trade_rtn(position, trade);
     }
 
     // how to get asset type
@@ -261,7 +335,7 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     comm_model = zs_commission_model_get(blotter->Commission, 0);
     float comm = comm_model->calculate(comm_model, lorder, trade);
 
-    blotter->pFundAccount->Commission += comm;
+    blotter->Account->FundAccount.Commission += comm;
 
     return 0;
 }

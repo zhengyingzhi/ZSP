@@ -14,6 +14,8 @@
 
 #include "zs_assets.h"
 
+#include "zs_account.h"
+
 #include "zs_broker_entry.h"
 
 #include "zs_commission.h"
@@ -52,7 +54,7 @@ struct zs_blotter_s
     ztl_map_t*          Positions;
 
     // 资金账户
-    zs_fund_account_t* pFundAccount;
+    zs_account_t*       Account;
 
     // 投资组合
     zs_portfolio_t*     pPortfolio;
@@ -78,7 +80,7 @@ int zs_blotter_quote_order(zs_blotter_t* blotter, zs_quote_order_req_t* quoteOrd
 
 
 // getters
-zs_order_t* zs_get_order_byid(zs_blotter_t* blotter, int64_t orderId);
+zs_order_t* zs_get_order_byid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid);
 
 zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid);
 
