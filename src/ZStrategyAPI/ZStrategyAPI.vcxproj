@@ -48,6 +48,7 @@
     <ClInclude Include="zs_assets.h" />
     <ClInclude Include="zs_configs.h" />
     <ClInclude Include="zs_core.h" />
+    <ClInclude Include="zs_cta_strategy.h" />
     <ClInclude Include="zs_data_feed.h" />
     <ClInclude Include="zs_data_portal.h" />
     <ClInclude Include="zs_event_engine.h" />
@@ -77,6 +78,7 @@
     <ClCompile Include="zs_commission.c" />
     <ClCompile Include="zs_assets.c" />
     <ClCompile Include="zs_configs.c" />
+    <ClCompile Include="zs_cta_strategy.c" />
     <ClCompile Include="zs_data_feed.c" />
     <ClCompile Include="zs_data_portal.c" />
     <ClCompile Include="zs_event_engine.c" />

@@ -152,7 +152,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
     }
 
     tdapi = blotter->TradeApi;
-    rv = tdapi->order(tdapi->ApiInstrance, order_req);
+    rv = tdapi->order(tdapi->ApiInstance, order_req);
     if (rv != 0)
     {
         // send order failed

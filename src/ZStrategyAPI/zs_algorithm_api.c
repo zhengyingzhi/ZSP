@@ -130,7 +130,7 @@ int zs_order_cancel(zs_algorithm_t* algo, int64_t orderId)
     strcpy(cancel_req.OrderSysID, order->OrderSysID);
     cancel_req.OrderID = orderId;
 
-    rv = td_api->cancel(td_api->ApiInstrance, &cancel_req);
+    rv = td_api->cancel(td_api->ApiInstance, &cancel_req);
     if (rv != 0)
     {
         // 

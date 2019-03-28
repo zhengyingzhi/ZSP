@@ -91,6 +91,9 @@
     <ClInclude Include="zs_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="zs_cta_strategy.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -193,6 +196,9 @@
     </ClCompile>
     <ClCompile Include="zs_hashdict.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_cta_strategy.c">
+      <Filter>Strategy</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -173,8 +173,8 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         tdapi->UserData = algo;
         mdapi->UserData = algo;
 
-        tdapi->ApiInstrance = tdapi->create("bt_td", 0);
-        mdapi->ApiInstrance = mdapi->create("bt_md", 0);
+        tdapi->ApiInstance = tdapi->create("bt_td", 0);
+        mdapi->ApiInstance = mdapi->create("bt_md", 0);
 
         zs_broker_add_tradeapi(algo->Broker, tdapi);
         zs_broker_add_mdapi(algo->Broker, mdapi);
@@ -316,12 +316,12 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
         trading_conf = (zs_trading_conf_t*)ztl_array_at(&algo->Params->TradingConf, 0);
 
         zs_trade_api_t* tdapi = zs_broker_get_tradeapi(algo->Broker, NULL);
-        tdapi->regist(tdapi->ApiInstrance, &td_handlers, tdapi, &trading_conf->TradeConf);
-        tdapi->connect(tdapi->ApiInstrance, simu->Slippage);
+        tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, &trading_conf->TradeConf);
+        tdapi->connect(tdapi->ApiInstance, simu->Slippage);
 
         zs_md_api_t* mdapi = zs_broker_get_mdapi(algo->Broker, NULL);
-        mdapi->regist(mdapi->ApiInstrance, &md_handlers, mdapi, &trading_conf->MdConf);
-        mdapi->connect(mdapi->ApiInstrance, NULL);
+        mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, &trading_conf->MdConf);
+        mdapi->connect(mdapi->ApiInstance, NULL);
 
         zs_simulator_regist_tradeapi(simu, tdapi, &td_handlers);
         zs_simulator_regist_mdapi(simu, mdapi, &md_handlers);
@@ -343,8 +343,8 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
             // 可支持：策略中登录了多个账户（每个账户属于不同的经纪商，如期现同时交易），虽账号不同，但属于同一人
             // 因此，需要支持智能获取接口（如下期货合约，不传入accountID，智能获取ctp，下股票，智能获取tdx接口）
             zs_trade_api_t* tdapi = zs_broker_get_tradeapi(algo->Broker, trading_conf->TradeConf.ApiName);
-            tdapi->regist(tdapi->ApiInstrance, &td_handlers, tdapi, &trading_conf->TradeConf);
-            tdapi->connect(tdapi->ApiInstrance, NULL);
+            tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, &trading_conf->TradeConf);
+            tdapi->connect(tdapi->ApiInstance, NULL);
         }
     }
 

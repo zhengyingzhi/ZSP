@@ -68,7 +68,7 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userData,
     {
         stg = (zs_strategy_api_t*)stg_array[i];
         if (stg && stg->on_order)
-            stg->on_order(stg->Instrance, zse->Algorithm, order);
+            stg->on_order(stg->Instance, zse->Algorithm, order);
     }
 }
 
@@ -95,7 +95,7 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userData,
     {
         stg = (zs_strategy_api_t*)stg_array[i];
         if (stg && stg->on_trade)
-            stg->on_trade(stg->Instrance, zse->Algorithm, trade);
+            stg->on_trade(stg->Instance, zse->Algorithm, trade);
     }
 }
 
@@ -146,7 +146,7 @@ static void _zs_strategy_handle_md(zs_event_engine_t* ee, void* userData,
             memcpy(&bar_reader, data_body, sizeof(void*));
 
             if (stg->on_bardata)
-                stg->on_bardata(stg->Instrance, zse->Algorithm, bar_reader);
+                stg->on_bardata(stg->Instance, zse->Algorithm, bar_reader);
         }
     }
 }
@@ -198,8 +198,8 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stgLibPaths)
 
     // load demo strategy
     zs_strategy_api_t* stgd = NULL;
-    zs_strategy_entry(&stgd);
-    stgd->Instrance = stgd->create("", 0);
+    zs_demo_strategy_entry(&stgd);
+    stgd->Instance = stgd->create("", 0);
 
     ztl_map_add(zse->StrategyMap, 16, stgd);
     void** dst = ztl_array_push(&zse->AllStrategy);
@@ -208,10 +208,10 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stgLibPaths)
     return 0;
 }
 
-int zs_strategy_load(zs_strategy_engine_t* zse, const char* libPath)
+int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
 {
     ztl_dso_handle_t* dso;
-    dso = ztl_dso_load(libPath);
+    dso = ztl_dso_load(libpath);
     if (!dso)
     {
         // log error
@@ -221,30 +221,32 @@ int zs_strategy_load(zs_strategy_engine_t* zse, const char* libPath)
     // TODO retrieve func from dso, and get its tdapi & mdapi
     // then, make some relationship
 
-    zs_strategy_api_t* stg;
-    stg = (zs_strategy_api_t*)ztl_pcalloc(zse->Pool, sizeof(zs_strategy_api_t));
+    zs_cta_strategy_t* strategy;
+    strategy = (zs_cta_strategy_t*)ztl_pcalloc(zse->Pool, sizeof(zs_cta_strategy_t));
 
-    stg->HLib = dso;
+    strategy->HLib = dso;
+
+    strategy->StrategyID = zse->StrategyBaseID++;
 
     // add to map and array
-    ztl_map_add(zse->StrategyMap, 1, stg);
+    ztl_map_add(zse->StrategyMap, strategy->StrategyID, strategy);
 
     void** dst = ztl_array_push(&zse->AllStrategy);
-    *dst = stg;
+    *dst = strategy;
 
     return 0;
 }
 
-int zs_strategy_unload(zs_strategy_engine_t* zse, const char* stgName)
+int zs_strategy_unload(zs_strategy_engine_t* zse, const char* strategy_name)
 {
     return 0;
 }
 
-int zs_strategy_find(zs_strategy_engine_t* zse, uint32_t sid, zs_strategy_api_t* stgArray[])
+int zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id, zs_cta_strategy_t* stgArray[])
 {
     int index = 0;
-    zs_strategy_api_t* stg;
-    stg = ztl_map_find(zse->StrategyMap, sid);
+    zs_cta_strategy_t* stg;
+    stg = ztl_map_find(zse->StrategyMap, strategy_id);
 
     stgArray[index++] = stg;
 

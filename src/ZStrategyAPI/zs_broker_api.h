@@ -70,7 +70,7 @@ typedef enum
 struct zs_trade_api_s
 {
     const char* ApiName;
-    void* ApiInstrance;
+    void* ApiInstance;
     void* UserData;
 
     // create api instance
@@ -124,7 +124,7 @@ struct zs_trade_api_handlers_s
 struct zs_md_api_s
 {
     const char* ApiName;
-    void* ApiInstrance;
+    void* ApiInstance;
     void* UserData;
 
     // create md api instance
