@@ -164,7 +164,7 @@ struct zs_md_api_handlers_s
     void (*on_subscribe)(void* mdctx, zs_subscribe_t* sub_rsp, int flag);
     void (*on_unsubscribe)(void* mdctx, zs_subscribe_t* unsub_rsp, int flag);
     void (*on_rtn_mktdata)(void* mdctx, zs_tick_t* tick);
-    void (*on_rtn_mktdata_l2)(void* mdctx, zs_l2_tick_t* tickl2);
+    void (*on_rtn_mktdata_l2)(void* mdctx, zs_tickl2_t* tickl2);
     void (*on_rtn_forquote)(void* mdctx, void* forQuote);
 };
 

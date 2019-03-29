@@ -31,8 +31,10 @@ struct zs_cta_strategy_s
     int32_t     StrategyID;
     uint32_t    StrategyFlag;
 
-    zs_strategy_engine_t*   engine;
-    zs_strategy_api_t*      stg;
+    zs_account_t*           Account;
+
+    zs_strategy_engine_t*   StgEngine;
+    zs_strategy_api_t*      StgApi;
     zs_asset_finder_t*      AssetFinder;
 };
 

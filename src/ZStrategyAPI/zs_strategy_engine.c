@@ -16,6 +16,11 @@
 // demo use
 #include "zs_strategy_demo.h"
 
+typedef struct  
+{
+    char*   StrategyName;       // 策略名
+    char*   StrategyPath;       // 策略路径
+}zs_strategy_file_t;
 
 
 
@@ -137,7 +142,7 @@ static void _zs_strategy_handle_md(zs_event_engine_t* ee, void* userData,
         else if (zdh->DType == ZS_DT_MD_Level2)
         {
             if (stg->on_tickdataL2)
-                stg->on_tickdataL2(stg, zse->Algorithm, (zs_l2_tick_t*)data_body);
+                stg->on_tickdataL2(stg, zse->Algorithm, (zs_tickl2_t*)data_body);
         }
         else if (zdh->DType == ZS_DT_MD_Bar)
         {
@@ -166,6 +171,10 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
 
     ztl_array_init(&zse->AllStrategy, algo->Pool, 16, sizeof(void*));
 
+    // TODO: 需要预先从配置文件中读取当前系统支持哪些策略
+    //       也可自动定义规则，扫描当前目录下strategy开头的文件且为dll/so形式的，然后自动加载
+    zse->StrategyPaths = ztl_vector_create(32, sizeof(zs_strategy_file_t*));
+
     return zse;
 }
 
@@ -184,15 +193,15 @@ static void zs_strategy_register_event(zs_strategy_engine_t* zse)
     zs_ee_register(ee, zse, ZS_EV_MD, _zs_strategy_handle_md);
 }
 
-int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stgLibPaths)
+int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stg_libpaths)
 {
     zs_strategy_register_event(zse);
 
     // load all strategies from dso
     const char* lib_path;
-    for (uint32_t i = 0; i < ztl_array_size(stgLibPaths); ++i)
+    for (uint32_t i = 0; i < ztl_array_size(stg_libpaths); ++i)
     {
-        lib_path = ztl_array_at(stgLibPaths, i);
+        lib_path = ztl_array_at(stg_libpaths, i);
         zs_strategy_load(zse, lib_path);
     }
 
@@ -252,4 +261,60 @@ int zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id, zs_cta_str
 
     return index;
 }
+
+int zs_strategy_add(zs_strategy_engine_t* zse, const char* setting)
+{
+    // 提供一个配置解析工具，该工具主要为可解析key-value形式的数据，value可以为list
+    // 根据配置添加一个策略，根据名字，从StrategyPaths中查找策略路径，
+    // 并加载策略动态库，并得到zs_strategy_api_t*，即策略的入口函数等
+    // 生成一个zs_cta_strategy_t类型，保存该策略的基本参数，账户，策略入口函数等
+    // 将该cta_strategy实例添加到engine的字典关系中，便于访问
+    return 0;
+}
+
+int zs_strategy_del(zs_strategy_engine_t* zse, uint32_t strategy_id)
+{
+    // 移除策略
+    return 0;
+}
+
+int zs_strategy_start(zs_strategy_engine_t* zse, uint32_t strategy_id)
+{
+    return 0;
+}
+
+int zs_strategy_stop(zs_strategy_engine_t* zse, uint32_t strategy_id)
+{
+    return 0;
+}
+
+int zs_strategy_update(zs_strategy_engine_t* zse, uint32_t strategy_id, const char* setting)
+{
+    return 0;
+}
+
+
+void zs_strategy_on_order_req(zs_strategy_engine_t* zse, zs_order_req_t* order_req, uint64_t* order_id)
+{
+    // called by zs_cta_strategy when order placed, and got the order_id
+    // here, we save the order relationship for order returned
+}
+
+void zs_strategy_on_order_rtn(zs_strategy_engine_t* zse, zs_order_t* order)
+{
+    // process the order returned event, call its strategy's callback
+}
+
+void zs_strategy_on_trade_rtn(zs_strategy_engine_t* zse, zs_trade_t* trade)
+{
+}
+
+void zs_strategy_on_tick(zs_strategy_engine_t* zse, zs_tick_t* tick)
+{
+}
+
+void zs_strategy_on_tickl2(zs_strategy_engine_t* zse, zs_tickl2_t* tickl2)
+{
+}
+
 

@@ -109,7 +109,7 @@ struct zs_tick_s
 typedef struct zs_tick_s zs_tick_t;
 
 
-struct zs_l2_tick_s
+struct zs_tickl2_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
@@ -143,7 +143,7 @@ struct zs_l2_tick_s
     double          AskPrice[10];
     int32_t         AskVolume[10];
 };
-typedef struct zs_l2_tick_s zs_l2_tick_t;
+typedef struct zs_tickl2_s zs_tickl2_t;
 
 struct zs_bar_s
 {
