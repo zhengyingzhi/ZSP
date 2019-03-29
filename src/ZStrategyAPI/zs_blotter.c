@@ -201,6 +201,7 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     // 1. 风控
     // 2. 开仓-冻结资金, 平仓-冻结持仓
     // 3. 手续费
+    int                     rv;
     zs_account_t*           account;
     zs_position_engine_t*   position;
     zs_contract_t*          contract;
@@ -220,17 +221,21 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     // 自成交检测
     // blotter->WorkWorkOrderList
 
-    // 资金处理
-
     // 持仓
     position = zs_get_position_engine(blotter, order_req->Sid);
     if (position)
     {
-        zs_position_on_order_req(position, order_req);
+        rv = zs_position_on_order_req(position, order_req);
+        if (rv != 0) {
+            return rv;
+        }
     }
 
     // 资金
-    zs_account_on_order_req(account, order_req, contract);
+    rv = zs_account_on_order_req(account, order_req, contract);
+    if (rv != 0) {
+        return rv;
+    }
 
     return 0;
 }

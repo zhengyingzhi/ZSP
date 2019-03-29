@@ -98,6 +98,11 @@ static void update_frozen_margin(zs_account_t* account)
     account->FrozenMargin += margin_diff;
 }
 
+static void update_use_margin(zs_account_t* account, double margin)
+{
+    account->FundAccount.Margin += margin;
+}
+
 static void update_frozen_cash(zs_account_t* account, double cash)
 {
     account->FundAccount.FrozenCash += cash;
@@ -108,8 +113,8 @@ static void update_avail_cash(zs_account_t* account, double cash)
     account->FundAccount.Available += cash;
 }
 
-static double freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirectionType direction,
-    double price, int volume, char* userid, zs_contract_t* contract)
+static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirectionType direction,
+    double price, int volume, char* userid, zs_contract_t* contract, double* pmargin)
 {
     // 冻结保证金
     double frozen_margin = 0.0;
@@ -118,7 +123,7 @@ static double freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, Z
         frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
         if (frozen_margin > account->FundAccount.Available) {
             // ERRORID: 可用资金不够
-            return 0.0;
+            return -1;
         }
 
         update_long_frozen_margin(account, frozen_margin);
@@ -128,25 +133,29 @@ static double freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, Z
         frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
         if (frozen_margin > account->FundAccount.Available) {
             // ERRORID: 可用资金不够
-            return 0;
+            return -1;
         }
 
         update_short_frozen_margin(account, frozen_margin);
     }
     else
     {
-        return 0;
+        // ERRORID: 不合法的买卖标志
+        return -2;
     }
+
+    if (pmargin)
+        *pmargin = frozen_margin;
 
     add_frozen_detail(account, symbol, sid, frozen_margin, price, volume, userid);
     update_frozen_margin(account);
     update_frozen_cash(account, frozen_margin);
     update_avail_cash(account, -frozen_margin);
-    return frozen_margin;
+    return 0;
 }
 
 static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirectionType direction,
-    double price, int volume, char* userid, zs_contract_t* contract)
+    double price, int volume, char* userid, zs_contract_t* contract, double* pmargin)
 {
     // 释放保证金
     double frozen_margin = 0.0;
@@ -158,17 +167,15 @@ static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid
     else if (direction == ZS_D_Short)
     {
         frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
-        if (frozen_margin > account->FundAccount.Available) {
-            // ERRORID: 可用资金不够
-            return;
-        }
-
         update_short_frozen_margin(account, -frozen_margin);
     }
     else
     {
         return;
     }
+
+    if (pmargin)
+        *pmargin = frozen_margin;
 
     update_frozen_detail(account, symbol, sid, frozen_margin, price, volume, userid);
     update_frozen_margin(account);
@@ -249,10 +256,31 @@ void zs_account_update(zs_account_t* account, zs_fund_account_t* fund_account)
 
 int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs_contract_t* contract)
 {
+    int rv;
+    rv = -1;
+
     if (order_req->Offset == ZS_OF_Open)
     {
-        // ERRORID: 
+        double frozen_margin = 0;
+        rv = freeze_margin(account, order_req->Symbol, order_req->Sid, order_req->Direction,
+            order_req->Price, order_req->Quantity, order_req->UserID, order_req->Contract, &frozen_margin);
+        if (rv != 0) {
+            // ERRORID: 可用资金不够
+            return rv;
+        }
     }
+
+    rv = freeze_commission(account, order_req->Offset, order_req->Price, order_req->Quantity, order_req->Contract);
+    if (rv != 0)
+    {
+        double frozen_margin = 0;
+        free_frozen_margin(account, order_req->Symbol, order_req->Sid, order_req->Direction,
+            order_req->Price, order_req->Quantity, order_req->UserID, order_req->Contract, &frozen_margin);
+
+        // ERRORID: 手续费不够
+        return rv;
+    }
+
     return 0;
 }
 
@@ -264,9 +292,11 @@ int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contrac
         return 0;
     }
 
-    if (order->Offset == ZS_OF_Open) {
+    if (order->Offset == ZS_OF_Open)
+    {
+        double frozen_margin = 0;
         free_frozen_margin(account, order->Symbol, order->Sid, order->Direction,
-            order->Price, vol, order->UserID, contract);
+            order->Price, vol, order->UserID, contract, &frozen_margin);
     }
     free_frozen_commission(account, order->Offset, order->Price, vol, contract);
 
@@ -275,6 +305,39 @@ int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contrac
 
 int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
 {
+    double  margin, margin_ratio;
+    double  price;
+    int     volume;
+
+    margin = 0;
+    price = trade->Price;
+    volume = trade->Volume;
+
+    if (order->Direction == ZS_D_Long)
+        margin_ratio = contract->LongMarginRateByMoney;
+    else
+        margin_ratio = contract->ShortMarginRateByMoney;
+    margin = calculate_margin(price, volume, contract->Multiplier, margin_ratio);
+
+    if (order->Offset == ZS_OF_Open)
+    {
+        double frozen_margin = 0;
+        free_frozen_margin(account, order->Symbol, order->Sid, order->Direction, order->Price, volume,
+            order->UserID, contract, &frozen_margin);
+
+        update_use_margin(account, margin);
+        update_avail_cash(account, -margin);
+    }
+    else
+    {
+        update_use_margin(account, -margin);
+        update_avail_cash(account, margin);
+    }
+
+    free_frozen_commission(account, order->Offset, order->Price, volume, contract);
+    account->FundAccount.Commission += trade->Commission;
+    update_avail_cash(account, -trade->Commission);
+
     return 0;
 }
 
@@ -299,15 +362,16 @@ int zs_account_on_order_trade(zs_account_t* account, zs_order_t* order, zs_trade
     if (order->Offset == ZS_OF_Open)
     {
         // 开仓，重新计算保证金
+        double frozen_margin = 0;
         free_frozen_margin(account, order->Symbol, order->Sid, order->Direction,
-            order->Price, volume, order->UserID, contract);
+            order->Price, volume, order->UserID, contract, &frozen_margin);
 
-        zs_account_update_margin(account, margin);
+        update_use_margin(account, margin);
         update_avail_cash(account, -margin);
     }
     else
     {
-        zs_account_update_margin(account, -margin);
+        update_use_margin(account, -margin);
         update_avail_cash(account, margin);
     }
 
@@ -320,7 +384,3 @@ int zs_account_on_order_trade(zs_account_t* account, zs_order_t* order, zs_trade
     return 0;
 }
 
-void zs_account_update_margin(zs_account_t* account, double margin)
-{
-    account->FundAccount.Margin += margin;
-}

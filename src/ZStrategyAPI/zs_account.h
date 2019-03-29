@@ -62,7 +62,6 @@ int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs
 int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contract_t* contract);
 int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract);
 
-void zs_account_update_margin(zs_account_t* account, double margin);
 
 #ifdef __cplusplus
 }
