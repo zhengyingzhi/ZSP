@@ -43,7 +43,8 @@ typedef struct zs_bar_reader_s zs_bar_reader_t;
 
 typedef struct zs_risk_control_s zs_risk_control_t;
 
-typedef struct zs_strategy_api_s zs_strategy_api_t;
+typedef struct zs_strategy_entry_s zs_strategy_entry_t;
+typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 typedef struct zs_strategy_engine_s zs_strategy_engine_t;
 
 typedef struct zs_slippage_s zs_slippage_t;

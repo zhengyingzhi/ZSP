@@ -14,7 +14,7 @@
 
 #include "zs_core.h"
 
-#include "zs_strategy_api.h"
+#include "zs_strategy_entry.h"
 
 
 #ifdef __cplusplus
@@ -33,8 +33,8 @@ struct zs_cta_strategy_s
 
     zs_account_t*           Account;
 
-    zs_strategy_engine_t*   StgEngine;
-    zs_strategy_api_t*      StgApi;
+    zs_strategy_engine_t*   Engine;
+    zs_strategy_entry_t*    StgEntry;
     zs_asset_finder_t*      AssetFinder;
 };
 

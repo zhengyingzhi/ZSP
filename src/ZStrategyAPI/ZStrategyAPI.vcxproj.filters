@@ -28,9 +28,6 @@
     <ClInclude Include="zs_blotter.h">
       <Filter>Finance</Filter>
     </ClInclude>
-    <ClInclude Include="zs_strategy_api.h">
-      <Filter>Strategy</Filter>
-    </ClInclude>
     <ClInclude Include="zs_strategy_demo.h">
       <Filter>Strategy</Filter>
     </ClInclude>
@@ -92,6 +89,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="zs_cta_strategy.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_strategy_entry.h">
       <Filter>Strategy</Filter>
     </ClInclude>
   </ItemGroup>

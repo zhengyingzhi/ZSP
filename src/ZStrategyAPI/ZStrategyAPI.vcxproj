@@ -62,9 +62,9 @@
     <ClInclude Include="zs_risk_control.h" />
     <ClInclude Include="zs_simulator.h" />
     <ClInclude Include="zs_slippage.h" />
-    <ClInclude Include="zs_strategy_api.h" />
     <ClInclude Include="zs_strategy_demo.h" />
     <ClInclude Include="zs_strategy_engine.h" />
+    <ClInclude Include="zs_strategy_entry.h" />
     <ClInclude Include="zs_trading_calendar.h" />
   </ItemGroup>
   <ItemGroup>

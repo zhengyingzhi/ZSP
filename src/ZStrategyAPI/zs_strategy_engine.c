@@ -9,7 +9,7 @@
 
 #include "zs_event_engine.h"
 
-#include "zs_strategy_api.h"
+#include "zs_strategy_entry.h"
 
 #include "zs_strategy_engine.h"
 
@@ -25,7 +25,7 @@ typedef struct
 
 
 static uint32_t _zs_strategy_retrieve(zs_strategy_engine_t* zse, zs_sid_t sid,
-    zs_strategy_api_t* stgArray[], uint32_t arrSize)
+    zs_strategy_entry_t* stgArray[], uint32_t arrSize)
 {
     uint32_t count = 0;
     if (sid == 0)
@@ -56,8 +56,8 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userData,
     // 根据type和data，过滤策略，然后回调
     zs_data_head_t*         zdh;
     zs_strategy_engine_t*   zse;
-    zs_strategy_api_t*      stg;
-    zs_strategy_api_t*      stg_array[16];
+    zs_strategy_entry_t*    stg;
+    zs_strategy_entry_t*    stg_array[16];
     zs_order_t*             order;
     zs_sid_t                sid;
 
@@ -71,9 +71,9 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userData,
     uint32_t count = _zs_strategy_retrieve(zse, sid, stg_array, 16);
     for (uint32_t i = 0; i < count; ++i)
     {
-        stg = (zs_strategy_api_t*)stg_array[i];
-        if (stg && stg->on_order)
-            stg->on_order(stg->Instance, zse->Algorithm, order);
+        stg = (zs_strategy_entry_t*)stg_array[i];
+        if (stg && stg->handle_order)
+            stg->handle_order(0, order);
     }
 }
 
@@ -83,8 +83,8 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userData,
     // 同理处理成交事件
     zs_data_head_t*         zdh;
     zs_strategy_engine_t*   zse;
-    zs_strategy_api_t*      stg;
-    zs_strategy_api_t*      stg_array[16];
+    zs_strategy_entry_t*    stg;
+    zs_strategy_entry_t*    stg_array[16];
     zs_trade_t*             trade;
     zs_sid_t                sid;
 
@@ -98,9 +98,9 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userData,
     uint32_t count = _zs_strategy_retrieve(zse, sid, stg_array, 16);
     for (uint32_t i = 0; i < count; ++i)
     {
-        stg = (zs_strategy_api_t*)stg_array[i];
-        if (stg && stg->on_trade)
-            stg->on_trade(stg->Instance, zse->Algorithm, trade);
+        stg = (zs_strategy_entry_t*)stg_array[i];
+        if (stg && stg->handle_trade)
+            stg->handle_trade(0, trade);
     }
 }
 
@@ -110,8 +110,8 @@ static void _zs_strategy_handle_md(zs_event_engine_t* ee, void* userData,
     // 处理行情事件(是否需要优化为多线程)
     zs_data_head_t*         zdh;
     zs_strategy_engine_t*   zse;
-    zs_strategy_api_t*      stg;
-    zs_strategy_api_t*      stg_array[16];
+    zs_strategy_entry_t*    stg_entry;
+    zs_strategy_entry_t*    stg_array[16];
     void*                   data_body;
     zs_sid_t                sid;
 
@@ -128,21 +128,21 @@ static void _zs_strategy_handle_md(zs_event_engine_t* ee, void* userData,
     uint32_t count = _zs_strategy_retrieve(zse, sid, stg_array, 16);
     for (uint32_t i = 0; i < count; ++i)
     {
-        stg = (zs_strategy_api_t*)stg_array[i];
-        if (!stg)
+        stg_entry = (zs_strategy_entry_t*)stg_array[i];
+        if (!stg_entry)
         {
             continue;
         }
 
         if (zdh->DType == ZS_DT_MD_Tick)
         {
-            if (stg->on_tickdata)
-                stg->on_tickdata(stg, zse->Algorithm, (zs_tick_t*)data_body);
+            if (stg_entry->handle_tickdata)
+                stg_entry->handle_tickdata(NULL/*FIXME*/, (zs_tick_t*)data_body);
         }
         else if (zdh->DType == ZS_DT_MD_Level2)
         {
-            if (stg->on_tickdataL2)
-                stg->on_tickdataL2(stg, zse->Algorithm, (zs_tickl2_t*)data_body);
+            if (stg_entry->handle_tickl2data)
+                stg_entry->handle_tickl2data(NULL, (zs_tickl2_t*)data_body);
         }
         else if (zdh->DType == ZS_DT_MD_Bar)
         {
@@ -150,8 +150,8 @@ static void _zs_strategy_handle_md(zs_event_engine_t* ee, void* userData,
             zs_bar_reader_t* bar_reader = NULL;
             memcpy(&bar_reader, data_body, sizeof(void*));
 
-            if (stg->on_bardata)
-                stg->on_bardata(stg->Instance, zse->Algorithm, bar_reader);
+            if (stg_entry->handle_bardata)
+                stg_entry->handle_bardata(NULL, bar_reader);
         }
     }
 }
@@ -206,13 +206,20 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stg_libpaths
     }
 
     // load demo strategy
-    zs_strategy_api_t* stgd = NULL;
-    zs_demo_strategy_entry(&stgd);
-    stgd->Instance = stgd->create("", 0);
+    zs_strategy_entry_t* stg_entry = NULL;
+    zs_demo_strategy_entry(&stg_entry);
+    if (!stg_entry) {
+        // ERRORID: no entry callbacks
+        return -1;
+    }
 
-    ztl_map_add(zse->StrategyMap, 16, stgd);
+    zs_cta_strategy_t* strategy;
+    strategy = ztl_palloc(zse->Pool, sizeof(zs_cta_strategy_t));
+    strategy->Instance = stg_entry->create("");
+
+    ztl_map_add(zse->StrategyMap, 16, strategy);
     void** dst = ztl_array_push(&zse->AllStrategy);
-    *dst = stgd;
+    *dst = strategy;
 
     return 0;
 }
