@@ -1,15 +1,18 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <assert.h>
+#include <locale.h>
 
 #include <ZToolLib/ztl_utils.h>
 
 #include <ZStrategyAPI/zs_api_object.h>
 #include <ZStrategyAPI/zs_assets.h>
 #include <ZStrategyAPI/zs_trading_calendar.h>
+#include <ZStrategyAPI/zs_broker_info.h>
 
 void test_asset_finder();
 void test_calendar();
 void test_array();
+void test_broker_info();
 
 int main(int argc, char* argv[])
 {
@@ -20,7 +23,8 @@ int main(int argc, char* argv[])
 
     // test_asset_finder();
     // test_calendar();
-    test_array();
+    // test_array();
+    test_broker_info();
     return 0;
 }
 
@@ -211,4 +215,19 @@ void test_array()
     }
     fprintf(stdout, "\n");
 
+}
+
+void test_broker_info()
+{
+    setlocale(LC_CTYPE, "");
+
+    const char* filename = "brokers.json";
+    ztl_vector_t vec;
+    ztl_vector_init(&vec, 2, sizeof(zs_broker_info_t));
+    zs_broker_info_load(&vec, filename);
+
+    zs_broker_info_t* broker_info;
+    broker_info = zs_broker_find_byid(&vec, "0118");
+    broker_info = zs_broker_find_byname(&vec, "九洲期货");
+    broker_info = NULL;
 }

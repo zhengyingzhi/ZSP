@@ -338,7 +338,7 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     // how to get asset type
     zs_commission_model_t* comm_model;
     comm_model = zs_commission_model_get(blotter->Commission, 0);
-    float comm = comm_model->calculate(comm_model, lorder, trade);
+    double comm = comm_model->calculate(comm_model, lorder, trade);
 
     blotter->Account->FundAccount.Commission += comm;
 
@@ -354,7 +354,7 @@ static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_
             break;
         }
 
-        float last_price = barReader->current(barReader, (zs_sid_t)pairs[k].Key, "close");
+        double last_price = barReader->current(barReader, (zs_sid_t)pairs[k].Key, "close");
         if (last_price < 0.0001) {
             continue;
         }

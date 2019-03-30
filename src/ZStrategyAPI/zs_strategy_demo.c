@@ -60,21 +60,21 @@ void stg_demo_on_stop(zs_cta_strategy_t* context)
     printf("stg demo stop\n");
 }
 
-void stg_demo_on_order(zs_cta_strategy_t* context, zs_order_t* order)
+void stg_demo_handle_order(zs_cta_strategy_t* context, zs_order_t* order)
 {
     printf("stg demo got order: %s,%d,%d,%.2f\n", order->Symbol, order->Direction, 
         order->Quantity, order->Price);
     // zs_cta_order(context, NULL);
 }
 
-void stg_demo_on_trade(zs_cta_strategy_t* context, zs_trade_t* trade)
+void stg_demo_handle_trade(zs_cta_strategy_t* context, zs_trade_t* trade)
 {
     printf("stg demo got trade: %s,%d,%d,%.2f\n", trade->Symbol, trade->Direction,
         trade->Volume, trade->Price);
 }
 
 // 行情通知
-void stg_demo_on_bardata(zs_cta_strategy_t* context, zs_bar_reader_t* barReader)
+void stg_demo_handle_bardata(zs_cta_strategy_t* context, zs_bar_reader_t* barReader)
 {
     my_strategy_demo_t* mystg;
     //zs_portfolio_t* portfolio;
@@ -91,11 +91,11 @@ void stg_demo_on_bardata(zs_cta_strategy_t* context, zs_bar_reader_t* barReader)
     printf("stg demo %d, closepx:%.2lf\n", mystg->index, closepx);
 
     // try send an order
-    int rv = zs_order(context, NULL, sid, 100, closepx, 0, NULL);
-    printf("std demo send order rv:%d\n", rv);
+    // int rv = zs_order(context, NULL, sid, 100, closepx, 0, NULL);
+    // printf("std demo send order rv:%d\n", rv);
 }
 
-void stg_demo_on_tickdata(void* stg, zs_cta_strategy_t* context, zs_tick_t* tickData)
+void stg_demo_handle_tickdata(zs_cta_strategy_t* context, zs_tick_t* tickData)
 {
     // visit the tick data
 }
@@ -113,11 +113,11 @@ static zs_strategy_entry_t stg_demo =
     stg_demo_on_stop,
     NULL,   // on update
     NULL,   // before_trading_start
-    stg_demo_on_order,
-    stg_demo_on_trade,
+    stg_demo_handle_order,
+    stg_demo_handle_trade,
 
-    stg_demo_on_bardata,
-    stg_demo_on_tickdata,
+    stg_demo_handle_bardata,
+    stg_demo_handle_tickdata,
     NULL
 };
 

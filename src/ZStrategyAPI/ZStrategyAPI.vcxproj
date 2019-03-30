@@ -43,6 +43,7 @@
     <ClInclude Include="zs_broker_api.h" />
     <ClInclude Include="zs_broker_backtest.h" />
     <ClInclude Include="zs_broker_entry.h" />
+    <ClInclude Include="zs_broker_info.h" />
     <ClInclude Include="zs_commission.h" />
     <ClInclude Include="zs_common.h" />
     <ClInclude Include="zs_assets.h" />
@@ -75,6 +76,7 @@
     <ClCompile Include="zs_blotter_manager.c" />
     <ClCompile Include="zs_broker_backtest.c" />
     <ClCompile Include="zs_broker_entry.c" />
+    <ClCompile Include="zs_broker_info.c" />
     <ClCompile Include="zs_commission.c" />
     <ClCompile Include="zs_assets.c" />
     <ClCompile Include="zs_configs.c" />

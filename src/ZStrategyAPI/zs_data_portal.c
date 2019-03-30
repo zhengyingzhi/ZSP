@@ -113,7 +113,7 @@ int _zs_bar_reader_history(zs_bar_reader_t* barReader, zs_sid_t sid, zs_bar_t* b
     return 0;
 }
 
-float _zs_bar_reader_current(zs_bar_reader_t* barReader, zs_sid_t sid, const char* priceField)
+double _zs_bar_reader_current(zs_bar_reader_t* barReader, zs_sid_t sid, const char* priceField)
 {
     zs_bar_t* bar;
     bar = zs_data_portal_get_bar(barReader->DataPortal, sid, barReader->CurrentDt);

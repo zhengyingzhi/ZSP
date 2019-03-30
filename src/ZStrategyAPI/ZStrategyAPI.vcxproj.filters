@@ -94,6 +94,9 @@
     <ClInclude Include="zs_strategy_entry.h">
       <Filter>Strategy</Filter>
     </ClInclude>
+    <ClInclude Include="zs_broker_info.h">
+      <Filter>Brokerage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -199,6 +202,9 @@
     </ClCompile>
     <ClCompile Include="zs_cta_strategy.c">
       <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_broker_info.c">
+      <Filter>Brokerage</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

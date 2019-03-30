@@ -29,6 +29,8 @@ typedef struct zs_broker_s zs_broker_t;
 
 typedef struct zs_broker_conf_s zs_broker_conf_t;
 
+typedef struct zs_broker_info_s zs_broker_info_t;
+
 typedef struct zs_blotter_s zs_blotter_t;
 
 typedef struct zs_blotter_manager_s zs_blotter_manager_t;

@@ -49,9 +49,9 @@ struct zs_bar_reader_s
     int32_t DataFrequency;
     int64_t CurrentDt;
 
-    bool (*can_trade)(zs_bar_reader_t* barReader, zs_sid_t sid);
-    int (*history)(zs_bar_reader_t* barReader, zs_sid_t sid, zs_bar_t* barArr[], int arrSize);
-    float (*current)(zs_bar_reader_t* barReader, zs_sid_t sid, const char* priceField);
+    bool    (*can_trade)(zs_bar_reader_t* barReader, zs_sid_t sid);
+    int     (*history)(zs_bar_reader_t* barReader, zs_sid_t sid, zs_bar_t* barArr[], int arrSize);
+    double  (*current)(zs_bar_reader_t* barReader, zs_sid_t sid, const char* priceField);
     zs_bar_t* (*current_bar)(zs_bar_reader_t* barReader, zs_sid_t sid);
 };
 

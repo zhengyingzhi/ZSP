@@ -63,7 +63,7 @@ struct zs_commission_model_s
     const char* Name;
     void* UserData;
 
-    float (*calculate)(zs_commission_model_t* model, 
+    double (*calculate)(zs_commission_model_t* model, 
         const zs_order_t* order, const zs_trade_t* trade);
 };
 
