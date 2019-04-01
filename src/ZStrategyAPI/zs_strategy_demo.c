@@ -74,11 +74,11 @@ void stg_demo_handle_trade(zs_cta_strategy_t* context, zs_trade_t* trade)
 }
 
 // 行情通知
-void stg_demo_handle_bardata(zs_cta_strategy_t* context, zs_bar_reader_t* barReader)
+void stg_demo_handle_bardata(zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
 {
     my_strategy_demo_t* mystg;
     //zs_portfolio_t* portfolio;
-    float closepx;
+    double closepx;
 
     mystg = (my_strategy_demo_t*)context->Instance;
     mystg->index += 1;
@@ -87,7 +87,7 @@ void stg_demo_handle_bardata(zs_cta_strategy_t* context, zs_bar_reader_t* barRea
     const char* symbol = mystg->symbols[0];
     sid = zs_asset_lookup(context->AssetFinder, symbol, (int)strlen(symbol));
 
-    closepx = barReader->current(barReader, sid, "close");
+    closepx = bar_reader->current(bar_reader, sid, "close");
     printf("stg demo %d, closepx:%.2lf\n", mystg->index, closepx);
 
     // try send an order

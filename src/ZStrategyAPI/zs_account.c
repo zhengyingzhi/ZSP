@@ -183,7 +183,7 @@ static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid
     update_avail_cash(account, frozen_margin);
 }
 
-static double freeze_commission(zs_account_t* account, ZSOffsetFlag offset, double price, int volume, zs_contract_t* contract)
+static int freeze_commission(zs_account_t* account, ZSOffsetFlag offset, double price, int volume, zs_contract_t* contract)
 {
     return 0;
 }

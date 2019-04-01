@@ -52,6 +52,7 @@ struct zs_bar_reader_s
     bool    (*can_trade)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
     int     (*history)(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size);
     double  (*current)(zs_bar_reader_t* bar_reader, zs_sid_t sid, const char* field);
+    double  (*current2)(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFieldType field);
     zs_bar_t* (*current_bar)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
 };
 

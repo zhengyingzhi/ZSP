@@ -99,10 +99,10 @@ zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int isEqui
     }
 }
 
-float zs_commission_calculate(zs_commission_t* comm, int isEquity, 
+double zs_commission_calculate(zs_commission_t* comm, int isEquity, 
     zs_order_t* order, zs_trade_t* trade)
 {
-    float commission;
+    double commission;
     zs_commission_model_t* model;
     model = zs_commission_model_get(comm, isEquity);
 

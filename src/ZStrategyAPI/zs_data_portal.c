@@ -137,7 +137,7 @@ double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const c
         return bar->LowPrice;
     }
     else if (strcmp(field, "volume") == 0) {
-        return bar->Volume;
+        return (double)bar->Volume;
     }
     else if (strcmp(field, "amount") == 0) {
         return bar->Amount;
@@ -169,7 +169,7 @@ double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFiel
     case ZS_FT_Low:
         return bar->LowPrice;
     case ZS_FT_Volume:
-        return bar->Volume;
+        return (double)bar->Volume;
     case ZS_FT_Amount:
         return bar->Amount;
     case ZS_FT_OpenInterest:
@@ -197,6 +197,7 @@ int zs_bar_reader_init(zs_bar_reader_t* bar_reader, zs_data_portal_t* data_porta
     bar_reader->can_trade = _zs_bar_reader_can_trade;
     bar_reader->history = _zs_bar_reader_history;
     bar_reader->current = _zs_bar_reader_current;
+    bar_reader->current2 = _zs_bar_reader_current2;
     bar_reader->current_bar = _zs_bar_reader_current_bar;
 
     return 0;

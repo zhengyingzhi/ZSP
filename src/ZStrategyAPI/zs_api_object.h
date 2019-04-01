@@ -92,6 +92,7 @@ struct zs_tick_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     int64_t         UpdateTime;
+    zs_dt_t         TickDt;
     uint64_t        Sid;
     int32_t         TradingDay;
     int32_t         ActionDay;
