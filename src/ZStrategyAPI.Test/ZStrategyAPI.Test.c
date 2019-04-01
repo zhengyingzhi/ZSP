@@ -8,6 +8,7 @@
 #include <ZStrategyAPI/zs_assets.h>
 #include <ZStrategyAPI/zs_trading_calendar.h>
 #include <ZStrategyAPI/zs_broker_info.h>
+#include <ZStrategyAPI/zs_bar_generator.h>
 
 void test_asset_finder();
 void test_calendar();

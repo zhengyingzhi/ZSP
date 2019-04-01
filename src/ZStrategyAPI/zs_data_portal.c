@@ -22,41 +22,41 @@ zs_data_portal_t* zs_data_portal_create()
     return data_portal;
 }
 
-void zs_data_portal_release(zs_data_portal_t* dataPortal)
+void zs_data_portal_release(zs_data_portal_t* data_portal)
 {
-    if (dataPortal->Time2Data) {
-        dictRelease(dataPortal->Time2Data);
+    if (data_portal->Time2Data) {
+        dictRelease(data_portal->Time2Data);
     }
-    if (dataPortal->Asset2Data) {
-        dictRelease(dataPortal->Asset2Data);
+    if (data_portal->Asset2Data) {
+        dictRelease(data_portal->Asset2Data);
     }
 }
 
-int zs_data_portal_wrapper(zs_data_portal_t* dataPortal, ztl_array_t* rawDatas)
+int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* raw_datas)
 {
-    dataPortal->RawDatas = rawDatas;
+    data_portal->RawDatas = raw_datas;
 
     zs_bar_t* bar = NULL;
-    for (uint32_t i = 0; i < ztl_array_size(rawDatas); ++i)
+    for (uint32_t i = 0; i < ztl_array_size(raw_datas); ++i)
     {
         // 实际上value应该是一个set/dict
         zs_bar_t* bar;
-        bar = *(zs_bar_t**)ztl_array_at(rawDatas, i);
-        dictAdd(dataPortal->Time2Data, (void*)bar->BarTime, (void*)bar);
+        bar = *(zs_bar_t**)ztl_array_at(raw_datas, i);
+        dictAdd(data_portal->Time2Data, (void*)bar->BarTime, (void*)bar);
     }
 
     if (bar)
     {
         // how to get sid here??
         int64_t sid = 1;
-        dictAdd(dataPortal->Asset2Data, (void*)sid, rawDatas);
+        dictAdd(data_portal->Asset2Data, (void*)sid, raw_datas);
     }
 
     return 0;
 }
 
 
-zs_bar_t* zs_data_portal_get_bar(zs_data_portal_t* dataPortal, 
+zs_bar_t* zs_data_portal_get_bar(zs_data_portal_t* data_portal, 
     zs_sid_t sid, int64_t dt)
 {
     //if (sid < ZS_ASSET_START_SID) {
@@ -67,7 +67,7 @@ zs_bar_t* zs_data_portal_get_bar(zs_data_portal_t* dataPortal,
     bar = NULL;
 
     dictEntry* entry;
-    entry = dictFind(dataPortal->Time2Data, (void*)sid);
+    entry = dictFind(data_portal->Time2Data, (void*)sid);
     if (entry)
     {
         bar = (zs_bar_t*)entry->v.val;
@@ -76,7 +76,7 @@ zs_bar_t* zs_data_portal_get_bar(zs_data_portal_t* dataPortal,
     return bar;
 }
 
-zs_bar_reader_t* zs_data_portal_get_barreader(zs_data_portal_t* dataPortal, int64_t dt)
+zs_bar_reader_t* zs_data_portal_get_barreader(zs_data_portal_t* data_portal, int64_t dt)
 {
     // data_portal could hold a bar_reader，取指定时间的所有产品的数据
     zs_bar_reader_t* bar_reader;
@@ -85,7 +85,7 @@ zs_bar_reader_t* zs_data_portal_get_barreader(zs_data_portal_t* dataPortal, int6
     return bar_reader;
 }
 
-int zs_data_portal_get3(zs_data_portal_t* dataPortal, ztl_array_t* dstArr, zs_sid_t sid, int64_t startdt, int64_t enddt)
+int zs_data_portal_get3(zs_data_portal_t* data_portal, ztl_array_t* dstArr, zs_sid_t sid, int64_t startdt, int64_t enddt)
 {
     // sid==0 则取所有在该时间段的数据
     // sid!=0 则取指定产品在该时间段的数据
@@ -94,10 +94,10 @@ int zs_data_portal_get3(zs_data_portal_t* dataPortal, ztl_array_t* dstArr, zs_si
 
 
 //////////////////////////////////////////////////////////////////////////
-bool _zs_bar_reader_can_trade(zs_bar_reader_t* barReader, zs_sid_t sid)
+bool _zs_bar_reader_can_trade(zs_bar_reader_t* bar_reader, zs_sid_t sid)
 {
     const zs_bar_t* bar;
-    bar = zs_data_portal_get_bar(barReader->DataPortal, sid, barReader->CurrentDt);
+    bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
     if (bar)
     {
         if (bar->Volume > 0 && bar->HighPrice > bar->LowPrice)
@@ -108,51 +108,96 @@ bool _zs_bar_reader_can_trade(zs_bar_reader_t* barReader, zs_sid_t sid)
     return false;
 }
 
-int _zs_bar_reader_history(zs_bar_reader_t* barReader, zs_sid_t sid, zs_bar_t* barArr[], int arrSize)
+int _zs_bar_reader_history(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size)
 {
     return 0;
 }
 
-double _zs_bar_reader_current(zs_bar_reader_t* barReader, zs_sid_t sid, const char* priceField)
+double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const char* field)
 {
     zs_bar_t* bar;
-    bar = zs_data_portal_get_bar(barReader->DataPortal, sid, barReader->CurrentDt);
-    if (!bar)
-    {
+    bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    if (!bar) {
         return 0;
     }
 
-    if (strcmp(priceField, "close") == 0) {
+    if (strcmp(field, "price") == 0) {
         return bar->ClosePrice;
     }
-    else if (strcmp(priceField, "open") == 0) {
+    else if (strcmp(field, "close") == 0) {
+        return bar->ClosePrice;
+    }
+    else if (strcmp(field, "open") == 0) {
         return bar->OpenPrice;
     }
-    else if (strcmp(priceField, "high") == 0) {
+    else if (strcmp(field, "high") == 0) {
         return bar->HighPrice;
     }
-    else if (strcmp(priceField, "low") == 0) {
+    else if (strcmp(field, "low") == 0) {
         return bar->LowPrice;
+    }
+    else if (strcmp(field, "volume") == 0) {
+        return bar->Volume;
+    }
+    else if (strcmp(field, "amount") == 0) {
+        return bar->Amount;
+    }
+    else if (strcmp(field, "adjust_factor") == 0) {
+        return bar->AdjustFactor;
     }
 
     return 0;
 }
 
-zs_bar_t* _zs_bar_reader_current_bar(zs_bar_reader_t* barReader, zs_sid_t sid)
+double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFieldType field)
 {
-    return zs_data_portal_get_bar(barReader->DataPortal, sid, barReader->CurrentDt);
+    zs_bar_t* bar;
+    bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    if (!bar) {
+        return 0;
+    }
+
+    switch (field)
+    {
+    case ZS_FT_Price:
+    case ZS_FT_Close:
+        return bar->ClosePrice;
+    case ZS_FT_Open:
+        return bar->OpenPrice;
+    case ZS_FT_High:
+        return bar->HighPrice;
+    case ZS_FT_Low:
+        return bar->LowPrice;
+    case ZS_FT_Volume:
+        return bar->Volume;
+    case ZS_FT_Amount:
+        return bar->Amount;
+    case ZS_FT_OpenInterest:
+        return bar->OpenInterest;
+    case ZS_FT_Settlement:
+        return bar->SettlePrice;
+    case ZS_FT_AdjustFactor:
+        return bar->AdjustFactor;
+    default:
+        return 0;
+    }
 }
 
-int zs_bar_reader_init(zs_bar_reader_t* barReader, zs_data_portal_t* dataPortal)
+zs_bar_t* _zs_bar_reader_current_bar(zs_bar_reader_t* bar_reader, zs_sid_t sid)
 {
-    barReader->DataPortal = dataPortal;
-    barReader->DataFrequency = 0;
-    barReader->CurrentDt = 0;
+    return zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+}
 
-    barReader->can_trade = _zs_bar_reader_can_trade;
-    barReader->history = _zs_bar_reader_history;
-    barReader->current = _zs_bar_reader_current;
-    barReader->current_bar = _zs_bar_reader_current_bar;
+int zs_bar_reader_init(zs_bar_reader_t* bar_reader, zs_data_portal_t* data_portal)
+{
+    bar_reader->DataPortal = data_portal;
+    bar_reader->DataFrequency = 0;
+    bar_reader->CurrentDt = 0;
+
+    bar_reader->can_trade = _zs_bar_reader_can_trade;
+    bar_reader->history = _zs_bar_reader_history;
+    bar_reader->current = _zs_bar_reader_current;
+    bar_reader->current_bar = _zs_bar_reader_current_bar;
 
     return 0;
 }

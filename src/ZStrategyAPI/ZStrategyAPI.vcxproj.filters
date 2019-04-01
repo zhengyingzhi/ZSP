@@ -97,6 +97,12 @@
     <ClInclude Include="zs_broker_info.h">
       <Filter>Brokerage</Filter>
     </ClInclude>
+    <ClInclude Include="zs_bar_generator.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_bar_series.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -205,6 +211,12 @@
     </ClCompile>
     <ClCompile Include="zs_broker_info.c">
       <Filter>Brokerage</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_bar_generator.c">
+      <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_bar_series.c">
+      <Filter>Strategy</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

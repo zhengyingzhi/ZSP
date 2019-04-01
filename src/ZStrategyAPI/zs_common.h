@@ -69,6 +69,21 @@ typedef enum
     ZS_DT_QryAccount
 }ZSDataType;
 
+/* 字段类型 */
+typedef enum
+{
+    ZS_FT_Unkown,
+    ZS_FT_Price,
+    ZS_FT_Open,
+    ZS_FT_High,
+    ZS_FT_Low,
+    ZS_FT_Close,
+    ZS_FT_Volume,
+    ZS_FT_Amount,
+    ZS_FT_OpenInterest,
+    ZS_FT_Settlement,
+    ZS_FT_AdjustFactor
+}ZSFieldType;
 
 /* 产品类型 */
 typedef enum

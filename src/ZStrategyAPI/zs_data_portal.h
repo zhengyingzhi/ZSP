@@ -49,30 +49,30 @@ struct zs_bar_reader_s
     int32_t DataFrequency;
     int64_t CurrentDt;
 
-    bool    (*can_trade)(zs_bar_reader_t* barReader, zs_sid_t sid);
-    int     (*history)(zs_bar_reader_t* barReader, zs_sid_t sid, zs_bar_t* barArr[], int arrSize);
-    double  (*current)(zs_bar_reader_t* barReader, zs_sid_t sid, const char* priceField);
-    zs_bar_t* (*current_bar)(zs_bar_reader_t* barReader, zs_sid_t sid);
+    bool    (*can_trade)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
+    int     (*history)(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size);
+    double  (*current)(zs_bar_reader_t* bar_reader, zs_sid_t sid, const char* field);
+    zs_bar_t* (*current_bar)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
 };
 
-int zs_bar_reader_init(zs_bar_reader_t* barReader, zs_data_portal_t* dataPortal);
+int zs_bar_reader_init(zs_bar_reader_t* bar_reader, zs_data_portal_t* data_portal);
 
 
 zs_data_portal_t* zs_data_portal_create();
 
-void zs_data_portal_release(zs_data_portal_t* dataPortal);
+void zs_data_portal_release(zs_data_portal_t* data_portal);
 
-int zs_data_portal_wrapper(zs_data_portal_t* dataPortal, ztl_array_t* rawDatas);
+int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* raw_datas);
 
 
 /* getters */
-zs_tick_t* zs_data_portal_get_tick(zs_data_portal_t* dataPortal, zs_sid_t sid, int64_t dt);
+zs_tick_t* zs_data_portal_get_tick(zs_data_portal_t* data_portal, zs_sid_t sid, int64_t dt);
 
-zs_bar_t* zs_data_portal_get_bar(zs_data_portal_t* dataPortal, zs_sid_t sid, int64_t dt);
+zs_bar_t* zs_data_portal_get_bar(zs_data_portal_t* data_portal, zs_sid_t sid, int64_t dt);
 
-zs_bar_reader_t* zs_data_portal_get_barreader(zs_data_portal_t* dataPortal, int64_t dt);
+zs_bar_reader_t* zs_data_portal_get_barreader(zs_data_portal_t* data_portal, int64_t dt);
 
-int zs_data_portal_get3(zs_data_portal_t* dataPortal, ztl_array_t* dstArr, 
+int zs_data_portal_get3(zs_data_portal_t* data_portal, ztl_array_t* dstArr, 
     zs_sid_t sid, int64_t startdt, int64_t enddt);
 
 

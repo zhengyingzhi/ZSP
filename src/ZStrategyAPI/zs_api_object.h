@@ -46,6 +46,22 @@ extern uint32_t zs_data_increment(zs_data_head_t* zdh);
 extern uint32_t zs_data_decre_release(zs_data_head_t* zdh);
 
 
+
+typedef union zs_dt_u
+{
+    struct dt_s
+    {
+        uint64_t    millisec : 10;
+        uint64_t    year : 14;
+        uint64_t    month : 8;
+        uint64_t    day : 8;
+        uint64_t    hour : 8;
+        uint64_t    minute : 8;
+        uint64_t    second : 8;
+    };
+    uint64_t dt;
+}zs_dt_t;
+
 /* error data */
 struct zs_error_data_s
 {
@@ -114,6 +130,7 @@ struct zs_tickl2_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     int64_t         UpdateTime;
+    zs_dt_t         MdDt;
     uint64_t        Sid;
     int32_t         TradingDay;
     int32_t         ActionDay;
@@ -150,6 +167,7 @@ struct zs_bar_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     int64_t         BarTime;            // 20181201093500
+    zs_dt_t         BarDt;
     uint64_t        Sid;
 
     int64_t         Volume;
