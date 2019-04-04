@@ -19,10 +19,11 @@ extern "C" {
 /* other types */
 typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 
+typedef void(*zs_strategy_entry_pt)(zs_strategy_entry_t** pp_stragegy_entry);
+
 /* 策略接口的基本定义 */
 static const char* zs_strategy_entry_names[] = { "create", "release", "on_init", "on_start", "on_stop", "on_update", \
     "before_trading_start", "handle_order", "handle_trade", "handle_bardata", "handle_tickdata", "handle_tickl2data", NULL };
-
 
 /* 定义策略对象及策略的回调处理函数
  */

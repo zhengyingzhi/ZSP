@@ -29,6 +29,7 @@ extern "C" {
 #define ZS_BROKER_ADDR_SIZE     64
 #define ZS_STRATEGYNAME_SIZE    16
 
+
 struct zs_broker_conf_s
 {
     char        ApiName[8];
@@ -72,6 +73,10 @@ struct zs_algo_param_s
 
 
 int zs_configs_load(zs_algo_param_t* algoParam, ztl_pool_t* pool, const char* confFile);
+
+/* TODO: 可以使用一个抽象配置接口，使用者可以从配置文件初始化，也可以set_xxx/get_xxx
+ * 平台使用该接口作为模块间的配置参数传递
+ */
 
 #ifdef __cplusplus
 }

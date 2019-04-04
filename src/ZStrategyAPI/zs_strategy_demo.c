@@ -122,9 +122,9 @@ static zs_strategy_entry_t stg_demo =
 };
 
 // 策略加载入口，需要导出，用于外部可获取策略的回调接口
-int zs_demo_strategy_entry(zs_strategy_entry_t** ppStragegy)
+int zs_demo_strategy_entry(zs_strategy_entry_t** pp_stragegy_entry)
 {
-    *ppStragegy = &stg_demo;
+    *pp_stragegy_entry = &stg_demo;
     return 0;
 }
 

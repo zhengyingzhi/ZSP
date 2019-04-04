@@ -61,7 +61,7 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userData,
     zs_order_t*             order;
     zs_sid_t                sid;
 
-    zse = ee->Algorithm->StrategyEngine;
+    // zse = ee->Algorithm->StrategyEngine;
     zdh = (zs_data_head_t*)evdata;
     order = (zs_order_t*)zd_data_body(zdh);
 
@@ -88,7 +88,7 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userData,
     zs_trade_t*             trade;
     zs_sid_t                sid;
 
-    zse = ee->Algorithm->StrategyEngine;
+    // zse = ee->Algorithm->StrategyEngine;
     zdh = (zs_data_head_t*)evdata;
     trade = (zs_trade_t*)zd_data_body(zdh);
 
@@ -115,7 +115,7 @@ static void _zs_strategy_handle_md(zs_event_engine_t* ee, void* userData,
     void*                   data_body;
     zs_sid_t                sid;
 
-    zse = ee->Algorithm->StrategyEngine;
+    // zse = ee->Algorithm->StrategyEngine;
     zdh = (zs_data_head_t*)evdata;
     data_body = zd_data_body(zdh);
 
@@ -190,7 +190,7 @@ static void zs_strategy_register_event(zs_strategy_engine_t* zse)
     zs_event_engine_t* ee = zse->Algorithm->EventEngine;
     zs_ee_register(ee, zse, ZS_EV_Order, _zs_strategy_handle_order);
     zs_ee_register(ee, zse, ZS_EV_Trade, _zs_strategy_handle_trade);
-    zs_ee_register(ee, zse, ZS_EV_MD, _zs_strategy_handle_md);
+    zs_ee_register(ee, zse, ZS_EV_Tick, _zs_strategy_handle_md);
 }
 
 int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stg_libpaths)
@@ -205,22 +205,6 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stg_libpaths
         zs_strategy_load(zse, lib_path);
     }
 
-    // load demo strategy
-    zs_strategy_entry_t* stg_entry = NULL;
-    zs_demo_strategy_entry(&stg_entry);
-    if (!stg_entry) {
-        // ERRORID: no entry callbacks
-        return -1;
-    }
-
-    zs_cta_strategy_t* strategy;
-    strategy = ztl_palloc(zse->Pool, sizeof(zs_cta_strategy_t));
-    strategy->Instance = stg_entry->create("");
-
-    ztl_map_add(zse->StrategyMap, 16, strategy);
-    void** dst = ztl_array_push(&zse->AllStrategy);
-    *dst = strategy;
-
     return 0;
 }
 
@@ -230,17 +214,36 @@ int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
     dso = ztl_dso_load(libpath);
     if (!dso)
     {
-        // log error
+        // ERRORID: log error
         return -1;
     }
 
-    // TODO retrieve func from dso, and get its tdapi & mdapi
-    // then, make some relationship
+    // get strategy entry function
+    zs_strategy_entry_pt strategy_entry_func = ztl_dso_symbol(dso, "strategy_entry");
+    if (!strategy_entry_func)
+    {
+        // ERRORID: no entry func
+        return -1;
+    }
+
+    zs_strategy_entry_t* strategy_entry = NULL;
+    strategy_entry_func(&strategy_entry);
+    if (!strategy_entry)
+    {
+        // ERRORID: no entries
+        return -1;
+    }
 
     zs_cta_strategy_t* strategy;
     strategy = (zs_cta_strategy_t*)ztl_pcalloc(zse->Pool, sizeof(zs_cta_strategy_t));
 
+    strategy->StrategyName = strategy_entry->StrategyNme;
+    strategy->StrategyFlag = strategy_entry->StrategyFlag;
     strategy->HLib = dso;
+    strategy->Instance = NULL;
+    strategy->Account = NULL;
+    strategy->Engine = zse;
+    strategy->StrategyEntry = strategy_entry;
 
     strategy->StrategyID = zse->StrategyBaseID++;
 
@@ -258,15 +261,11 @@ int zs_strategy_unload(zs_strategy_engine_t* zse, const char* strategy_name)
     return 0;
 }
 
-int zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id, zs_cta_strategy_t* stgArray[])
+zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id)
 {
-    int index = 0;
-    zs_cta_strategy_t* stg;
-    stg = ztl_map_find(zse->StrategyMap, strategy_id);
-
-    stgArray[index++] = stg;
-
-    return index;
+    zs_cta_strategy_t* strategy;
+    strategy = ztl_map_find(zse->StrategyMap, strategy_id);
+    return strategy;
 }
 
 int zs_strategy_add(zs_strategy_engine_t* zse, const char* setting)
@@ -285,18 +284,65 @@ int zs_strategy_del(zs_strategy_engine_t* zse, uint32_t strategy_id)
     return 0;
 }
 
+int zs_strategy_init(zs_strategy_engine_t* zse, uint32_t strategy_id)
+{
+    // 初始化策略
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, strategy_id);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return -1;
+    }
+
+    strategy->Instance = strategy->StrategyEntry->create("");
+    if (strategy->StrategyEntry->on_init)
+        strategy->StrategyEntry->on_init(strategy);
+
+    return 0;
+}
+
 int zs_strategy_start(zs_strategy_engine_t* zse, uint32_t strategy_id)
 {
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, strategy_id);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return -1;
+    }
+
+    if (strategy->StrategyEntry->on_start)
+        strategy->StrategyEntry->on_start(strategy);
+
     return 0;
 }
 
 int zs_strategy_stop(zs_strategy_engine_t* zse, uint32_t strategy_id)
 {
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, strategy_id);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return -1;
+    }
+
+    if (strategy->StrategyEntry->on_stop)
+        strategy->StrategyEntry->on_stop(strategy);
+
     return 0;
 }
 
-int zs_strategy_update(zs_strategy_engine_t* zse, uint32_t strategy_id, const char* setting)
+int zs_strategy_update(zs_strategy_engine_t* zse, uint32_t strategy_id, void* data, int size)
 {
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, strategy_id);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return -1;
+    }
+
+    if (strategy->StrategyEntry->on_update)
+        strategy->StrategyEntry->on_update(strategy, data, size);
+
     return 0;
 }
 
@@ -310,14 +356,44 @@ void zs_strategy_on_order_req(zs_strategy_engine_t* zse, zs_order_req_t* order_r
 void zs_strategy_on_order_rtn(zs_strategy_engine_t* zse, zs_order_t* order)
 {
     // process the order returned event, call its strategy's callback
+
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, 0);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return ;
+    }
+
+    if (strategy->StrategyEntry->handle_order)
+        strategy->StrategyEntry->handle_order(strategy, order);
 }
 
 void zs_strategy_on_trade_rtn(zs_strategy_engine_t* zse, zs_trade_t* trade)
 {
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, 0);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return ;
+    }
+
+    if (strategy->StrategyEntry->handle_trade)
+        strategy->StrategyEntry->handle_trade(strategy, trade);
 }
 
 void zs_strategy_on_tick(zs_strategy_engine_t* zse, zs_tick_t* tick)
 {
+    zs_cta_strategy_t* strategy;
+    strategy = zs_strategy_find(zse, 0);
+    if (!strategy) {
+        // ERRORID: 无效的策略ID
+        return ;
+    }
+
+    if (strategy->StrategyEntry->handle_tickdata)
+        strategy->StrategyEntry->handle_tickdata(strategy, tick);
+
+    // TODO: generate minute bar 
 }
 
 void zs_strategy_on_tickl2(zs_strategy_engine_t* zse, zs_tickl2_t* tickl2)

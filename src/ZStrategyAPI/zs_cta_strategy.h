@@ -25,7 +25,7 @@ extern "C" {
 typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 struct zs_cta_strategy_s
 {
-    const char* StrategyNme;
+    const char* StrategyName;
     void*       HLib;
     void*       Instance;
     int32_t     StrategyID;
@@ -34,7 +34,7 @@ struct zs_cta_strategy_s
     zs_account_t*           Account;
 
     zs_strategy_engine_t*   Engine;
-    zs_strategy_entry_t*    StgEntry;
+    zs_strategy_entry_t*    StrategyEntry;
     zs_asset_finder_t*      AssetFinder;
 };
 

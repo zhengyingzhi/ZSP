@@ -65,16 +65,17 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* stg_libpaths
 int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath);
 int zs_strategy_unload(zs_strategy_engine_t* zse, const char* strategy_name);
 
-int zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id, zs_cta_strategy_t* stgArray[]);
+zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id);
 
 
 /* 策略的添加、删除、启动、停止、更新等操作
  */
 int zs_strategy_add(zs_strategy_engine_t* zse, const char* setting);
 int zs_strategy_del(zs_strategy_engine_t* zse, uint32_t strategy_id);
+int zs_strategy_init(zs_strategy_engine_t* zse, uint32_t strategy_id);
 int zs_strategy_start(zs_strategy_engine_t* zse, uint32_t strategy_id);
 int zs_strategy_stop(zs_strategy_engine_t* zse, uint32_t strategy_id);
-int zs_strategy_update(zs_strategy_engine_t* zse, uint32_t strategy_id, const char* setting);
+int zs_strategy_update(zs_strategy_engine_t* zse, uint32_t strategy_id, void* data, int size);
 
 /* 策略交易事件处理
  */
