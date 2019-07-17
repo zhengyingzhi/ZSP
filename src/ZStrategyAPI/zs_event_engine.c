@@ -11,20 +11,15 @@
 static bool _zs_pc_handler(ztl_producer_consumer_t* zpc, int64_t type, void* data);
 
 
-zs_event_engine_t* zs_ee_create(zs_algorithm_t* algo)
+zs_event_engine_t* zs_ee_create(ztl_pool_t* pool, ZSRunMode run_mode)
 {
-    ZSRunMode runmode;
-    ztl_pool_t* pool;
     zs_event_engine_t* ee;
-
-    runmode = algo->Params->RunMode;
-    pool = algo->Pool;
 
     ee = (zs_event_engine_t*)ztl_pcalloc(pool, sizeof(zs_event_engine_t));
 
-    ee->Algorithm = algo;
+    ee->Pool = pool;
 
-    if (runmode == ZS_RM_Backtest)
+    if (run_mode == ZS_RM_Backtest)
     {
         ee->ZPCCore = NULL;
     }
@@ -61,7 +56,7 @@ void zs_ee_stop(zs_event_engine_t* ee)
         ztl_pc_stop(ee->ZPCCore);
 }
 
-int zs_ee_register(zs_event_engine_t* ee, void* userData, uint32_t evtype, zs_ee_handler_pt handler)
+int zs_ee_register(zs_event_engine_t* ee, void* userdata, uint32_t evtype, zs_ee_handler_pt handler)
 {
     if (evtype >= ZS_EVENT_ENGINE_MAX_EVID)
     {
@@ -73,14 +68,14 @@ int zs_ee_register(zs_event_engine_t* ee, void* userData, uint32_t evtype, zs_ee
 
     if (!arr)
     {
-        arr = (ztl_array_t*)ztl_pcalloc(ee->Algorithm->Pool, sizeof(ztl_array_t));
-        ztl_array_init(arr, ee->Algorithm->Pool, 8, sizeof(zs_evobject_t));
+        arr = (ztl_array_t*)ztl_pcalloc(ee->Pool, sizeof(ztl_array_t));
+        ztl_array_init(arr, ee->Pool, 8, sizeof(zs_evobject_t));
         ee->EvObjectTable[evtype] = arr;
     }
 
     zs_evobject_t* lpobj;
     lpobj = (zs_evobject_t*)ztl_array_push(arr);
-    lpobj->EvUserData = userData;
+    lpobj->EvUserData = userdata;
     lpobj->EvHandler = handler;
 
     return 0;
@@ -122,7 +117,7 @@ int zs_ee_do_callback(zs_event_engine_t* ee, uint32_t evtype, void* evdata)
 
 static bool _zs_pc_handler(ztl_producer_consumer_t* zpc, int64_t type, void* data)
 {
-    int evtype;
+    uint32_t evtype;
     zs_data_head_t* zdh;
     zs_event_engine_t* ee;
     ee = (zs_event_engine_t*)ztl_pc_get_udata(zpc);

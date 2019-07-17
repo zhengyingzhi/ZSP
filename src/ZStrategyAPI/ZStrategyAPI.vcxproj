@@ -39,10 +39,13 @@
     <ClInclude Include="zs_algorithm.h" />
     <ClInclude Include="zs_algorithm_api.h" />
     <ClInclude Include="zs_api_object.h" />
+    <ClInclude Include="zs_bar_generator.h" />
+    <ClInclude Include="zs_bar_series.h" />
     <ClInclude Include="zs_blotter_manager.h" />
     <ClInclude Include="zs_broker_api.h" />
     <ClInclude Include="zs_broker_backtest.h" />
     <ClInclude Include="zs_broker_entry.h" />
+    <ClInclude Include="zs_broker_info.h" />
     <ClInclude Include="zs_commission.h" />
     <ClInclude Include="zs_common.h" />
     <ClInclude Include="zs_assets.h" />
@@ -61,19 +64,22 @@
     <ClInclude Include="zs_risk_control.h" />
     <ClInclude Include="zs_simulator.h" />
     <ClInclude Include="zs_slippage.h" />
-    <ClInclude Include="zs_strategy_api.h" />
     <ClInclude Include="zs_strategy_demo.h" />
     <ClInclude Include="zs_strategy_engine.h" />
+    <ClInclude Include="zs_strategy_entry.h" />
     <ClInclude Include="zs_trading_calendar.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="zs_account.c" />
     <ClCompile Include="zs_algorithm.c" />
     <ClCompile Include="zs_algorithm_api.c" />
+    <ClCompile Include="zs_bar_generator.c" />
+    <ClCompile Include="zs_bar_series.c" />
     <ClCompile Include="zs_blotter.c" />
     <ClCompile Include="zs_blotter_manager.c" />
     <ClCompile Include="zs_broker_backtest.c" />
     <ClCompile Include="zs_broker_entry.c" />
+    <ClCompile Include="zs_broker_info.c" />
     <ClCompile Include="zs_commission.c" />
     <ClCompile Include="zs_assets.c" />
     <ClCompile Include="zs_configs.c" />

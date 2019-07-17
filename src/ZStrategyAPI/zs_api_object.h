@@ -47,6 +47,22 @@ extern uint32_t zs_data_increment(zs_data_head_t* zdh);
 extern uint32_t zs_data_decre_release(zs_data_head_t* zdh);
 
 
+
+typedef union zs_dt_u
+{
+    struct dt_s
+    {
+        uint64_t    millisec : 10;
+        uint64_t    year : 14;
+        uint64_t    month : 8;
+        uint64_t    day : 8;
+        uint64_t    hour : 8;
+        uint64_t    minute : 8;
+        uint64_t    second : 8;
+    };
+    uint64_t dt;
+}zs_dt_t;
+
 /* error data */
 struct zs_error_data_s
 {
@@ -77,6 +93,7 @@ struct zs_tick_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     int64_t         UpdateTime;
+    zs_dt_t         TickDt;
     uint64_t        Sid;
     int32_t         TradingDay;
     int32_t         ActionDay;
@@ -110,11 +127,12 @@ struct zs_tick_s
 typedef struct zs_tick_s zs_tick_t;
 
 
-struct zs_l2_tick_s
+struct zs_tickl2_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     int64_t         UpdateTime;
+    zs_dt_t         MdDt;
     uint64_t        Sid;
     int32_t         TradingDay;
     int32_t         ActionDay;
@@ -144,13 +162,14 @@ struct zs_l2_tick_s
     double          AskPrice[10];
     int32_t         AskVolume[10];
 };
-typedef struct zs_l2_tick_s zs_l2_tick_t;
+typedef struct zs_tickl2_s zs_tickl2_t;
 
 struct zs_bar_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     int64_t         BarTime;            // 20181201093500
+    zs_dt_t         BarDt;
     uint64_t        Sid;
 
     int64_t         Volume;

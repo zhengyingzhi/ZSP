@@ -26,6 +26,7 @@ typedef struct my_strategy_demo_s
     // zs_cta_strategy_t* context;
 }my_strategy_demo_t;
 
+
 void* stg_demo_create(const char* setting)
 {
     my_strategy_demo_t* stgdemo;
@@ -36,11 +37,12 @@ void* stg_demo_create(const char* setting)
     return stgdemo;
 }
 
-void stg_demo_release(void* stg)
+void stg_demo_release(zs_cta_strategy_t* context)
 {
-    if (stg)
+    if (context->Instance)
     {
-        free(stg);
+        free(context->Instance);
+        context->Instance = NULL;
     }
 }
 
@@ -65,32 +67,34 @@ void stg_demo_on_stop(void* instance)
     printf("stg demo stop\n");
 }
 
-void stg_demo_on_update(void* instance, void* data, int size)
+void stg_demo_on_update(zs_cta_strategy_t* context, void* data, int size)
 {
     printf("stg demo update\n");
 }
 
-void stg_demo_handle_order(void* instance, zs_cta_strategy_t* context, zs_order_t* order)
+void stg_demo_handle_order(zs_cta_strategy_t* context, zs_order_t* order)
 {
     printf("stg demo got order: %s,%d,%d,%.2f\n", order->Symbol, order->Direction, 
         order->Quantity, order->Price);
     // zs_cta_order(context, NULL);
 }
 
-void stg_demo_handle_trade(void* instance, zs_cta_strategy_t* context, zs_trade_t* trade)
+
+void stg_demo_handle_trade(zs_cta_strategy_t* context, zs_trade_t* trade)
 {
     printf("stg demo got trade: %s,%d,%d,%.2f\n", trade->Symbol, trade->Direction,
         trade->Volume, trade->Price);
 }
 
 // 行情通知
-void stg_demo_handle_bar(void* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
+void stg_demo_handle_bar(zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
 {
     my_strategy_demo_t* mystg;
     //zs_portfolio_t* portfolio;
     double closepx;
 
-    mystg = (my_strategy_demo_t*)instance;
+
+    // mystg = (my_strategy_demo_t*)instance;
     mystg->index += 1;
 
     int exchangeid = 0;
@@ -110,7 +114,7 @@ void stg_demo_handle_bar(void* instance, zs_cta_strategy_t* context, zs_bar_read
     printf("std demo send order rv:%d\n", rv);
 }
 
-void stg_demo_handle_tick(void* instance, zs_cta_strategy_t* context, zs_tick_t* tick)
+void stg_demo_handle_tick(zs_cta_strategy_t* context, zs_tick_t* tick)
 {
     // visit the tick data
 }
@@ -120,10 +124,14 @@ void stg_demo_handle_tick(void* instance, zs_cta_strategy_t* context, zs_tick_t*
 static zs_strategy_entry_t stg_demo =
 {
     "stg_demo",
+#if 0
     "zsp",
     "1.0.0",
     0,
     NULL,
+#else
+    0,
+#endif
 
     stg_demo_create,
     stg_demo_release,

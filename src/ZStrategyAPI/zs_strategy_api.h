@@ -57,8 +57,8 @@ struct zs_strategy_entry_s
 
     // 行情通知
     void  (*handle_bar)(void* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader);
-    void  (*handle_tick)(void* instance, zs_cta_strategy_t* context, zs_tick_t* tick_data);
-    void  (*handle_tickl2)(void* instance, zs_cta_strategy_t* context, zs_l2_tick_t* tickl2);
+    void  (*handle_tick)(void* instance, zs_cta_strategy_t* context, zs_tick_t* tick);
+    void  (*handle_tickl2)(void* instance, zs_cta_strategy_t* context, zs_tickl2_t* tickl2);
 };
 
 

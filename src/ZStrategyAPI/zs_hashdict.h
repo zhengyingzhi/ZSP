@@ -52,7 +52,9 @@ static int zs_str_cmp(void* priv, const void* s1, const void* s2) {
     (void)priv;
     ZStrKey* k1 = (ZStrKey*)s1;
     ZStrKey* k2 = (ZStrKey*)s2;
-    return memcmp((ZStrKey*)k1->ptr, k2->ptr, k2->len) == 0;
+    if (k1->len == k2->len)
+        return memcmp((ZStrKey*)k1->ptr, k2->ptr, k2->len) == 0;
+    return 0;
 }
 
 void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* alloc_ctx);

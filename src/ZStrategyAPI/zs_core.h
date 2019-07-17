@@ -27,6 +27,8 @@ typedef struct zs_asset_finder_s zs_asset_finder_t;
 
 typedef struct zs_broker_s zs_broker_t;
 
+typedef struct zs_broker_info_s zs_broker_info_t;
+
 typedef struct zs_blotter_s zs_blotter_t;
 
 typedef struct zs_blotter_manager_s zs_blotter_manager_t;
@@ -42,6 +44,9 @@ typedef struct zs_bar_reader_s zs_bar_reader_t;
 typedef struct zs_risk_control_s zs_risk_control_t;
 
 typedef struct zs_strategy_entry_s zs_strategy_entry_t;
+
+typedef struct zs_cta_strategy_s zs_cta_strategy_t;
+
 typedef struct zs_strategy_engine_s zs_strategy_engine_t;
 
 typedef struct zs_slippage_s zs_slippage_t;

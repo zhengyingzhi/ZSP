@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     const char* conf_file = "zs_config.json";
     zs_algo_param_t params;
     memset(&params, 0, sizeof(params));
-    rv = zs_configs_load(&params, pool, conf_file);
+    rv = zs_configs_load(&params, pool);
     assert(rv == 0);
 
     // load ohlc,benchmark data

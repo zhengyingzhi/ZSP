@@ -9,11 +9,11 @@
 
 #include "zs_data_portal.h"
 
-extern dictType sidHashDictType;
+extern dictType uintHashDictType;
 
 void zs_blotter_manager_init(zs_blotter_manager_t* blotterMgr, zs_algorithm_t* algo)
 {
-    blotterMgr->BlotterDict = dictCreate(&sidHashDictType, algo);
+    blotterMgr->BlotterDict = dictCreate(&uintHashDictType, algo);
     ztl_array_init(&blotterMgr->BlotterArray, algo->Pool, 32, sizeof(zs_blotter_t*));
 }
 

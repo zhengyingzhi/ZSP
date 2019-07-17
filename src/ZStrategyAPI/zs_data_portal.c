@@ -2,7 +2,7 @@
 #include "zs_data_portal.h"
 
 
-extern dictType sidHashDictType;
+extern dictType uintHashDictType;
 
 
 zs_data_portal_t* zs_data_portal_create()
@@ -16,8 +16,8 @@ zs_data_portal_t* zs_data_portal_create()
     data_portal->StartTime = 20180801000000;
     data_portal->EndTime = 20180803000000;
     data_portal->Pool = pool;
-    data_portal->Time2Data = dictCreate(&sidHashDictType, data_portal);
-    data_portal->Asset2Data = dictCreate(&sidHashDictType, data_portal);
+    data_portal->Time2Data = dictCreate(&uintHashDictType, data_portal);
+    data_portal->Asset2Data = dictCreate(&uintHashDictType, data_portal);
 
     return data_portal;
 }
@@ -32,16 +32,17 @@ void zs_data_portal_release(zs_data_portal_t* data_portal)
     }
 }
 
-int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* rawDatas)
+
+int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* raw_datas)
 {
-    data_portal->RawDatas = rawDatas;
+    data_portal->RawDatas = raw_datas;
 
     zs_bar_t* bar = NULL;
-    for (uint32_t i = 0; i < ztl_array_size(rawDatas); ++i)
+    for (uint32_t i = 0; i < ztl_array_size(raw_datas); ++i)
     {
         // 实际上value应该是一个set/dict
         zs_bar_t* bar;
-        bar = *(zs_bar_t**)ztl_array_at(rawDatas, i);
+        bar = *(zs_bar_t**)ztl_array_at(raw_datas, i);
         dictAdd(data_portal->Time2Data, (void*)bar->BarTime, (void*)bar);
     }
 
@@ -49,7 +50,7 @@ int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* rawDatas)
     {
         // how to get sid here??
         int64_t sid = 1;
-        dictAdd(data_portal->Asset2Data, (void*)sid, rawDatas);
+        dictAdd(data_portal->Asset2Data, (void*)sid, raw_datas);
     }
 
     return 0;
@@ -108,7 +109,8 @@ bool _zs_bar_reader_can_trade(zs_bar_reader_t* bar_reader, zs_sid_t sid)
     return false;
 }
 
-int _zs_bar_reader_history(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* barArr[], int arrSize)
+
+int _zs_bar_reader_history(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size)
 {
     return 0;
 }
@@ -117,12 +119,15 @@ double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const c
 {
     zs_bar_t* bar;
     bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
-    if (!bar)
-    {
+
+    if (!bar) {
         return 0;
     }
 
-    if (strcmp(field, "close") == 0) {
+    if (strcmp(field, "price") == 0) {
+        return bar->ClosePrice;
+    }
+    else if (strcmp(field, "close") == 0) {
         return bar->ClosePrice;
     }
     else if (strcmp(field, "open") == 0) {
@@ -134,8 +139,52 @@ double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const c
     else if (strcmp(field, "low") == 0) {
         return bar->LowPrice;
     }
+    else if (strcmp(field, "volume") == 0) {
+        return (double)bar->Volume;
+    }
+    else if (strcmp(field, "amount") == 0) {
+        return bar->Amount;
+    }
+    else if (strcmp(field, "adjust_factor") == 0) {
+        return bar->AdjustFactor;
+    }
 
     return 0;
+}
+
+
+double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFieldType field)
+{
+    zs_bar_t* bar;
+    bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    if (!bar) {
+        return 0;
+    }
+
+    switch (field)
+    {
+    case ZS_FT_Price:
+    case ZS_FT_Close:
+        return bar->ClosePrice;
+    case ZS_FT_Open:
+        return bar->OpenPrice;
+    case ZS_FT_High:
+        return bar->HighPrice;
+    case ZS_FT_Low:
+        return bar->LowPrice;
+    case ZS_FT_Volume:
+        return (double)bar->Volume;
+    case ZS_FT_Amount:
+        return bar->Amount;
+    case ZS_FT_OpenInterest:
+        return bar->OpenInterest;
+    case ZS_FT_Settlement:
+        return bar->SettlePrice;
+    case ZS_FT_AdjustFactor:
+        return bar->AdjustFactor;
+    default:
+        return 0;
+    }
 }
 
 zs_bar_t* _zs_bar_reader_current_bar(zs_bar_reader_t* bar_reader, zs_sid_t sid)
@@ -152,6 +201,7 @@ int zs_bar_reader_init(zs_bar_reader_t* bar_reader, zs_data_portal_t* data_porta
     bar_reader->can_trade = _zs_bar_reader_can_trade;
     bar_reader->history = _zs_bar_reader_history;
     bar_reader->current = _zs_bar_reader_current;
+    bar_reader->current2 = _zs_bar_reader_current2;
     bar_reader->current_bar = _zs_bar_reader_current_bar;
 
     return 0;

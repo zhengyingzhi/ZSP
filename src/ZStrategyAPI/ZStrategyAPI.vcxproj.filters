@@ -28,9 +28,6 @@
     <ClInclude Include="zs_blotter.h">
       <Filter>Finance</Filter>
     </ClInclude>
-    <ClInclude Include="zs_strategy_api.h">
-      <Filter>Strategy</Filter>
-    </ClInclude>
     <ClInclude Include="zs_strategy_demo.h">
       <Filter>Strategy</Filter>
     </ClInclude>
@@ -89,6 +86,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="zs_cta_strategy.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_strategy_entry.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_broker_info.h">
+      <Filter>Brokerage</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_bar_generator.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_bar_series.h">
       <Filter>Strategy</Filter>
     </ClInclude>
   </ItemGroup>
@@ -192,6 +201,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="zs_cta_strategy.c">
+      <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_broker_info.c">
+      <Filter>Brokerage</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_bar_generator.c">
+      <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_bar_series.c">
       <Filter>Strategy</Filter>
     </ClCompile>
   </ItemGroup>

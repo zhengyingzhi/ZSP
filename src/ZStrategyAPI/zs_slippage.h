@@ -51,7 +51,7 @@ typedef enum
 
 
 /* 处理结果回调函数(即订单回报，成交回报等) */
-typedef void(*zs_slippage_handler_pt)(zs_slippage_t* slippage, ZSSlippageDataType dataType, void* data, int dataSize);
+typedef void(*zs_slippage_handler_pt)(zs_slippage_t* slippage, ZSSlippageDataType dataType, void* data, int datasz);
 
 /* 可根据指定不同的成交撮合方式（TODO:需要可快速获取合约信息，如PriceTick,DecimalPoint等） */
 typedef struct zs_slippage_model_s zs_slippage_model_t;

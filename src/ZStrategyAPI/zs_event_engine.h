@@ -9,6 +9,7 @@
 
 #include <ZToolLib/ztl_array.h>
 #include <ZToolLib/ztl_map.h>
+#include <ZToolLib/ztl_palloc.h>
 #include <ZToolLib/ztl_producer_consumer.h>
 
 #include "zs_core.h"
@@ -36,14 +37,14 @@ typedef ztl_producer_consumer_t ztl_pccore_t;
 /* event engine */
 struct zs_event_engine_s
 {
-    zs_algorithm_t*     Algorithm;
+    ztl_pool_t*         Pool;
     ztl_pccore_t*       ZPCCore;
 
     // index is evtype, elem is ztl_array_t*<ev_object_t>
     ztl_array_t*        EvObjectTable[ZS_EVENT_ENGINE_MAX_EVID];
 };
 
-zs_event_engine_t* zs_ee_create(zs_algorithm_t* algo);
+zs_event_engine_t* zs_ee_create(ztl_pool_t* pool, ZSRunMode run_mode);
 void zs_ee_release(zs_event_engine_t* ee);
 
 void zs_ee_start(zs_event_engine_t* ee);
@@ -53,7 +54,7 @@ void zs_ee_stop(zs_event_engine_t* ee);
  * we could register multiple handlers for a same evtype
  * evtype: ZSEventCategory, which must be < ZS_EVENT_ENGINE_MAX_EVID
  */
-int zs_ee_register(zs_event_engine_t* ee, void* userData, uint32_t evtype, zs_ee_handler_pt handler);
+int zs_ee_register(zs_event_engine_t* ee, void* userdata, uint32_t evtype, zs_ee_handler_pt handler);
 
 /* post event data to handle by consumer thread
  * evtype usually is ZSEventCategory, and evdata usually is zs

@@ -35,7 +35,7 @@ static void _zs_algo_handle_order(zs_event_engine_t* ee, void* userData,
     order = (zs_order_t*)zd_data_body(zdh);
 
     zs_blotter_t* blotter;
-    blotter = zs_blotter_manager_get(&ee->Algorithm->BlotterMgr, order->AccountID);
+    // blotter = zs_blotter_manager_get(&ee->Algorithm->BlotterMgr, order->AccountID);
 
     zs_handle_order_returned(blotter, order);
 }
@@ -50,7 +50,7 @@ static void _zs_algo_handle_trade(zs_event_engine_t* ee, void* userData,
     zdh = (zs_data_head_t*)evdata;
     trade = (zs_trade_t*)zd_data_body(zdh);
 
-    blotter = zs_blotter_manager_get(&ee->Algorithm->BlotterMgr, trade->AccountID);
+    // blotter = zs_blotter_manager_get(&ee->Algorithm->BlotterMgr, trade->AccountID);
 
     zs_handle_order_trade(blotter, trade);
 }
@@ -75,7 +75,7 @@ static void _zs_algo_handle_md(zs_event_engine_t* ee, void* userData,
         double closepx = bar_reader->current(bar_reader, 16, "close");
         printf("algo md handler bar close:%.2lf\n", closepx);
 
-        zs_handle_md_bar(ee->Algorithm, bar_reader);
+        // zs_handle_md_bar(ee->Algorithm, bar_reader);
     }
     else if (evtype == ZS_DT_MD_Tick)
     {
@@ -85,7 +85,7 @@ static void _zs_algo_handle_md(zs_event_engine_t* ee, void* userData,
         double closepx = tick_data->LastPrice;
         printf("algo md handler tick close:%.2lf\n", closepx);
 
-        zs_handle_md_tick(ee->Algorithm, tick_data);
+        // zs_handle_md_tick(ee->Algorithm, tick_data);
     }
 }
 
@@ -221,7 +221,7 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
     algo->Params = algo_param;
 
     // create other objects...
-    algo->EventEngine = zs_ee_create(algo);
+    algo->EventEngine = zs_ee_create(algo->Pool, algo->Params->RunMode);
     algo->Simulator = NULL;
     zs_blotter_manager_init(&algo->BlotterMgr, algo);
     algo->AssetFinder = zs_asset_create(algo, algo->Pool, 0);
@@ -248,6 +248,7 @@ int zs_algorithm_init(zs_algorithm_t* algo)
 static void zs_algorithm_register(zs_algorithm_t* algo)
 {
     zs_event_engine_t* ee = algo->EventEngine;
+
     zs_ee_register(ee, algo, ZS_DT_Order, _zs_algo_handle_order);
     zs_ee_register(ee, algo, ZS_DT_Trade, _zs_algo_handle_trade);
     zs_ee_register(ee, algo, ZS_DT_QryPosition, _zs_algo_handle_position);

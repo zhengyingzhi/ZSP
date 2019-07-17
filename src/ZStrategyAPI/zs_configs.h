@@ -129,6 +129,10 @@ zs_conf_strategy_t* zs_configs_find_strategy(zs_algo_param_t* algo_param, const 
 
 
 
+/* TODO: 可以使用一个抽象配置接口，使用者可以从配置文件初始化，也可以set_xxx/get_xxx
+ * 平台使用该接口作为模块间的配置参数传递
+ */
+
 #ifdef __cplusplus
 }
 #endif

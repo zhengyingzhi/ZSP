@@ -49,9 +49,12 @@ struct zs_bar_reader_s
     ZSDataFrequency     DataFrequency;
     int64_t             CurrentDt;
 
-    bool (*can_trade)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
-    int (*history)(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* bar_array[], int size);
-    double(*current)(zs_bar_reader_t* bar_reader, zs_sid_t sid, const char* field);
+
+    bool    (*can_trade)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
+    int     (*history)(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size);
+    double  (*current)(zs_bar_reader_t* bar_reader, zs_sid_t sid, const char* field);
+    double  (*current2)(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFieldType field);
+
     zs_bar_t* (*current_bar)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
 };
 
@@ -62,7 +65,7 @@ zs_data_portal_t* zs_data_portal_create();
 
 void zs_data_portal_release(zs_data_portal_t* data_portal);
 
-int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* rawDatas);
+int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* raw_datas);
 
 
 /* getters */
