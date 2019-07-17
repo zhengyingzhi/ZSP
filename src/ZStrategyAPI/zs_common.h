@@ -51,22 +51,37 @@ typedef enum
 typedef enum 
 {
     ZS_DT_Unkown,
+    ZS_DT_Timer,
+    ZS_DT_Other,
     ZS_DT_MD_Bar,
+    ZS_DT_MD_Connected,
+    ZS_DT_MD_Disconnected,
     ZS_DT_MD_Tick,
     ZS_DT_MD_Level2,
     ZS_DT_MD_StepOrder,
     ZS_DT_MD_Transaction,
     ZS_DT_MD_ForQuote,
     ZS_DT_MD_Reserve,
+    ZS_DT_Connected,
+    ZS_DT_Disconnected,
+    ZS_DT_Login,
+    ZS_DT_Logout,
+    ZS_DT_Auth,
+    ZS_DT_Investor,
+    ZS_DT_SettleConfirm,
+    ZS_DT_QrySettle,
     ZS_DT_Order,
     ZS_DT_Trade,
     ZS_DT_QuoteOrder,
     ZS_DT_QuoteTrade,
     ZS_DT_QryOrder,
     ZS_DT_QryTrade,
-    ZS_DT_QryPositoin,
+    ZS_DT_QryPosition,
     ZS_DT_QryPositionDetail,
-    ZS_DT_QryAccount
+    ZS_DT_QryAccount,
+    ZS_DT_QryContract,
+    ZS_DT_QryMarginRate,
+    ZS_DT_QryCommRate
 }ZSDataType;
 
 
@@ -83,6 +98,7 @@ typedef enum
 /* 期权类型 */
 typedef enum 
 {
+    ZS_OPT_None,
     ZS_OPT_US,
     ZS_OPT_EU,
     ZS_OPT_Bermuda
@@ -92,17 +108,19 @@ typedef enum
 /* 买卖方向 */
 typedef enum 
 {
+    ZS_D_Unknown,
     ZS_D_Long,
     ZS_D_Short
-}ZSDirectionType;
+}ZSDirection;
 
 /* 开平标志 */
 typedef enum 
 {
+    ZS_OF_Unkonwn,
     ZS_OF_Open,
     ZS_OF_Close,
     ZS_OF_CloseToday,
-    ZS_OF_CloseYd,
+    ZS_OF_CloseYd
 }ZSOffsetFlag;
 
 /* 订单类型 */
@@ -153,6 +171,18 @@ typedef enum
     ZS_RM_Backtest,
     ZS_RM_Liverun
 }ZSRunMode;
+
+/* 运行状态 */
+typedef enum
+{
+    ZS_RS_Unknown,
+    ZS_RS_NotInit,
+    ZS_RS_Inited,
+    ZS_RS_Running,
+    ZS_RS_Stopping,
+    ZS_RS_Stopped,
+    ZS_RS_Expired
+}ZSRunStatus;
 
 /* 价格类型 */
 typedef enum 

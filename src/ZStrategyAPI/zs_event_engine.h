@@ -21,19 +21,6 @@ extern "C" {
 #define ZS_EVENT_ENGINE_MAX_QUEUED  65536
 #define ZS_EVENT_ENGINE_MAX_EVID    64
 
-typedef enum
-{
-    ZS_EV_Timer,
-    ZS_EV_Connect,
-    ZS_EV_Order,
-    ZS_EV_Trade,
-    ZS_EV_Position,
-    ZS_EV_Account,
-    ZS_EV_Contract,
-    ZS_EV_MD,
-    ZS_EV_Other
-}ZSEventCategory;
-
 
 typedef void (*zs_ee_handler_pt)(zs_event_engine_t* ee, void* userData, uint32_t evtype, void* evdata);
 struct zs_evobject_s

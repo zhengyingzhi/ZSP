@@ -48,18 +48,18 @@ zs_asset_finder_t* zs_asset_create(void* ctxdata, ztl_pool_t* pool, int init_num
 void zs_asset_release(zs_asset_finder_t* asset_finder);
 
 // add data, and will do a copy of it internally
-int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, const char* symbol, int len, void* data);
-int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid, const char* symbol, int len, void* data, int size);
+int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, int exchangeid, const char* symbol, int len, void* data);
+int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid, int exchangeid, const char* symbol, int len, void* data, int size);
 
 // del data
-int zs_asset_del(zs_asset_finder_t* asset_finder, const char* symbol, int len);
+int zs_asset_del(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len);
 int zs_asset_del_by_sid(zs_asset_finder_t* asset_finder, zs_sid_t sid);
 
 // lookup sid, str maybe the symbol
-zs_sid_t zs_asset_lookup(zs_asset_finder_t* asset_finder, const char* str, int len);
+zs_sid_t zs_asset_lookup(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len);
 
 // get data pointer which added before
-void* zs_asset_find(zs_asset_finder_t* asset_finder, const char* symbol, int len);
+void* zs_asset_find(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len);
 void* zs_asset_find_by_sid(zs_asset_finder_t* asset_finder, zs_sid_t sid);
 
 // get current count

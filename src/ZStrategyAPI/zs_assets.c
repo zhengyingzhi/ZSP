@@ -6,20 +6,49 @@
 #include "zs_hashdict.h"
 
 
-zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder, const char* symbol, int len);
-zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder, const char* symbol, int len);
+zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder, 
+    int exchangeid, const char* symbol, int len);
+zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder, 
+    int exchangeid, const char* symbol, int len);
 
 
-static void* _zs_str_keydup(void* priv, const void* key) {
-    zs_asset_finder_t* asset_finder = (zs_asset_finder_t*)priv;
-    return zs_str_keydup(key, ztl_palloc, asset_finder->Pool);
+typedef struct
+{
+    uint16_t flag;      // usually exchange id
+    uint16_t len;       // symbol length
+    char*    ptr;       // symbol ptr
+}ZAssetKey;
+
+
+static uint64_t _zs_asset_hash(const void *key) {
+    ZAssetKey* skey = (ZAssetKey*)key;
+    return dictGenHashFunction((unsigned char*)skey->ptr, skey->len);
 }
 
-static dictType strHashDictType = {
-    zs_str_hash,
-    _zs_str_keydup,
+static int _zs_asset_cmp(void* priv, const void* a1, const void* a2) {
+    (void)priv;
+    ZAssetKey* k1 = (ZAssetKey*)a1;
+    ZAssetKey* k2 = (ZAssetKey*)a2;
+    return (k1->flag == k2->flag) && memcmp(k1->ptr, k2->ptr, k2->len) == 0;
+}
+
+static void* _zs_asset_keydup(void* priv, const void* key) {
+    zs_asset_finder_t* asset_finder = (zs_asset_finder_t*)priv;
+    ZAssetKey* skey = (ZAssetKey*)key;
+    ZAssetKey* dup_key = (ZAssetKey*)ztl_palloc(asset_finder->Pool,
+        ztl_align(sizeof(ZAssetKey) + skey->len, 4));
+    dup_key->flag = skey->flag;
+    dup_key->len = skey->len;
+    dup_key->ptr = (char*)(dup_key + 1);
+    memcpy(dup_key->ptr, skey->ptr, skey->len);
+    return dup_key;
+}
+
+static dictType assetHashDictType = {
+    _zs_asset_hash,
+    _zs_asset_keydup,
     NULL,
-    zs_str_cmp,
+    _zs_asset_cmp,
     NULL,
     NULL
 };
@@ -40,7 +69,7 @@ zs_asset_finder_t* zs_asset_create(void* ctxdata, ztl_pool_t* pool, int init_num
     asset_finder->Pool = pool;
 
     // sid hash table
-    asset_finder->SymbolHashDict = dictCreate(&strHashDictType, asset_finder);
+    asset_finder->SymbolHashDict = dictCreate(&assetHashDictType, asset_finder);
 
     // asset table by sid index
     (void)init_num;
@@ -74,12 +103,13 @@ void zs_asset_release(zs_asset_finder_t* asset_finder)
     }
 }
 
-int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, const char* symbol, int len, void* data)
+int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
+    int exchangeid, const char* symbol, int len, void* data)
 {
     zs_sid_t sid;
     void* dst;
 
-    sid = zs_asset_sid_gen(asset_finder, symbol, len);
+    sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_INVALID_SID) {
         return -1;
     }
@@ -101,12 +131,13 @@ int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, const char* sy
     return 0;
 }
 
-int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid, const char* symbol, int len, void* data, int size)
+int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
+    int exchangeid, const char* symbol, int len, void* data, int size)
 {
     zs_sid_t sid;
     void* dst;
 
-    sid = zs_asset_sid_gen(asset_finder, symbol, len);
+    sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_INVALID_SID) {
         return -1;
     }
@@ -133,10 +164,10 @@ int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid, const cha
     return 0;
 }
 
-int zs_asset_del(zs_asset_finder_t* asset_finder, const char* symbol, int len)
+int zs_asset_del(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len)
 {
     zs_sid_t sid;
-    sid = zs_asset_lookup(asset_finder, symbol, len);
+    sid = zs_asset_lookup(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_INVALID_SID)
     {
         return -1;
@@ -163,18 +194,18 @@ int zs_asset_del_by_sid(zs_asset_finder_t* asset_finder, zs_sid_t sid)
     return -1;
 }
 
-zs_sid_t zs_asset_lookup(zs_asset_finder_t* asset_finder, const char* symbol, int len)
+zs_sid_t zs_asset_lookup(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len)
 {
     zs_sid_t sid;
-    sid = zs_asset_sid_get(asset_finder, symbol, len);
+    sid = zs_asset_sid_get(asset_finder, exchangeid, symbol, len);
     return sid;
 }
 
-void* zs_asset_find(zs_asset_finder_t* asset_finder, const char* symbol, int len)
+void* zs_asset_find(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len)
 {
     zs_sid_t sid;
 
-    sid = zs_asset_lookup(asset_finder, symbol, len);
+    sid = zs_asset_lookup(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_INVALID_SID) {
         return NULL;
     }
@@ -200,14 +231,15 @@ uint32_t zs_asset_count(zs_asset_finder_t* asset_finder)
 
 
 
-zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder, const char* symbol, int len)
+zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder, 
+    int exchangeid, const char* symbol, int len)
 {
     zs_sid_t sid;
-    sid = zs_asset_sid_get(asset_finder, symbol, len);
+    sid = zs_asset_sid_get(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_INVALID_SID)
     {
         // add new if not existed
-        ZStrKey key = { len, (char*)symbol };
+        ZAssetKey key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
         sid = asset_finder->BaseSid++;
         dictAdd(asset_finder->SymbolHashDict, &key, (void*)sid);
     }
@@ -215,11 +247,12 @@ zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder, const char* symbol, i
     return sid;
 }
 
-zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder, const char* symbol, int len)
+zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder, 
+    int exchangeid, const char* symbol, int len)
 {
     dictEntry*  entry;
     zs_sid_t    sid = ZS_INVALID_SID;
-    ZStrKey     key = { len, (char*)symbol };
+    ZAssetKey   key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
     entry = dictFind(asset_finder->SymbolHashDict, &key);
     if (entry)
     {

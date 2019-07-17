@@ -22,158 +22,128 @@ static char* _zs_pool_str_dup(ztl_pool_t* pool, const char* src, int length)
     return dst;
 }
 
-int zs_configs_load_json(zs_algo_param_t* algoParam, ztl_pool_t* pool, 
-    const char* confFile);
-
-int zs_configs_load(zs_algo_param_t* algoParam, ztl_pool_t* pool, 
-    const char* confFile)
+static char* _zs_read_file_content(const char* filename, int* length)
 {
-    if (strstr(confFile, ".json")) {
-        return zs_configs_load_json(algoParam, pool, confFile);
+    int     capacity;
+    char*   buffer;
+
+    capacity = 64 * 1024;
+    buffer = malloc(capacity);
+
+    FILE* fp = fopen(filename, "r");
+    if (!fp)
+    {
+        free(buffer);
+        return NULL;
     }
 
-    return -1;
-    strcpy(algoParam->StartDate, "2018-08-01");
-    strcpy(algoParam->EndDate, "2018-08-03");
+    *length = (int)fread(buffer, capacity - 1, 1, fp);
+    fclose(fp);
 
-    //zs_account_t* account;
-    //ztl_array_init(&algoParam->Accounts, NULL, 8, sizeof(zs_account_t));
-    //account = ztl_array_push(&algoParam->Accounts);
-    //strcpy(account->AccountID, "000100000002");
-    //account->Available = 1000000.0;
-    //account->Balance = 1000000.0;
-    //account->UniqueID = 1;
-
-    algoParam->RunMode = ZS_RM_Backtest;
-    algoParam->DataFrequency = ZS_DF_Daily;
-    algoParam->ProductType = ZS_PC_Stock;
-    algoParam->CapitalBase = 1000000;
-
-    return 0;
+    return buffer;
 }
 
-static int _zs_get_string_object_value(cJSON* tnode, const char* key, char* dst, 
-    int dstSize)
+static int _zs_get_string_object_value(cJSON* tnode, const char* key, char* dst,
+    int dstsz)
 {
     cJSON* obj;
     obj = cJSON_GetObjectItem(tnode, key);
     if (obj) {
-        strncpy(dst, obj->valuestring, dstSize);
+        strncpy(dst, obj->valuestring, dstsz);
         return 0;
     }
     return -1;
 }
 
-static int _zs_configs_parse_tradings(cJSON* tnode, ztl_pool_t* pool, 
-    zs_trading_conf_t* tradingConf)
+static int _zs_configs_parse_accounts(zs_algo_param_t* algo_params,
+    cJSON* tnode, ztl_pool_t* pool,
+    zs_conf_account_t* account_conf)
 {
     int rv;
-    cJSON* obj;
-    zs_broker_conf_t *ptd_conf, *pmd_conf;
 
-    /* api confs */
-    ptd_conf = &tradingConf->TradeConf;
-    pmd_conf = &tradingConf->MdConf;
-
-    rv = _zs_get_string_object_value(tnode, "AccountID", ptd_conf->UserID, sizeof(ptd_conf->UserID) - 1);
+    rv = _zs_get_string_object_value(tnode, "AccountID", account_conf->AccountID, sizeof(account_conf->AccountID) - 1);
     if (0 != rv) {
         return rv;
     }
-    _zs_get_string_object_value(tnode, "Password", ptd_conf->Password, sizeof(ptd_conf->Password) - 1);
-    _zs_get_string_object_value(tnode, "BrokerID", ptd_conf->BrokerID, sizeof(ptd_conf->BrokerID) - 1);
-    _zs_get_string_object_value(tnode, "TradeAPIName", ptd_conf->ApiName, sizeof(ptd_conf->ApiName) - 1);
-    _zs_get_string_object_value(tnode, "TradeAddr", ptd_conf->Addr, sizeof(ptd_conf->Addr) - 1);
 
-    ptd_conf->AuthCode = NULL;
+    _zs_get_string_object_value(tnode, "Password", account_conf->Password, sizeof(account_conf->Password) - 1);
+    _zs_get_string_object_value(tnode, "BrokerID", account_conf->BrokerID, sizeof(account_conf->BrokerID) - 1);
+    _zs_get_string_object_value(tnode, "TradeAPIName", account_conf->TradeApiName, sizeof(account_conf->TradeApiName) - 1);
+    _zs_get_string_object_value(tnode, "MDAPIName", account_conf->MDApiName, sizeof(account_conf->MDApiName) - 1);
+    _zs_get_string_object_value(tnode, "AppID", account_conf->AppID, sizeof(account_conf->AppID) - 1);
+
+    account_conf->AuthCode = NULL;
     if (cJSON_HasObjectItem(tnode, "AuthCode"))
     {
         cJSON* obj;
         obj = cJSON_GetObjectItem(tnode, "AuthCode");
-        ptd_conf->AuthCode = _zs_pool_str_dup(pool, obj->valuestring, -1);
+        account_conf->AuthCode = _zs_pool_str_dup(pool, obj->valuestring, -1);
     }
 
-    memcpy(pmd_conf, ptd_conf, sizeof(zs_broker_conf_t));
-    _zs_get_string_object_value(tnode, "MdAPIName", pmd_conf->ApiName, sizeof(pmd_conf->ApiName) - 1);
-    _zs_get_string_object_value(tnode, "MdAddr", pmd_conf->Addr, sizeof(pmd_conf->Addr) - 1);
-
-    /* strategy confs */
-    ztl_array_init(&tradingConf->StrategyArr, pool, 8, sizeof(zs_strategy_conf_t));
-
-    obj = cJSON_GetObjectItem(tnode, "Strategy");
-    if (obj)
+    // find the broker info
+    zs_conf_broker_t* broker;
+    broker = zs_configs_find_broker(algo_params, account_conf->BrokerID);
+    if (!broker)
     {
-        if (obj->type != cJSON_Array) {
-            printf("error config for 'Strategy' item\n");
-            return -1;
-        }
-
-        cJSON* subitem = NULL;
-        int index;
-        int sz2 = cJSON_GetArraySize(obj);
-        for (index = 0; index < sz2; ++index)
-        {
-            subitem = cJSON_GetArrayItem(obj, index);
-            if (subitem->type != cJSON_Object) {
-                continue;
-            }
-
-            zs_strategy_conf_t* pstg_conf;
-            pstg_conf = (zs_strategy_conf_t*)ztl_array_at(&tradingConf->StrategyArr, index);
-
-            cJSON* nameObj = cJSON_GetObjectItem(subitem, "name");
-            cJSON* pathObj = cJSON_GetObjectItem(subitem, "path");
-            cJSON* symbolObj = cJSON_GetObjectItem(subitem, "symbol");
-
-            if (!nameObj || !pathObj) {
-                continue;
-            }
-            strncpy(pstg_conf->Name, nameObj->valuestring, sizeof(pstg_conf->Name) - 1);
-
-            pstg_conf->LibPath = ztl_pcalloc(pool, ztl_align(strlen(pathObj->valuestring) + 1, 8));
-            strcpy(pstg_conf->LibPath, pathObj->valuestring);
-
-            pstg_conf->Symbols = NULL;
-            if (symbolObj) {
-                pstg_conf->Symbols = _zs_pool_str_dup(pool, symbolObj->valuestring, -1);
-            }
-        }
+        // ERRORID: not find the broker info
+        return -1;
     }
+    strcpy(account_conf->TradeAddr, broker->TradeAddr);
+    strcpy(account_conf->MDAddr, broker->MDAddr);
 
+    // keep the original setting
+    char* account_setting = cJSON_Print(tnode);
+    account_conf->AccountSetting = account_setting;
+    free(account_setting);
 
     return 0;
 }
 
-int zs_configs_load_json(zs_algo_param_t* algoParam, ztl_pool_t* pool,
-    const char* confFile)
-{
-    int  length = 0;
-    char buffer[8000] = "";
-    FILE* fp = fopen(confFile, "r");
-    if (!fp) {
-        return -2;
-    }
-    length = (int)fread(buffer, sizeof(buffer) - 1, 1, fp);
-    fclose(fp);
 
+/// 加载全局配置
+int zs_configs_load_global(zs_algo_param_t* algo_param, ztl_pool_t* pool,
+    const char* conf_file)
+{
+    algo_param->RunMode = ZS_RM_Liverun;
+    return 0;
+}
+
+/// 加载账户配置
+int zs_configs_load_account(zs_algo_param_t* algo_param, ztl_pool_t* pool,
+    const char* conf_file)
+{
+    int length, rv;
     int size, index;
-    cJSON* json;
-    cJSON* tnode;
+    char*   buffer;
+    cJSON*  json;
+    cJSON*  tnode;
+
+    buffer = _zs_read_file_content(conf_file, &length);
+    if (!buffer)
+    {
+        // ERRORID: 
+        return -1;
+    }
 
     json = cJSON_Parse(buffer);
-    if (!json) {
+    if (!json)
+    {
         // invalid json buffer
-        return -3;
+        rv = -3;
+        goto PARSE_END;
     }
 
     size = cJSON_GetArraySize(json);
-    if (size <= 0) {
+    if (size <= 0)
+    {
         // invalid json cofigure
-        return -4;
+        rv = -4;
+        goto PARSE_END;
     }
 
-    ztl_array_init(&algoParam->TradingConf, pool, 8, sizeof(zs_trading_conf_t));
+    ztl_array_init(&algo_param->AccountConf, pool, 8, sizeof(zs_conf_account_t));
 
-    zs_trading_conf_t* trading_conf;
+    zs_conf_account_t* account_conf;
     tnode = NULL;
     index = 0;
     cJSON_ArrayForEach(tnode, json)
@@ -182,13 +152,293 @@ int zs_configs_load_json(zs_algo_param_t* algoParam, ztl_pool_t* pool,
             continue;
         }
 
-        trading_conf = (zs_trading_conf_t*)ztl_array_at(&algoParam->TradingConf, index++);
-        memset(trading_conf, 0, sizeof(zs_trading_conf_t));
-        _zs_configs_parse_tradings(tnode, pool, trading_conf);
+        account_conf = (zs_conf_account_t*)ztl_array_at(&algo_param->AccountConf, index++);
+        memset(account_conf, 0, sizeof(account_conf));
+        _zs_configs_parse_accounts(algo_param, tnode, pool, account_conf);
     }
-
 
     cJSON_Delete(json);
 
-    return 0;
+PARSE_END:
+    if (buffer) {
+        free(buffer);
+    }
+    return rv;
+}
+
+
+/// 加载经纪商配置
+int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
+    const char* conf_file)
+{
+    int length, rv;
+    int size, index;
+    char*   buffer;
+    cJSON*  json;
+    cJSON*  tnode;
+
+    buffer = _zs_read_file_content(conf_file, &length);
+    if (!buffer)
+    {
+        // ERRORID: 
+        return -1;
+    }
+
+    json = cJSON_Parse(buffer);
+    if (!json)
+    {
+        // invalid json buffer
+        rv = -3;
+        goto PARSE_END;
+    }
+
+    size = cJSON_GetArraySize(json);
+    if (size <= 0)
+    {
+        // invalid json cofigure
+        rv = -4;
+        goto PARSE_END;
+    }
+
+    ztl_array_init(&algo_param->BrokerConf, pool, 16, sizeof(zs_conf_broker_t));
+
+    zs_conf_broker_t* broker_conf;
+    tnode = NULL;
+    index = 0;
+    cJSON_ArrayForEach(tnode, json)
+    {
+        if (tnode->type != cJSON_Object) {
+            continue;
+        }
+
+        broker_conf = (zs_conf_broker_t*)ztl_array_at(&algo_param->BrokerConf, index++);
+        memset(broker_conf, 0, sizeof(broker_conf));
+
+        _zs_get_string_object_value(tnode, "APIName", broker_conf->ApiName, sizeof(broker_conf->ApiName) - 1);
+        _zs_get_string_object_value(tnode, "BrokerID", broker_conf->BrokerID, sizeof(broker_conf->BrokerID) - 1);
+        _zs_get_string_object_value(tnode, "BrokerName", broker_conf->BrokerName, sizeof(broker_conf->BrokerName) - 1);
+        _zs_get_string_object_value(tnode, "TradeAddr", broker_conf->TradeAddr, sizeof(broker_conf->TradeAddr) - 1);
+        _zs_get_string_object_value(tnode, "MDAddr", broker_conf->MDAddr, sizeof(broker_conf->MDAddr) - 1);
+    }
+
+    cJSON_Delete(json);
+
+PARSE_END:
+    if (buffer) {
+        free(buffer);
+    }
+    return rv;
+}
+
+
+/// 加载策略配置
+int zs_configs_load_strategy_setting(zs_algo_param_t* algo_param, ztl_pool_t* pool,
+    const char* conf_file)
+{
+    int length, rv;
+    int size, index;
+    char*   buffer;
+    cJSON*  json;
+    cJSON*  tnode;
+
+    buffer = _zs_read_file_content(conf_file, &length);
+    if (!buffer)
+    {
+        // ERRORID: 
+        return -1;
+    }
+
+    json = cJSON_Parse(buffer);
+    if (!json)
+    {
+        // invalid json buffer
+        rv = -3;
+        goto PARSE_END;
+    }
+
+    size = cJSON_GetArraySize(json);
+    if (size <= 0)
+    {
+        // invalid json cofigure
+        rv = -4;
+        goto PARSE_END;
+    }
+
+    ztl_array_init(&algo_param->StrategyConf, pool, 16, sizeof(zs_conf_strategy_t));
+
+    zs_conf_strategy_t* strategy_conf;
+    tnode = NULL;
+    index = 0;
+    cJSON_ArrayForEach(tnode, json)
+    {
+        if (tnode->type != cJSON_Object) {
+            continue;
+        }
+
+        strategy_conf = (zs_conf_strategy_t*)ztl_array_at(&algo_param->StrategyConf, index++);
+        memset(strategy_conf, 0, sizeof(strategy_conf));
+
+        _zs_get_string_object_value(tnode, "StrategyName", strategy_conf->StrategyName, sizeof(strategy_conf->StrategyName) - 1);
+        _zs_get_string_object_value(tnode, "Symbol", strategy_conf->Symbol, sizeof(strategy_conf->Symbol) - 1);
+
+        // keep the original setting
+        char* strategy_setting = cJSON_Print(tnode);
+        strategy_conf->Setting = _zs_pool_str_dup(pool, strategy_setting, (int)strlen(strategy_setting));
+        free(strategy_setting);
+    }
+
+    cJSON_Delete(json);
+
+PARSE_END:
+    if (buffer) {
+        free(buffer);
+    }
+    return rv;
+}
+
+
+/// 加载交易策略的配置
+static int zs_configs_load_tradings(zs_algo_param_t* algo_param, ztl_pool_t* pool,
+    const char* conf_file)
+{
+    int length, rv;
+    int size, index;
+    char*   buffer;
+    cJSON*  json;
+    cJSON*  tnode;
+
+    buffer = _zs_read_file_content(conf_file, &length);
+    if (!buffer)
+    {
+        // ERRORID: 
+        return -1;
+    }
+
+    json = cJSON_Parse(buffer);
+    if (!json)
+    {
+        // invalid json buffer
+        rv = -3;
+        goto PARSE_END;
+    }
+
+    size = cJSON_GetArraySize(json);
+    if (size <= 0)
+    {
+        // invalid json cofigure
+        rv = -4;
+        goto PARSE_END;
+    }
+
+    ztl_array_init(&algo_param->TradingConf, pool, 16, sizeof(zs_conf_trading_t));
+
+    zs_conf_trading_t* trading_conf;
+    tnode = NULL;
+    index = 0;
+    cJSON_ArrayForEach(tnode, json)
+    {
+        if (tnode->type != cJSON_Object) {
+            continue;
+        }
+
+        trading_conf = (zs_conf_trading_t*)ztl_array_at(&algo_param->TradingConf, index++);
+        memset(trading_conf, 0, sizeof(trading_conf));
+
+        rv = _zs_get_string_object_value(tnode, "AccountID", trading_conf->AccountID, sizeof(trading_conf->AccountID) - 1);
+        if (0 != rv) {
+            continue;
+        }
+
+        rv = _zs_get_string_object_value(tnode, "StrategyName", trading_conf->StrategyName, sizeof(trading_conf->StrategyName) - 1);
+        if (0 != rv) {
+            continue;
+        }
+
+        _zs_get_string_object_value(tnode, "Symbol", trading_conf->Symbol, sizeof(trading_conf->Symbol) - 1);
+
+        // keep the original setting
+        char* trading_setting = cJSON_Print(tnode);
+        trading_conf->Setting = _zs_pool_str_dup(pool, trading_setting, (int)strlen(trading_setting));
+        free(trading_setting);
+    }
+
+    cJSON_Delete(json);
+
+PARSE_END:
+    if (buffer) {
+        free(buffer);
+    }
+    return rv;
+}
+
+
+/// 加载配置入口
+int zs_configs_load(zs_algo_param_t* algo_param, ztl_pool_t* pool)
+{
+    int rv;
+    const char* zs_conf_file = "zs_config.json";
+    rv = zs_configs_load_global(algo_param, pool, zs_conf_file);
+
+    const char* zs_broker_conf_file = "zs_brokers.json";
+    rv = zs_configs_load_account(algo_param, pool, zs_broker_conf_file);
+
+    const char* zs_account_conf_file = "zs_account.json";
+    rv = zs_configs_load_account(algo_param, pool, zs_account_conf_file);
+
+    const char* zs_strategy_conf_file = "zs_strategy.json";
+    rv = zs_configs_load_account(algo_param, pool, zs_strategy_conf_file);
+
+    const char* zs_tradings_conf_file = "zs_tradings.json";
+    rv = zs_configs_load_tradings(algo_param, pool, zs_tradings_conf_file);
+
+    return rv;
+}
+
+
+zs_conf_broker_t* zs_configs_find_broker(zs_algo_param_t* algo_param, const char* brokerid)
+{
+    zs_conf_broker_t* broker_conf;
+    uint32_t count;
+    count = ztl_array_size(&algo_param->BrokerConf);
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        broker_conf = (zs_conf_broker_t*)ztl_array_at(&algo_param->BrokerConf, i);
+        if (strcmp(broker_conf->BrokerID, brokerid) == 0)
+            return broker_conf;
+    }
+
+    return NULL;
+}
+
+zs_conf_account_t* zs_configs_find_account(zs_algo_param_t* algo_param, const char* accountid)
+{
+    zs_conf_account_t* account_conf;
+    uint32_t count;
+    count = ztl_array_size(&algo_param->AccountConf);
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        account_conf = (zs_conf_account_t*)ztl_array_at(&algo_param->AccountConf, i);
+        if (strcmp(account_conf->AccountID, accountid) == 0)
+            return account_conf;
+    }
+
+    return NULL;
+}
+
+zs_conf_strategy_t* zs_configs_find_strategy(zs_algo_param_t* algo_param, const char* strategy_name)
+{
+    zs_conf_strategy_t* strategy_conf;
+    uint32_t count;
+    count = ztl_array_size(&algo_param->StrategyConf);
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        strategy_conf = (zs_conf_strategy_t*)ztl_array_at(&algo_param->StrategyConf, i);
+        if (strcmp(strategy_conf->StrategyName, strategy_name) == 0)
+            return strategy_conf;
+    }
+
+    return NULL;
 }

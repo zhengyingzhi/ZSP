@@ -43,13 +43,13 @@ struct zs_algorithm_s
     zs_risk_control_t*      RiskControl;    // 风控
 };
 
-zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algoParam);
+zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param);
 
 void zs_algorithm_release(zs_algorithm_t* algo);
 
 int zs_algorithm_init(zs_algorithm_t* algo);
 
-int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal);
+int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal);
 
 int zs_algorithm_stop(zs_algorithm_t* algo);
 

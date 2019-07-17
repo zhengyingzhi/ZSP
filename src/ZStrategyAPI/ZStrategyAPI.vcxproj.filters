@@ -17,7 +17,7 @@
       <Filter>Brokerage</Filter>
     </ClInclude>
     <ClInclude Include="zs_event_engine.h">
-      <Filter>Engine</Filter>
+      <Filter>Event</Filter>
     </ClInclude>
     <ClInclude Include="zs_algorithm.h">
       <Filter>Header Files</Filter>
@@ -79,9 +79,6 @@
     <ClInclude Include="zs_blotter_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="zs_position_tracker.h">
-      <Filter>Finance</Filter>
-    </ClInclude>
     <ClInclude Include="zs_account.h">
       <Filter>Finance</Filter>
     </ClInclude>
@@ -108,9 +105,6 @@
     <Filter Include="Brokerage">
       <UniqueIdentifier>{6bfd4455-c7a9-43a1-a750-08fc0c72deb0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Engine">
-      <UniqueIdentifier>{28d11943-df4b-4834-8cde-e07094a44f37}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Strategy">
       <UniqueIdentifier>{c9baf691-876d-4f76-acac-266883f5734b}</UniqueIdentifier>
     </Filter>
@@ -119,6 +113,9 @@
     </Filter>
     <Filter Include="Risk">
       <UniqueIdentifier>{2659c48c-02fb-4217-bc26-54cf26cfa018}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Event">
+      <UniqueIdentifier>{28d11943-df4b-4834-8cde-e07094a44f37}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -129,7 +126,7 @@
       <Filter>Brokerage</Filter>
     </ClCompile>
     <ClCompile Include="zs_event_engine.c">
-      <Filter>Engine</Filter>
+      <Filter>Event</Filter>
     </ClCompile>
     <ClCompile Include="zs_algorithm.c">
       <Filter>Source Files</Filter>
@@ -187,9 +184,6 @@
     </ClCompile>
     <ClCompile Include="zs_blotter_manager.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zs_position_tracker.c">
-      <Filter>Finance</Filter>
     </ClCompile>
     <ClCompile Include="zs_account.c">
       <Filter>Finance</Filter>

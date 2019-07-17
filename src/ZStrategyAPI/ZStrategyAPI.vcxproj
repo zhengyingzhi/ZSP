@@ -57,7 +57,6 @@
     <ClInclude Include="zs_order_list.h" />
     <ClInclude Include="zs_position.h" />
     <ClInclude Include="zs_blotter.h" />
-    <ClInclude Include="zs_position_tracker.h" />
     <ClInclude Include="zs_protocol.h" />
     <ClInclude Include="zs_risk_control.h" />
     <ClInclude Include="zs_simulator.h" />
@@ -86,7 +85,6 @@
     <ClCompile Include="zs_helper.c" />
     <ClCompile Include="zs_order_list.c" />
     <ClCompile Include="zs_position.c" />
-    <ClCompile Include="zs_position_tracker.c" />
     <ClCompile Include="zs_protocol.c" />
     <ClCompile Include="zs_risk_control.c" />
     <ClCompile Include="zs_simulator.c" />

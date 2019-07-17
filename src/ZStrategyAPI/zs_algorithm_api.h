@@ -60,7 +60,7 @@ int zs_set_long_only(zs_algorithm_t* algo);
 
 int zs_set_max_leverage(zs_algorithm_t* algo, float leverage);
 
-zs_contract_t* zs_get_contract(zs_algorithm_t* algo, const char* symbol);
+zs_contract_t* zs_get_contract(zs_algorithm_t* algo, int exchangeid, const char* symbol);
 
 //zs_account_t* zs_get_account(zs_algorithm_t* algo, const char* accountID);
 

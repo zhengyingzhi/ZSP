@@ -66,11 +66,11 @@ struct zs_slippage_model_s
     // Process how orders get filled, get filled_price, filled_volume
     int (*process_order_by_bar)(zs_slippage_model_t* slippageModel, 
             zs_bar_reader_t* barReader, const zs_order_t* order, 
-            float* pFilledPrice, int* pFilledVolume);
+            double* pFilledPrice, int* pFilledVolume);
 
     int(*process_order_by_tick)(zs_slippage_model_t* slippageModel,
         zs_tick_t* tickData, const zs_order_t* order,
-        float* pFilledPrice, int* pFilledVolume);
+        double* pFilledPrice, int* pFilledVolume);
 };
 
 struct zs_slippage_s
@@ -87,19 +87,19 @@ struct zs_slippage_s
 
 
 /* create slippage instance */
-zs_slippage_t* zs_slippage_create(ZS_PRICE_FIELD_FILL fillPriceField, 
-    zs_slippage_handler_pt handler, void* userData);
+zs_slippage_t* zs_slippage_create(ZS_PRICE_FIELD_FILL price_field, 
+    zs_slippage_handler_pt handler, void* userdata);
 
 void zs_slippage_release(zs_slippage_t* slippage);
 
 /* 输入/撤销订单 */
-int zs_slippage_order(zs_slippage_t* slippage, const zs_order_req_t* orderReq);
-int zs_slippage_quote_order(zs_slippage_t* slippage, const zs_quote_order_req_t* quoteOrderReq);
-int zs_slippage_cancel(zs_slippage_t* slippage, const zs_cancel_req_t* cancelReq);
+int zs_slippage_order(zs_slippage_t* slippage, const zs_order_req_t* order_req);
+int zs_slippage_quote_order(zs_slippage_t* slippage, const zs_quote_order_req_t* quote_order_req);
+int zs_slippage_cancel(zs_slippage_t* slippage, const zs_cancel_req_t* cancel_req);
 
 /* 根据行情，进行订单撮合 */
-int zs_slippage_process_bybar(zs_slippage_t* slippage, zs_bar_reader_t* barReader);
-int zs_slippage_process_bytick(zs_slippage_t* slippage, zs_tick_t* tickData);
+int zs_slippage_process_bybar(zs_slippage_t* slippage, zs_bar_reader_t* bar_reader);
+int zs_slippage_process_bytick(zs_slippage_t* slippage, zs_tick_t* tick);
 
 
 #ifdef __cplusplus

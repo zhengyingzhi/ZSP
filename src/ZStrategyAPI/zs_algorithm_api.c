@@ -187,9 +187,9 @@ int zs_set_max_leverage(zs_algorithm_t* algo, float leverage)
     return 0;
 }
 
-zs_contract_t* zs_get_contract(zs_algorithm_t* algo, const char* symbol)
+zs_contract_t* zs_get_contract(zs_algorithm_t* algo, int exchangeid, const char* symbol)
 {
-    return zs_asset_find(algo->AssetFinder, symbol, (int)strlen(symbol));
+    return zs_asset_find(algo->AssetFinder, exchangeid, symbol, (int)strlen(symbol));
 }
 
 #if 0

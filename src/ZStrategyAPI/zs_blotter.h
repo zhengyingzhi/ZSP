@@ -59,7 +59,7 @@ struct zs_blotter_s
     // 投资组合
     zs_portfolio_t*     pPortfolio;
 
-    // 手续费
+    // 手续费模型
     zs_commission_t*    Commission;
 
     // 风控
@@ -75,9 +75,12 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo);
 
 void zs_blotter_release(zs_blotter_t* blotter);
 
-int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* orderReq);
-int zs_blotter_quote_order(zs_blotter_t* blotter, zs_quote_order_req_t* quoteOrderReq);
+// 下单
+int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req);
+int zs_blotter_quote_order(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
+int zs_blotter_cancel(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req);
 
+int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req);
 
 // getters
 zs_order_t* zs_get_order_byid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid);

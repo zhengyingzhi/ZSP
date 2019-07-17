@@ -23,12 +23,13 @@ extern "C" {
 
 struct zs_data_head_s 
 {
-    struct  zs_data_head_s* prev;
-    struct  zs_data_head_s* next;
-    void    (*Cleanup)(struct zs_data_head_s*);
+    struct zs_data_head_s* prev;
+    struct zs_data_head_s* next;
+    void      (*Cleanup)(struct zs_data_head_s*);
     void*       CtxData;
     const char* pSymbol;            // point to the symbol id of the data body
-    uint32_t    SymbolLength;
+    uint16_t    SymbolLength;
+    uint16_t    ExchangeID;
     volatile    uint32_t RefCount;
     uint32_t    Flags;
     ZSDataType  DType;              // the data type
@@ -181,7 +182,7 @@ struct zs_trade_s
     double          Price;
     int32_t         Volume;
 
-    ZSDirectionType Direction;
+    ZSDirection     Direction;
     ZSOffsetFlag    Offset;
     int32_t         TradingDay;
     int64_t         TradeTime;
@@ -206,7 +207,7 @@ struct zs_order_s
     double          Price;
     int32_t         Quantity;
     int32_t         Filled;
-    ZSDirectionType Direction;
+    ZSDirection     Direction;
     ZSOffsetFlag    Offset;
     ZSOrderType     OrderType;
     ZSOrderStatus   Status;
@@ -236,7 +237,7 @@ struct zs_position_s
     char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
-    ZSDirectionType Direction;
+    ZSDirection     Direction;
     int32_t         Position;
     int32_t         TdPosition;
     int32_t         YdPosition;
@@ -262,7 +263,7 @@ struct zs_position_detail_s
     char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
-    ZSDirectionType Direction;
+    ZSDirection     Direction;
     int32_t         Position;
     int32_t         PositionDate;
 
@@ -349,7 +350,7 @@ struct zs_order_req_s
     uint64_t        Sid;
     double          Price;
     int32_t         Quantity;
-    ZSDirectionType Direction;
+    ZSDirection     Direction;
     ZSOffsetFlag    Offset;
     ZSOrderType     OrderType;
     uint32_t        OrderID;

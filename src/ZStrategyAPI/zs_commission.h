@@ -55,7 +55,7 @@ struct zs_comm_per_contract_s
     double  OpenCost;
     double  CloseCost;
     double  ClostTodayCost;
-    float   Multiplier;
+    int     Multiplier;
 };
 
 struct zs_commission_model_s
@@ -63,7 +63,7 @@ struct zs_commission_model_s
     const char* Name;
     void* UserData;
 
-    float (*calculate)(zs_commission_model_t* model, 
+    double (*calculate)(zs_commission_model_t* model, 
         const zs_order_t* order, const zs_trade_t* trade);
 };
 
@@ -87,7 +87,7 @@ void zs_commssion_set_per_contract(zs_commission_t* comm, zs_comm_per_contract_t
 
 zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int isEquity);
 
-float zs_commission_calculate(zs_commission_t* comm, int isEquity, zs_order_t* order, zs_trade_t* trade);
+double zs_commission_calculate(zs_commission_t* comm, int isEquity, zs_order_t* order, zs_trade_t* trade);
 
 
 #ifdef __cplusplus

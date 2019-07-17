@@ -1,7 +1,7 @@
-/*
+﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
- * define the order struct
+ * define the position engine 
  */
 
 #ifndef _ZS_POSITION_H_INCLUDED_
@@ -47,6 +47,7 @@ struct zs_position_engine_s
     int32_t         LongFrozen;
     int32_t         LongYdFrozen;
     int32_t         LongTdFrozen;
+    int32_t         LongAvail;
     double          LongPrice;
     double          LongPnl;
     double          LongMargin;
@@ -60,6 +61,7 @@ struct zs_position_engine_s
     int32_t         ShortFrozen;
     int32_t         ShortYdFrozen;
     int32_t         ShortTdFrozen;
+    int32_t         ShortAvail;
     double          ShortPrice;
     double          ShortPnl;
     double          ShortMargin;
@@ -84,6 +86,7 @@ int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order);
 double zs_position_on_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade);
 
 
+// 最新价格更新
 void zs_position_sync_last_price(zs_position_engine_t* pos, double lastpx);
 
 #ifdef __cplusplus

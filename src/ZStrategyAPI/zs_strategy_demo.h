@@ -5,7 +5,7 @@
 
 #include "zs_strategy_api.h"
 
-int zs_demo_strategy_entry(zs_strategy_api_t** ppStragegy);
+int zs_demo_strategy_entry(zs_strategy_entry_t** ppentry);
 
 
 #endif//_ZS_STRATEGY_DEMO_H_

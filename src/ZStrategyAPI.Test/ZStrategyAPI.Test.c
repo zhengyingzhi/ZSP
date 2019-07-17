@@ -7,6 +7,9 @@
 #include <ZStrategyAPI/zs_assets.h>
 #include <ZStrategyAPI/zs_trading_calendar.h>
 
+#include <ZStrategyAPI/zs_common.h>
+
+
 void test_asset_finder();
 void test_calendar();
 void test_array();
@@ -18,9 +21,11 @@ int main(int argc, char* argv[])
     fprintf(stderr, "x64\n");
 #endif
 
-    // test_asset_finder();
+    int x = ZS_EI_Unkown;
+
+    test_asset_finder();
     // test_calendar();
-    test_array();
+    // test_array();
     return 0;
 }
 
@@ -34,56 +39,76 @@ void test_asset_finder()
     zs_contract_t contract1;
     memset(&contract1, 0, sizeof(contract1));
     strcpy(contract1.Symbol, "rb1905");
-    rv = zs_asset_add(asset_finder, &sid, "rb1905", 6, &contract1);
+    contract1.ExchangeID = ZS_EI_SHFE;
+    rv = zs_asset_add(asset_finder, &sid, contract1.ExchangeID, contract1.Symbol, 6, &contract1);
     contract1.Sid = sid;
     assert(rv == 0);
 
     zs_contract_t contract2;
     memset(&contract2, 0, sizeof(contract2));
-    strcpy(contract2.Symbol, "600111.SH");
-    rv = zs_asset_add(asset_finder, &sid, "600111.SH", 9, &contract2);
+    strcpy(contract2.Symbol, "000001");
+    contract2.ExchangeID = ZS_EI_SSE;
+    rv = zs_asset_add(asset_finder, &sid, contract2.ExchangeID, contract2.Symbol, 6, &contract2);
     contract2.Sid = sid;
     assert(rv == 0);
 
-    zs_sid_t s1 = zs_asset_lookup(asset_finder, "rb1905", 6);
-    zs_sid_t s2 = zs_asset_lookup(asset_finder, "600111.SH", 9);
-    zs_sid_t s3 = zs_asset_lookup(asset_finder, "600111", 6);
+    zs_contract_t contract3;
+    memset(&contract3, 0, sizeof(contract3));
+    strcpy(contract3.Symbol, "000001");
+    contract3.ExchangeID = ZS_EI_SZSE;
+    rv = zs_asset_add(asset_finder, &sid, contract3.ExchangeID, contract3.Symbol, 6, &contract3);
+    contract2.Sid = sid;
+    assert(rv == 0);
+
+    zs_sid_t s1 = zs_asset_lookup(asset_finder, ZS_EI_SHFE, "rb1905", 6);
+    zs_sid_t s2 = zs_asset_lookup(asset_finder, ZS_EI_SSE, "000001", 6);
+    zs_sid_t s3 = zs_asset_lookup(asset_finder, ZS_EI_SZSE, "000001", 6);
 
     zs_contract_t* pcont1 = zs_asset_find_by_sid(asset_finder, s1);
     zs_contract_t* pcont2 = zs_asset_find_by_sid(asset_finder, s2);
     zs_contract_t* pcont3 = zs_asset_find_by_sid(asset_finder, s3);
     assert(pcont1);
     assert(pcont2);
-    assert(!pcont3);
+    assert(pcont3);
 
-    rv = zs_asset_del(asset_finder, "rb1905", 6);
+    rv = zs_asset_del(asset_finder, ZS_EI_SHFE, "rb1905", 6);
     assert(rv == 0);
-    pcont1 = zs_asset_find(asset_finder, "rb1905", 6);
+    pcont1 = zs_asset_find(asset_finder, ZS_EI_SHFE, "rb1905", 6);
     assert(!pcont1);
-    pcont2 = zs_asset_find(asset_finder, "600111.SH", 9);
-    assert(s2);
+    pcont2 = zs_asset_find(asset_finder, ZS_EI_SSE, "000001", 6);
+    assert(pcont2);
+    pcont2 = zs_asset_find(asset_finder, ZS_EI_SZSE, "000001", 6);
+    assert(pcont2);
 
     // test multiple
     int n = 0;
+    int exchangeid = 0;
     const int count = 10000;
     zs_sid_t sid_arr[10000] = { 0 };
     for (int i = 0; i < count; ++i)
     {
         char buf[32] = "";
         int len = 0;
-        if (i < count / 2)
-            len = sprintf(buf, "%06d.SZ", i + 1);
-        else
-            len = sprintf(buf, "6%05d.SH", i);
+        if (i < count / 2) {
+            exchangeid = ZS_EI_SZSE;
+            len = sprintf(buf, "%06d", i + 1);
+        }
+        else {
+            exchangeid = ZS_EI_SSE;
+            // len = sprintf(buf, "6%05d", i);
+            len = sprintf(buf, "%06d", i);
+        }
 
         zs_sid_t sid = 0;
         zs_contract_t contract;
         memset(&contract, 0, sizeof(contract1));
         strncpy(contract.Symbol, buf, len);
-        rv = zs_asset_add_copy(asset_finder, &sid, buf, len, &contract, sizeof(contract));
+        contract.ExchangeID = exchangeid;
+        rv = zs_asset_add_copy(asset_finder, &sid, contract.ExchangeID, contract.Symbol, len, &contract, sizeof(contract));
 
         zs_contract_t* pcont = zs_asset_find_by_sid(asset_finder, sid);
         pcont->Sid = sid;
+        pcont->ExchangeID = exchangeid;
         sid_arr[i] = sid;
     }
     int64_t t0 = query_tick_count();
@@ -95,11 +120,17 @@ void test_asset_finder()
 
         char buf[32] = "";
         int len = 0;
-        if (i < count / 2)
-            len = sprintf(buf, "%06d.SZ", i + 1);
-        else
-            len = sprintf(buf, "6%05d.SH", i);
+        if (i < count / 2) {
+            exchangeid = ZS_EI_SZSE;
+            len = sprintf(buf, "%06d", i + 1);
+        }
+        else {
+            exchangeid = ZS_EI_SSE;
+            // len = sprintf(buf, "6%05d", i);
+            len = sprintf(buf, "%06d", i);
+        }
         assert(strcmp(buf, pcont->Symbol) == 0);
+        assert(pcont->ExchangeID == exchangeid);
         assert(pcont->Sid == sid);
 
         n += 1;

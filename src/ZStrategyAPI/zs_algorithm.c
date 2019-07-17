@@ -1,7 +1,5 @@
 ﻿#include <ZToolLib/ztl_array.h>
 
-#include <ZToolLib/ztl_dyso.h>
-
 #include "zs_algorithm.h"
 
 #include "zs_assets.h"
@@ -155,13 +153,13 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
 {
     // 根据配置文件，加载交易API和行情API
 
+    zs_trade_api_t* tdapi;
+    zs_md_api_t*    mdapi;
+
     if (!algo->Broker)
     {
         algo->Broker = zs_broker_create(algo);
     }
-
-    zs_trade_api_t* tdapi;
-    zs_md_api_t*    mdapi;
 
     if (algo->Params->RunMode == ZS_RM_Backtest)
     {
@@ -185,17 +183,16 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         mdapi = (zs_md_api_t*)ztl_pcalloc(algo->Pool, sizeof(zs_md_api_t));
 
         // example code
-        const char* lib_path;
+        const char* tdlibpath;
+        const char* mdlibpath;
+        tdlibpath = "zs_ctp_trade.so";
+        mdlibpath = "zs_ctp_md.so";
 
-        lib_path = "zs_ctp.so";
-        ztl_dso_handle_t* dso = ztl_dso_load(lib_path);
+        tdapi->UserData = algo;
+        mdapi->UserData = algo;
 
-        // 动态加载库
-        for (int i = 0; zs_trade_api_names[i]; ++i)
-        {
-            const char* api_name = zs_trade_api_names[i];
-            void* func = ztl_dso_symbol(dso, api_name);
-        }
+        zs_broker_trade_load(tdapi, tdlibpath);
+        zs_broker_md_load(mdapi, mdlibpath);
 
         zs_broker_add_tradeapi(algo->Broker, tdapi);
         zs_broker_add_mdapi(algo->Broker, mdapi);
@@ -213,7 +210,7 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
  * 加载各接口zs_broker_entry_t(可根据名字获取接口实例)
  */
 
-zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algoParam)
+zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
 {
     ztl_pool_t* pool;
     zs_algorithm_t* algo;
@@ -221,7 +218,7 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algoParam)
     pool = ztl_create_pool(ZTL_DEFAULT_POOL_SIZE);
     algo = (zs_algorithm_t*)ztl_pcalloc(pool, sizeof(zs_algorithm_t));
     algo->Pool = pool;
-    algo->Params = algoParam;
+    algo->Params = algo_param;
 
     // create other objects...
     algo->EventEngine = zs_ee_create(algo);
@@ -251,29 +248,29 @@ int zs_algorithm_init(zs_algorithm_t* algo)
 static void zs_algorithm_register(zs_algorithm_t* algo)
 {
     zs_event_engine_t* ee = algo->EventEngine;
-    zs_ee_register(ee, algo, ZS_EV_Order, _zs_algo_handle_order);
-    zs_ee_register(ee, algo, ZS_EV_Trade, _zs_algo_handle_trade);
-    zs_ee_register(ee, algo, ZS_EV_Position, _zs_algo_handle_position);
-    zs_ee_register(ee, algo, ZS_EV_Account, _zs_algo_handle_account);
-    zs_ee_register(ee, algo, ZS_EV_Contract, _zs_algo_handle_contract);
-    zs_ee_register(ee, algo, ZS_EV_MD, _zs_algo_handle_md);
-    zs_ee_register(ee, algo, ZS_EV_Timer, _zs_algo_handle_timer);
-    zs_ee_register(ee, algo, ZS_EV_Other, _zs_algo_handle_other);
+    zs_ee_register(ee, algo, ZS_DT_Order, _zs_algo_handle_order);
+    zs_ee_register(ee, algo, ZS_DT_Trade, _zs_algo_handle_trade);
+    zs_ee_register(ee, algo, ZS_DT_QryPosition, _zs_algo_handle_position);
+    zs_ee_register(ee, algo, ZS_DT_QryAccount, _zs_algo_handle_account);
+    zs_ee_register(ee, algo, ZS_DT_QryContract, _zs_algo_handle_contract);
+    zs_ee_register(ee, algo, ZS_DT_MD_Tick, _zs_algo_handle_md);
+    zs_ee_register(ee, algo, ZS_DT_Timer, _zs_algo_handle_timer);
+    zs_ee_register(ee, algo, ZS_DT_Other, _zs_algo_handle_other);
 }
 
-int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
+int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 {
-    algo->DataPortal = dataPortal;
+    algo->DataPortal = data_portal;
 
     // fake contract info
     zs_contract_t contract = { 0 };
-    strcpy(contract.Symbol, "000001.SZA");
+    strcpy(contract.Symbol, "000001.SZSE");
     contract.ExchangeID = ZS_EI_SZSE;
     contract.ProductClass = ZS_PC_Stock;
     contract.Multiplier = 1;
     contract.PriceTick = 0.01f;
     zs_sid_t sid;
-    zs_asset_add_copy(algo->AssetFinder, &sid, contract.Symbol, (int)strlen(contract.Symbol), &contract, sizeof(contract));
+    zs_asset_add_copy(algo->AssetFinder, &sid, contract.ExchangeID, contract.Symbol, (int)strlen(contract.Symbol), &contract, sizeof(contract));
     contract.Sid = sid;
 
     /* 回测：
@@ -312,6 +309,8 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
         zs_simulator_t* simu;
         simu = zs_simulator_create(algo);
 
+        // TODO
+#if 0
         zs_trading_conf_t* trading_conf;
         trading_conf = (zs_trading_conf_t*)ztl_array_at(&algo->Params->TradingConf, 0);
 
@@ -327,6 +326,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
         zs_simulator_regist_mdapi(simu, mdapi, &md_handlers);
         algo->Simulator = simu;
 
+#endif
         zs_simulator_run(simu);
     }
     else
@@ -334,6 +334,9 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
         // 针对每个账户，启动各账户的API连接，则可开始交易
         // 之后自动触发connect, login, marketdata 等事件
 
+        // TODO: 调用各个account的api连接接口
+
+#if 0
         zs_trading_conf_t* trading_conf;
         for (uint32_t i = 0; i < ztl_array_size(&algo->Params->TradingConf); ++i)
         {
@@ -346,7 +349,8 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* dataPortal)
             tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, &trading_conf->TradeConf);
             tdapi->connect(tdapi->ApiInstance, NULL);
         }
-    }
+#endif//0
+}
 
     // 最后，生成交易报告（回测和实盘均可）
 

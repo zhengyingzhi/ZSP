@@ -20,9 +20,9 @@ typedef union
 
 static uint32_t zs_get_variety_int(const char* symbol);
 
-double zs_per_share_calculate(zs_commission_model_t* commModel,
+double zs_per_share_calculate(zs_commission_model_t* comm_model,
     const zs_order_t* order, const zs_trade_t* trade);
-double zs_per_contract_calculate(zs_commission_model_t* commModel, 
+double zs_per_contract_calculate(zs_commission_model_t* comm_model,
     const zs_order_t* order, const zs_trade_t* trade);
 
 static zs_commission_model_t zs_per_share_model = {
@@ -99,10 +99,10 @@ zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int isEqui
     }
 }
 
-float zs_commission_calculate(zs_commission_t* comm, int isEquity, 
+double zs_commission_calculate(zs_commission_t* comm, int isEquity,
     zs_order_t* order, zs_trade_t* trade)
 {
-    float commission;
+    double commission;
     zs_commission_model_t* model;
     model = zs_commission_model_get(comm, isEquity);
 
@@ -127,13 +127,13 @@ static uint32_t zs_get_variety_int(const char* symbol)
     return vi.i;
 }
 
-double zs_per_share_calculate(zs_commission_model_t* commModel,
+double zs_per_share_calculate(zs_commission_model_t* comm_model,
     const zs_order_t* order, const zs_trade_t* trade)
 {
     zs_commission_t* comm;
     zs_comm_per_share_t* per_share;
 
-    comm = (zs_commission_t*)commModel->UserData;
+    comm = (zs_commission_t*)comm_model->UserData;
     per_share = &comm->PerShareCost;
 
     double commission;
@@ -166,21 +166,21 @@ double zs_per_share_calculate(zs_commission_model_t* commModel,
     return commission;
 }
 
-double zs_per_contract_calculate(zs_commission_model_t* commModel, 
+double zs_per_contract_calculate(zs_commission_model_t* comm_model,
     const zs_order_t* order, const zs_trade_t* trade)
 {
     zs_commission_t* comm;
     const char* symbol;
-    double multiplier;
     double price;
     int volume;
+    int multiplier;
     uint32_t vi;
     ZSOffsetFlag offset;
     zs_sid_t sid;
 
     zs_comm_per_contract_t* per_contract;
 
-    comm = (zs_commission_t*)commModel->UserData;
+    comm = (zs_commission_t*)comm_model->UserData;
     if (trade)
     {
         symbol = trade->Symbol;

@@ -21,13 +21,14 @@ extern "C" {
 #endif
 
 
-
-/* 对于各API库，需要提供标准接口名字
+/* 对于各API库，需要提供标准接口名字，作为入口函数
  */
-static const char* zs_trade_api_names[] = { "trade_create", "trade_release", "trade_regist", \
-    "trade_connect", "trade_login", "trade_order", "trade_quote_order", "trade_cancel", "trade_query", NULL };
-static const char* zs_md_api_names[] = { "md_create", "md_release", "md_regist", \
-    "md_connect", "md_login", "md_subscribe", "md_unsubscribe", NULL };
+#define zs_trade_api_entry_name     "trade_api_entry"
+#define zs_md_api_entry_name        "md_api_entry"
+
+typedef int (*zs_trade_api_entry_ptr)(zs_trade_api_t* tdapi);
+typedef int (*zs_md_api_entry_ptr)(zs_md_api_t* mdapi);
+
 
 //struct zs_api_name_type_s
 //{
@@ -35,6 +36,9 @@ static const char* zs_md_api_names[] = { "md_create", "md_release", "md_regist",
 //    void*       api_func;
 //};
 
+
+/* 查询类别
+ */
 typedef enum
 {
     ZS_API_QryAccount,
@@ -53,6 +57,8 @@ typedef enum
     ZS_API_QryMarketData
 }ZSApiQueryCategory;
 
+/* API事件通知类别
+ */
 typedef enum
 {
     ZS_API_RtnOrder,
@@ -66,12 +72,18 @@ typedef enum
     ZS_API_RtnExchangeState
 }ZSApiRtnCategory;
 
+
 /* trader apis */
 struct zs_trade_api_s
 {
-    const char* ApiName;
-    void* ApiInstance;
-    void* UserData;
+    const char*     ApiName;        // the api name
+    void*           HLib;           // the dso object
+    void*           UserData;       // the core object
+    void*           ApiInstance;    // the api instance, returned by create()
+    uint32_t        ApiFlag;
+
+    // get api version
+    const char* (*api_version)(int* pver);
 
     // create api instance
     void* (*create)(const char* str, int reserve);
@@ -80,7 +92,7 @@ struct zs_trade_api_s
     void (*release)(void* api_instance);
 
     int (*regist)(void* api_instance, zs_trade_api_handlers_t* handlers, 
-        void* tdctx, const zs_broker_conf_t* conf);
+        void* tdctx, const zs_conf_account_t* conf);
 
     // connect
     int (*connect)(void* api_instance, void* addr);
@@ -92,7 +104,7 @@ struct zs_trade_api_s
     int (*logout)(void* api_instance);
 
     // order request
-    int (*order)(void* api_instance, zs_order_req_t* orderReq);
+    int (*order)(void* api_instance, zs_order_req_t* order_req);
 
     // quote order request
     int (*quote_order)(void* api_instance, zs_quote_order_req_t* quote_req);
@@ -123,9 +135,14 @@ struct zs_trade_api_handlers_s
 /* md apis */
 struct zs_md_api_s
 {
-    const char* ApiName;
-    void* ApiInstance;
-    void* UserData;
+    const char*     ApiName;
+    void*           HLib;           // the dso object
+    void*           UserData;
+    void*           ApiInstance;
+    uint32_t        Flag;
+
+    // get api version
+    const char* (*get_api_version)(int* pver);
 
     // create md api instance
     void* (*create)(const char* str, int reserve);
@@ -134,7 +151,7 @@ struct zs_md_api_s
     void (*release)(void* api_instance);
 
     int (*regist)(void* api_instance, zs_md_api_handlers_t* handlers,
-        void* mdctx, const zs_broker_conf_t* conf);
+        void* mdctx, const zs_conf_account_t* conf);
 
     // connect
     int (*connect)(void* api_instance, void* addr);

@@ -108,7 +108,7 @@ static void update_avail_cash(zs_account_t* account, double cash)
     account->FundAccount.Available += cash;
 }
 
-static double freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirectionType direction,
+static double freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirection direction,
     double price, int volume, char* userid, zs_contract_t* contract)
 {
     // 冻结保证金
@@ -145,7 +145,7 @@ static double freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, Z
     return frozen_margin;
 }
 
-static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirectionType direction,
+static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirection direction,
     double price, int volume, char* userid, zs_contract_t* contract)
 {
     // 释放保证金
@@ -249,10 +249,24 @@ void zs_account_update(zs_account_t* account, zs_fund_account_t* fund_account)
 
 int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs_contract_t* contract)
 {
-    if (order_req->Offset == ZS_OF_Open)
+    double frozen_margin;
+
+    if (order_req->Offset != ZS_OF_Open)
     {
-        // ERRORID: 
+        return 0;
     }
+
+    // 冻结资金
+    frozen_margin = freeze_margin(account, order_req->Symbol, order_req->Sid, 
+        order_req->Direction, order_req->Price, order_req->Quantity, 
+        order_req->UserID, contract);
+    if (frozen_margin < 0.01)
+    {
+        // ERRORID:
+    }
+
+    freeze_commission(account, order_req->Offset, order_req->Price, order_req->Quantity, contract);
+
     return 0;
 }
 
@@ -274,12 +288,6 @@ int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contrac
 }
 
 int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
-{
-    return 0;
-}
-
-
-int zs_account_on_order_trade(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
 {
     double margin;
     double price;

@@ -36,7 +36,7 @@ static void* _zs_order_keydup(void* priv, const void* key) {
     dup_key->ExchangeID = skey->ExchangeID;
     dup_key->Length = skey->Length;
     dup_key->pOrderSysID = (char*)(dup_key + 1);
-    memcpy(dup_key->pOrderSysID, skey->pOrderSysID, skey->Length);  // could be use a faster copy
+    ztl_memcpy(dup_key->pOrderSysID, skey->pOrderSysID, skey->Length);  // could be use a faster copy
     return dup_key;
 }
 
@@ -51,9 +51,7 @@ static int _zs_order_keycmp(void* priv, const void* s1, const void* s2) {
     (void)priv;
     ZSOrderKey* k1 = (ZSOrderKey*)s1;
     ZSOrderKey* k2 = (ZSOrderKey*)s2;
-    if (k1->ExchangeID == k2->ExchangeID && memcmp(k1->pOrderSysID, k2->pOrderSysID, k2->Length) == 0)
-        return 1;
-    return 0;
+    return (k1->ExchangeID == k2->ExchangeID) && memcmp(k1->pOrderSysID, k2->pOrderSysID, k2->Length) == 0;
 }
 
 static dictType orderHashDictType = {
@@ -167,14 +165,36 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         return rv;
     }
 
-    // todo: save this order 
+    // save this order 
+    zs_blotter_save_order(blotter, order_req);
 
     return rv;
 }
 
-int zs_blotter_quote_order(zs_blotter_t* blotter, zs_quote_order_req_t* quoteOrderReq)
+int zs_blotter_quote_order(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req)
 {
     return -1;
+}
+
+int zs_blotter_cancel(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req)
+{
+    // 撤单请求
+    int rv;
+    zs_trade_api_t* tdapi;
+
+    tdapi = blotter->TradeApi;
+    rv = tdapi->cancel(tdapi->ApiInstance, cancel_req);
+    if (rv != 0)
+    {
+        // 
+    }
+    return rv;
+}
+
+int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
+{
+    // 保存订单到 OrderDict 和 WorkOrderDict
+    return 0;
 }
 
 
@@ -205,10 +225,12 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     zs_position_engine_t*   position;
     zs_contract_t*          contract;
 
-    if (order_req->Contract)
+    if (order_req->Contract) {
         contract = (zs_contract_t*)order_req->Contract;
-    else
+    }
+    else {
         contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order_req->Sid);
+    }
 
     if (!contract) {
         // ERRORID: not find the contract data
@@ -223,10 +245,13 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     // 资金处理
 
     // 持仓
-    position = zs_get_position_engine(blotter, order_req->Sid);
-    if (position)
+    if (order_req->Offset != ZS_OF_Open)
     {
-        zs_position_on_order_req(position, order_req);
+        position = zs_get_position_engine(blotter, order_req->Sid);
+        if (position)
+        {
+            zs_position_on_order_req(position, order_req);
+        }
     }
 
     // 资金
@@ -333,7 +358,7 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     // how to get asset type
     zs_commission_model_t* comm_model;
     comm_model = zs_commission_model_get(blotter->Commission, 0);
-    float comm = comm_model->calculate(comm_model, lorder, trade);
+    double comm = comm_model->calculate(comm_model, lorder, trade);
 
     blotter->Account->FundAccount.Commission += comm;
 
@@ -349,7 +374,7 @@ static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_
             break;
         }
 
-        float last_price = barReader->current(barReader, (zs_sid_t)pairs[k].Key, "close");
+        double last_price = barReader->current(barReader, (zs_sid_t)pairs[k].Key, "close");
         if (last_price < 0.0001) {
             continue;
         }
@@ -379,7 +404,7 @@ int zs_handle_md_tick(zs_algorithm_t* algo, zs_tick_t* tick)
     zs_sid_t sid;
     zs_blotter_t* blotter;
     zs_position_engine_t* position;
-    sid = zs_asset_lookup(algo->AssetFinder, tick->Symbol, (int)strlen(tick->Symbol));
+    sid = zs_asset_lookup(algo->AssetFinder, tick->ExchangeID, tick->Symbol, (int)strlen(tick->Symbol));
 
     // 遍历所有blotter，根据tickData找到更新浮动盈亏等，最新价格等
     for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)

@@ -4,8 +4,8 @@
  * define the order struct
  */
 
-#ifndef _ZS_POSITION_H_INCLUDED_
-#define _ZS_POSITION_H_INCLUDED_
+#ifndef _ZS_HELPER_H_INCLUDED_
+#define _ZS_HELPER_H_INCLUDED_
 
 #include <stdint.h>
 
@@ -26,4 +26,4 @@ const char* zs_convert_exchange_id(ZSExchangeID exchange_id);
 }
 #endif
 
-#endif//_ZS_POSITION_H_INCLUDED_
+#endif//_ZS_HELPER_H_INCLUDED_

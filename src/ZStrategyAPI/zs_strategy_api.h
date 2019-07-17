@@ -19,25 +19,28 @@ extern "C" {
 /* other types */
 typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 
-/* 策略接口的基本定义 */
-static const char* zs_strategy_api_names[] = { "create", "release", "on_init", "on_start", "on_stop", \
-    "before_trading_start", "on_order", "on_trade", "on_bardata", "on_tickdata", "on_tickdataL2", NULL };
+
+/* 策略导出的入口函数 */
+#define zs_strategy_entry_name  "strategy_entry"
+
+typedef int (*zs_strategy_entry_ptr)(zs_strategy_entry_t** ppentry);
 
 
 /* 定义策略对象及策略的回调处理函数
  */
-
-struct zs_strategy_api_s
+struct zs_strategy_entry_s
 {
-    const char* StrategyNme;
-    void*       HLib;
-    void*       Instance;
-    int32_t     StrategyID;
-    uint32_t    StrategyFlag;
+    const char* Name;           // the strategy name
+    const char* Author;         // the strategy author
+    const char* Version;        // the strategy version
+    uint32_t    Flags;          // the strategy flag
+    void*       HLib;           // ztl_dso_handle_t object
 
     // 策略对象的创建与销毁
-    void* (*create)(zs_cta_strategy_t* context, const char* reserve);
+    void* (*create)(const char* setting);
     void  (*release)(void* instance);
+
+    int   (*is_trading_symbol)(zs_cta_strategy_t* context, zs_sid_t sid);
 
     // 策略
     void  (*on_init)(void* instance);
@@ -45,16 +48,17 @@ struct zs_strategy_api_s
     void  (*on_stop)(void* instance);
     void  (*on_update)(void* instance, void* data, int size);
 
+    void  (*on_timer)(void* instance, zs_cta_strategy_t* context, int64_t flag);
     void  (*before_trading_start)(void* instance, zs_cta_strategy_t* context);
 
     // 成交通知
-    void  (*on_order)(void* instance, zs_cta_strategy_t* context, zs_order_t* order);
-    void  (*on_trade)(void* instance, zs_cta_strategy_t* context, zs_trade_t* trade);
+    void  (*handle_order)(void* instance, zs_cta_strategy_t* context, zs_order_t* order);
+    void  (*handle_trade)(void* instance, zs_cta_strategy_t* context, zs_trade_t* trade);
 
     // 行情通知
-    void  (*on_bardata)(void* instance, zs_cta_strategy_t* context, zs_bar_reader_t* barReader);
-    void  (*on_tickdata)(void* instance, zs_cta_strategy_t* context, zs_tick_t* tickData);
-    void  (*on_tickdataL2)(void* instance, zs_cta_strategy_t* context, zs_l2_tick_t* tickDataL2);
+    void  (*handle_bar)(void* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader);
+    void  (*handle_tick)(void* instance, zs_cta_strategy_t* context, zs_tick_t* tick_data);
+    void  (*handle_tickl2)(void* instance, zs_cta_strategy_t* context, zs_l2_tick_t* tickl2);
 };
 
 
