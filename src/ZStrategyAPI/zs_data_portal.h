@@ -47,6 +47,7 @@ struct zs_bar_reader_s
 {
     zs_data_portal_t*   DataPortal;
     ZSDataFrequency     DataFrequency;
+    uint32_t            Index;
     int64_t             CurrentDt;
 
 

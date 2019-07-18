@@ -1,5 +1,6 @@
 ﻿#include <stdio.h>
 #include <assert.h>
+#include <float.h>
 #include <locale.h>
 
 #include <ZToolLib/ztl_utils.h>
@@ -15,6 +16,162 @@ void test_calendar();
 void test_array();
 void test_broker_info();
 
+// c data frame
+#include <ZStrategyAPI/zs_hashdict.h>
+typedef enum
+{
+    ZS_VT_Unkown,
+    ZS_VT_Pointer,
+    ZS_VT_String,
+    ZS_VT_Double,
+    ZS_VT_INT64,
+    ZS_VT_INT32,
+    ZS_VT_INT16,
+    ZS_VT_INT8
+}ZSValueType;
+
+typedef struct
+{
+    const char*     Name;           // the field name
+    ztl_array_t*    pIndexs;        // the index
+    ztl_array_t     Array;          // array data
+    // uint32_t        NameInt;        // 
+    uint32_t        StartPos;
+    uint32_t        Count;
+    ZSValueType     Type;
+}zs_series_t;
+
+typedef struct  
+{
+    ztl_pool_t*     Pool;
+    ztl_array_t     Indexs;             // the index
+    ztl_array_t     SeriesArray;        // keep as array for easiy visit
+    ztl_dict_t*     SeriesDict;         // <field_name, series_object>
+    uint32_t        ColNum;             // 列数 == len(SeriesDict)
+    uint32_t        RowNum;             // 行数 == len(Indexs)
+}zs_data_frame_t;
+
+/*
+zs_data_frame_t 保存二维数据
+1. 一个列索引：可能是序号，也可以是int64的时间戳，指定索引即可取到该某series上该索引上的数据
+2. 要取某行的数据时，使用该行的索引，依次遍历SeriesArray，对各series取该索引上的值即可
+ */
+zs_series_t* zs_find_series(ztl_dict_t* dict, const char* name, int length)
+{
+    zs_series_t* series = NULL;
+    ZStrKey key = { length, (char*)name };
+    dictEntry* entry = dictFind(dict, &key);
+    if (entry) {
+        series = (zs_series_t*)entry->v.val;
+    }
+    return series;
+}
+
+double zs_get_value(ztl_dict_t* dict, const char* name, int index)
+{
+    zs_series_t* series;
+
+    series = zs_find_series(dict, name, (int)strlen(name));
+    if (!series)
+    {
+        fprintf(stderr, "not find series for %s\n", name);
+        return DBL_MAX;
+    }
+
+    return *(double*)ztl_array_at(&series->Array, index);
+}
+
+void zs_data_demo()
+{
+    ztl_pool_t* pool;
+    pool = ztl_create_pool(ZTL_DEFAULT_POOL_SIZE);
+
+    int row = 4;
+    int col = 3;        // symbol, open, close
+
+    zs_data_frame_t df;
+    df.Pool = pool;
+    ztl_array_init(&df.Indexs, NULL, row, sizeof(uint32_t));
+    ztl_array_init(&df.SeriesArray, NULL, col, sizeof(zs_series_t*));
+    df.SeriesDict = dictCreate(&strHashDictType, &df);
+
+    // make index
+    for (int i = 0; i < row; ++i)
+    {
+        uint32_t* dst = (uint32_t*)ztl_array_push(&df.Indexs);
+        *dst = i;
+    }
+
+    // make series
+    typedef double value_t;
+    const char* fields[] = { "symbol", "open", "close", NULL };
+    value_t prices[4][2] = { { 10, 11 }, { 10.2, 11.2 }, { 10.4, 11.4 }, { 10.6, 11.6 } };
+
+    zs_series_t* series;
+    for (int i = 0; fields[i]; ++i)
+    {
+        ZStrKey* key;
+        // series = (zs_series_t*)ztl_pcalloc(pool, sizeof(series));
+        series = (zs_series_t*)malloc(sizeof(series));
+        series->Name = fields[i];
+        series->pIndexs = &df.Indexs;
+        series->StartPos = 0;
+        series->Count = 0;
+        ztl_array_init(&series->Array, NULL, row, sizeof(value_t));
+        ztl_array_push_back(&df.SeriesArray, series);
+
+        key = ztl_palloc(pool, ztl_align(sizeof(ZStrKey), sizeof(void*)));
+        key->len = (int)strlen(fields[i]);
+        key->ptr = (char*)fields[i];
+        dictAdd(df.SeriesDict, key, series);
+
+        if (i > 0)
+        {
+            value_t* dst;
+#if 0
+            dst = ztl_array_push(&series->Array);
+            *dst = prices[i - 1][0];
+            fprintf(stderr, "push to %s, value:%lf\n", series->Name, *dst);
+            dst = ztl_array_push(&series->Array);
+            *dst = prices[i - 1][1];
+            fprintf(stderr, "push to %s, value:%lf\n", series->Name, *dst);
+#else
+            dst = ztl_array_push_n(&series->Array, 2);
+            memcpy(dst, prices[i], sizeof(value_t) * 2);
+#endif
+        }
+    }
+
+    // 若要取数据index+field: 找到series，取index即可
+    // 若要取某字段的序列数据，根据field从SeriesDict中查找，则返回一个 ptr+size即可？
+    // 可以取某个区间的序列数据，修改 series 的 pos 和 count 即可 
+    for (int i = 0; fields[i]; ++i)
+    {
+        series = zs_find_series(df.SeriesDict, fields[i], (int)strlen(fields[i]));
+        if (!series)
+        {
+            fprintf(stderr, "not find series for %s\n", fields[i]);
+            continue;
+        }
+
+        if (i == 0)
+            continue;
+
+        for (int k = 0; k < ztl_array_size(&series->Array); ++k)
+        {
+            value_t px = *(value_t*)ztl_array_at(&series->Array, k);
+            fprintf(stderr, "%s px:%lf\n", series->Name, px);
+        }
+    }
+
+    // get one value
+    value_t value1, value2;
+    value1 = zs_get_value(df.SeriesDict, "open", 0);
+    value2 = zs_get_value(df.SeriesDict, "close", 1);
+    fprintf(stderr, "value1:%lf, value2:%lf\n", value1, value2);
+}
+
+
 int main(int argc, char* argv[])
 {
     fprintf(stderr, "hello ZStrategyAPI.Test\n");
@@ -25,7 +182,8 @@ int main(int argc, char* argv[])
     // test_asset_finder();
     // test_calendar();
     // test_array();
-    test_broker_info();
+    // test_broker_info();
+    zs_data_demo();
     return 0;
 }
 

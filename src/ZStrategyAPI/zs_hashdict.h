@@ -42,6 +42,10 @@ static int zs_uint_cmp(void* priv, const void* s1, const void* s2) {
  */
 extern dictType uintHashDictType;
 
+/* a simple hash dict type based on string without key dup
+ */
+extern dictType strHashDictType;
+
 
 static uint64_t zs_str_hash(const void *key) {
     ZStrKey* skey = (ZStrKey*)key;
@@ -52,9 +56,7 @@ static int zs_str_cmp(void* priv, const void* s1, const void* s2) {
     (void)priv;
     ZStrKey* k1 = (ZStrKey*)s1;
     ZStrKey* k2 = (ZStrKey*)s2;
-    if (k1->len == k2->len)
-        return memcmp((ZStrKey*)k1->ptr, k2->ptr, k2->len) == 0;
-    return 0;
+    return (k1->len == k2->len) && memcmp((ZStrKey*)k1->ptr, k2->ptr, k2->len) == 0;
 }
 
 void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* alloc_ctx);

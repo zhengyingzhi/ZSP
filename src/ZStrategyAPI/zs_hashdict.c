@@ -12,6 +12,15 @@ dictType uintHashDictType = {
     NULL
 };
 
+dictType strHashDictType = {
+    zs_str_hash,
+    NULL,       // zs_str_keydup,
+    NULL,
+    zs_str_cmp,
+    NULL,
+    NULL
+};
+
 
 void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* alloc_ctx)
 {
