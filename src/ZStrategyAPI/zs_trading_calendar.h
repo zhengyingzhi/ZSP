@@ -60,4 +60,6 @@ void datetime_str_to_tm(struct tm* ptm, const char* datetime, int len);
 time_t date_str_to_time(const char* date, int len);
 time_t datetime_str_to_time(const char* datetime, int len);
 
+int zs_date_range(ztl_array_t* dates, const char* start_date, const char* end_date);
+
 #endif//_ZS_TRADING_CALENDAR_H_

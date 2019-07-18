@@ -27,17 +27,20 @@ typedef struct my_strategy_demo_s
 }my_strategy_demo_t;
 
 
-void* stg_demo_create(const char* setting)
+void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
 {
     my_strategy_demo_t* stgdemo;
     stgdemo = (my_strategy_demo_t*)calloc(1, sizeof(my_strategy_demo_t));
 
     stgdemo->symbols[0] = "000001.SZSE";
 
+    // we could assign our user data to UserData field
+    context->UserData = NULL;
+
     return stgdemo;
 }
 
-void stg_demo_release(zs_cta_strategy_t* context)
+void stg_demo_release(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
     if (context->Instance)
     {
@@ -46,33 +49,33 @@ void stg_demo_release(zs_cta_strategy_t* context)
     }
 }
 
-int stg_demo_is_trading_symbol(zs_cta_strategy_t* context, zs_sid_t sid)
+int stg_demo_is_trading_symbol(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_sid_t sid)
 {
     return 1;
 }
 
 // 策略
-void stg_demo_on_init(void* instance)
+void stg_demo_on_init(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
     printf("stg demo init\n");
 }
 
-void stg_demo_on_start(void* instance)
+void stg_demo_on_start(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
     printf("stg demo start\n");
 }
 
-void stg_demo_on_stop(void* instance)
+void stg_demo_on_stop(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
     printf("stg demo stop\n");
 }
 
-void stg_demo_on_update(zs_cta_strategy_t* context, void* data, int size)
+void stg_demo_on_update(my_strategy_demo_t* instance, zs_cta_strategy_t* context, void* data, int size)
 {
     printf("stg demo update\n");
 }
 
-void stg_demo_handle_order(zs_cta_strategy_t* context, zs_order_t* order)
+void stg_demo_handle_order(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_order_t* order)
 {
     printf("stg demo got order: %s,%d,%d,%.2f\n", order->Symbol, order->Direction, 
         order->Quantity, order->Price);
@@ -80,21 +83,20 @@ void stg_demo_handle_order(zs_cta_strategy_t* context, zs_order_t* order)
 }
 
 
-void stg_demo_handle_trade(zs_cta_strategy_t* context, zs_trade_t* trade)
+void stg_demo_handle_trade(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_trade_t* trade)
 {
     printf("stg demo got trade: %s,%d,%d,%.2f\n", trade->Symbol, trade->Direction,
         trade->Volume, trade->Price);
 }
 
 // 行情通知
-void stg_demo_handle_bar(zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
+void stg_demo_handle_bar(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
 {
     my_strategy_demo_t* mystg;
     //zs_portfolio_t* portfolio;
     double closepx;
 
-
-    // mystg = (my_strategy_demo_t*)instance;
+    mystg = instance;
     mystg->index += 1;
 
     int exchangeid = 0;
@@ -114,7 +116,7 @@ void stg_demo_handle_bar(zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader
     printf("std demo send order rv:%d\n", rv);
 }
 
-void stg_demo_handle_tick(zs_cta_strategy_t* context, zs_tick_t* tick)
+void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_tick_t* tick)
 {
     // visit the tick data
 }
@@ -123,15 +125,11 @@ void stg_demo_handle_tick(zs_cta_strategy_t* context, zs_tick_t* tick)
 //////////////////////////////////////////////////////////////////////////
 static zs_strategy_entry_t stg_demo =
 {
-    "stg_demo",
-#if 0
-    "zsp",
-    "1.0.0",
-    0,
-    NULL,
-#else
-    0,
-#endif
+    "stg_demo",         // strategy name
+    "zsp",              // author
+    "1.0.0",            // version
+    0,                  // flag
+    NULL,               // hlib
 
     stg_demo_create,
     stg_demo_release,

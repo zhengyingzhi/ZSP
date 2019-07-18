@@ -180,9 +180,9 @@ int64_t zs_tc_prev_session(zs_trading_calendar_t* tc, int64_t session)
     }
 
     next = session;
-    first = zs_tc_first_session(tc);
+    first = *(int64_t*)zs_tc_first_session(tc);
 
-    if (next > zs_tc_last_session(tc)) {
+    if (next > *(int64_t*)zs_tc_last_session(tc)) {
         return 0;
     }
 
@@ -208,9 +208,9 @@ int64_t zs_tc_next_session(zs_trading_calendar_t* tc, int64_t session)
     }
 
     next = session;
-    last = zs_tc_last_session(tc);
+    last = *(int64_t*)zs_tc_last_session(tc);
 
-    if (next < zs_tc_first_session(tc)) {
+    if (next < *(int64_t*)zs_tc_first_session(tc)) {
         return 0;
     }
 

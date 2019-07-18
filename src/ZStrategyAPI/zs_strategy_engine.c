@@ -9,18 +9,13 @@
 
 #include "zs_event_engine.h"
 
-#include "zs_strategy_entry.h"
+#include "zs_strategy_api.h"
 
 #include "zs_strategy_engine.h"
 
 // demo use
 #include "zs_strategy_demo.h"
 
-typedef struct  
-{
-    char*   StrategyName;       // 策略名
-    char*   StrategyPath;       // 策略路径
-}zs_strategy_file_t;
 
 #define MAX_STRATEGY_COUNT  16
 
@@ -93,7 +88,7 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userdata,
             continue;
 
         if (strategy->Entry->handle_order)
-            strategy->Entry->handle_order(strategy, order);
+            strategy->Entry->handle_order(strategy->Instance, strategy, order);
     }
 
     // TODO: generate minute bar, and try notify to each strategy
@@ -125,7 +120,7 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userdata,
             continue;
 
         if (strategy->Entry->handle_trade)
-            strategy->Entry->handle_trade(strategy, trade);
+            strategy->Entry->handle_trade(strategy->Instance, strategy, trade);
     }
 }
 
@@ -155,8 +150,8 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, void* userdata,
             continue;
         }
 
-        if (strategy->Entry->handle_tickdata)
-            strategy->Entry->handle_tickdata(strategy, tick);
+        if (strategy->Entry->handle_tick)
+            strategy->Entry->handle_tick(strategy->Instance, strategy, tick);
     }
 }
 
@@ -189,8 +184,8 @@ static void _zs_strategy_handle_bar(zs_event_engine_t* ee, void* userdata,
         zs_bar_reader_t* bar_reader = NULL;
         memcpy(&bar_reader, bar, sizeof(void*));
 
-        if (strategy->Entry->handle_bardata)
-            strategy->Entry->handle_bardata(strategy, bar_reader);
+        if (strategy->Entry->handle_bar)
+            strategy->Entry->handle_bar(strategy->Instance, strategy, bar_reader);
     }
 }
 
@@ -207,12 +202,6 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
     zse->StrategyMap    = ztl_map_create(MAX_STRATEGY_COUNT);
 
     ztl_array_init(&zse->AllStrategy, algo->Pool, MAX_STRATEGY_COUNT, sizeof(void*));
-
-    // TODO: 读取配置，并导入策略
-
-    // TODO: 需要预先从配置文件中读取当前系统支持哪些策略
-    //       也可自动定义规则，扫描当前目录下strategy开头的文件且为dll/so形式的，然后自动加载
-    zse->StrategyPaths = ztl_vector_create(32, sizeof(zs_strategy_file_t*));
 
     return zse;
 }
@@ -276,9 +265,7 @@ int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
     }
 
     // retrieve strategy entry func from dso
-    typedef int(*zs_strategy_entry_ptr)(zs_strategy_entry_t** ppentry);
-    const char* zs_strategy_entry_name = "strategy_entry";
-    zs_strategy_entry_ptr entry_func;
+    zs_strategy_entry_pt entry_func;
     entry_func = ztl_dso_symbol(dso, zs_strategy_entry_name);
     if (!entry_func)
     {
@@ -374,11 +361,11 @@ int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
 
     // 调用策略初始化函数
     if (strategy->Entry->create) {
-        strategy->Instance = strategy->Entry->create(setting);
+        strategy->Instance = strategy->Entry->create(strategy, setting);
     }
 
     if (strategy->Entry->on_init) {
-        strategy->Entry->on_init(strategy->Instance);
+        strategy->Entry->on_init(strategy->Instance, strategy);
     }
 
     *pstrategy = strategy;
@@ -405,9 +392,12 @@ int zs_strategy_init(zs_strategy_engine_t* zse, uint32_t strategy_id)
         return -1;
     }
 
-    strategy->Instance = strategy->Entry->create("");
+    if (!strategy->Instance) {
+        strategy->Instance = strategy->Entry->create(strategy, "");
+    }
+
     if (strategy->Entry->on_init)
-        strategy->Entry->on_init(strategy);
+        strategy->Entry->on_init(strategy, strategy);
 
     return 0;
 }
@@ -415,7 +405,7 @@ int zs_strategy_init(zs_strategy_engine_t* zse, uint32_t strategy_id)
 int zs_strategy_start(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 {
     if (strategy->Entry->on_start) {
-        strategy->Entry->on_start(strategy->Instance);
+        strategy->Entry->on_start(strategy->Instance, strategy);
     }
 
     return 0;
@@ -424,7 +414,7 @@ int zs_strategy_start(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 int zs_strategy_stop(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 {
     if (strategy->Entry->on_stop) {
-        strategy->Entry->on_stop(strategy->Instance);
+        strategy->Entry->on_stop(strategy->Instance, strategy);
     }
 
     return 0;
@@ -433,7 +423,7 @@ int zs_strategy_stop(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 int zs_strategy_update(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, const char* new_setting)
 {
     if (strategy->Entry->on_update) {
-        strategy->Entry->on_update(strategy->Instance, (void*)new_setting, (int)strlen(new_setting));
+        strategy->Entry->on_update(strategy->Instance, strategy, (void*)new_setting, (int)strlen(new_setting));
     }
 
     return 0;
@@ -463,55 +453,3 @@ int zs_strategy_engine_save_order(zs_strategy_engine_t* zse,
     return 0;
 }
 
-void zs_strategy_on_order_req(zs_strategy_engine_t* zse, zs_order_req_t* order_req, uint64_t* order_id)
-{
-    // called by zs_cta_strategy when order placed, and got the order_id
-    // here, we save the order relationship for order returned
-}
-
-void zs_strategy_on_order_rtn(zs_strategy_engine_t* zse, zs_order_t* order)
-{
-    // process the order returned event, call its strategy's callback
-
-    zs_cta_strategy_t* strategy;
-    strategy = zs_strategy_find2(zse, 0);
-    if (!strategy) {
-        // ERRORID: 无效的策略ID
-        return ;
-    }
-
-    if (strategy->Entry->handle_order)
-        strategy->Entry->handle_order(strategy, order);
-}
-
-void zs_strategy_on_trade_rtn(zs_strategy_engine_t* zse, zs_trade_t* trade)
-{
-    zs_cta_strategy_t* strategy;
-    strategy = zs_strategy_find2(zse, 0);
-    if (!strategy) {
-        // ERRORID: 无效的策略ID
-        return ;
-    }
-
-    if (strategy->Entry->handle_trade)
-        strategy->Entry->handle_trade(strategy, trade);
-}
-
-void zs_strategy_on_tick(zs_strategy_engine_t* zse, zs_tick_t* tick)
-{
-    zs_cta_strategy_t* strategy;
-    strategy = zs_strategy_find2(zse, 0);
-    if (!strategy) {
-        // ERRORID: 无效的策略ID
-        return ;
-    }
-
-    if (strategy->Entry->handle_tickdata)
-        strategy->Entry->handle_tickdata(strategy, tick);
-
-    // TODO: generate minute bar 
-}
-
-void zs_strategy_on_tickl2(zs_strategy_engine_t* zse, zs_tickl2_t* tickl2)
-{
-}

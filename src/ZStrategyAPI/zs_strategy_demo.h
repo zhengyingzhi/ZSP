@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "zs_strategy_entry.h"
+#include "zs_strategy_api.h"
 
 int zs_demo_strategy_entry(zs_strategy_entry_t** ppentry);
 

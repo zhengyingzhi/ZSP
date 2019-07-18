@@ -88,9 +88,6 @@
     <ClInclude Include="zs_cta_strategy.h">
       <Filter>Strategy</Filter>
     </ClInclude>
-    <ClInclude Include="zs_strategy_entry.h">
-      <Filter>Strategy</Filter>
-    </ClInclude>
     <ClInclude Include="zs_broker_info.h">
       <Filter>Brokerage</Filter>
     </ClInclude>

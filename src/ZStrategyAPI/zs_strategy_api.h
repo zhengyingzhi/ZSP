@@ -23,30 +23,30 @@ typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 /* 策略导出的入口函数 */
 #define zs_strategy_entry_name  "strategy_entry"
 
-typedef int (*zs_strategy_entry_ptr)(zs_strategy_entry_t** ppentry);
+typedef int (*zs_strategy_entry_pt)(zs_strategy_entry_t** ppentry);
 
 
 /* 定义策略对象及策略的回调处理函数
  */
 struct zs_strategy_entry_s
 {
-    const char* Name;           // the strategy name
+    const char* StrategyName;   // the strategy name
     const char* Author;         // the strategy author
     const char* Version;        // the strategy version
     uint32_t    Flags;          // the strategy flag
     void*       HLib;           // ztl_dso_handle_t object
 
     // 策略对象的创建与销毁
-    void* (*create)(const char* setting);
-    void  (*release)(void* instance);
+    void* (*create)(zs_cta_strategy_t* context, const char* setting);
+    void  (*release)(void* instance, zs_cta_strategy_t* context);
 
-    int   (*is_trading_symbol)(zs_cta_strategy_t* context, zs_sid_t sid);
+    int   (*is_trading_symbol)(void* instance, zs_cta_strategy_t* context, zs_sid_t sid);
 
     // 策略
-    void  (*on_init)(void* instance);
-    void  (*on_start)(void* instance);
-    void  (*on_stop)(void* instance);
-    void  (*on_update)(void* instance, void* data, int size);
+    void  (*on_init)(void* instance, zs_cta_strategy_t* context);
+    void  (*on_start)(void* instance, zs_cta_strategy_t* context);
+    void  (*on_stop)(void* instance, zs_cta_strategy_t* context);
+    void  (*on_update)(void* instance, zs_cta_strategy_t* context, void* data, int size);
 
     void  (*on_timer)(void* instance, zs_cta_strategy_t* context, int64_t flag);
     void  (*before_trading_start)(void* instance, zs_cta_strategy_t* context);

@@ -14,7 +14,7 @@
 
 #include "zs_core.h"
 
-#include "zs_strategy_entry.h"
+#include "zs_strategy_api.h"
 
 
 #ifdef __cplusplus
@@ -33,6 +33,7 @@ struct zs_cta_strategy_s
     const char* pCustomID;
 
     void*       Instance;       // the instance returned by create
+    void*       UserData;       // the user data for each strategy instance
 
     zs_strategy_engine_t*   Engine;
     zs_strategy_entry_t*    Entry;

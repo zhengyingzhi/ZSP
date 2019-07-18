@@ -84,15 +84,6 @@ int zs_strategy_engine_save_order(zs_strategy_engine_t* zse,
 zs_cta_strategy_t* zs_strategy_find2(zs_strategy_engine_t* zse, uint32_t strategy_id);
 
 
-/* 策略交易事件处理
- */
-void zs_strategy_on_order_req(zs_strategy_engine_t* zse, zs_order_req_t* order_req, uint64_t* order_id);
-void zs_strategy_on_order_rtn(zs_strategy_engine_t* zse, zs_order_t* order);
-void zs_strategy_on_trade_rtn(zs_strategy_engine_t* zse, zs_trade_t* trade);
-void zs_strategy_on_tick(zs_strategy_engine_t* zse, zs_tick_t* tick);
-void zs_strategy_on_tickl2(zs_strategy_engine_t* zse, zs_tickl2_t* tickl2);
-
-
 #ifdef __cplusplus
 }
 #endif

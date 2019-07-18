@@ -152,10 +152,10 @@ void test_calendar()
     char date2[] = "20190320";
     char datetime1[] = "2019-03-20 10:12:13";
     char datetime2[] = "20190320 10:12:14";
-    date_str_to_tm(&ltm1, date1, strlen(date1));
-    date_str_to_tm(&ltm2, date2, strlen(date2));
-    datetime_str_to_tm(&ltm3, datetime1, strlen(datetime1));
-    datetime_str_to_tm(&ltm4, datetime2, strlen(datetime2));
+    date_str_to_tm(&ltm1, date1, (int)strlen(date1));
+    date_str_to_tm(&ltm2, date2, (int)strlen(date2));
+    datetime_str_to_tm(&ltm3, datetime1, (int)strlen(datetime1));
+    datetime_str_to_tm(&ltm4, datetime2, (int)strlen(datetime2));
 
     ztl_array_t larr;
     ztl_array_init(&larr, NULL, 16, sizeof(time_t));
