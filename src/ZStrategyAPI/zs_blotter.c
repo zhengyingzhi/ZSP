@@ -184,7 +184,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         strcpy(order.Symbol, order_req->Symbol);
         order.ExchangeID = order_req->ExchangeID;
         order.Sid = order_req->Sid;
-        order.Status = ZS_OS_Rejected;
+        order.OrderStatus = ZS_OS_Rejected;
         order.Direction = order_req->Direction;
         order.OffsetFlag = order_req->OffsetFlag;
         // other fields...
@@ -328,7 +328,7 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 {
     zs_order_t*     lorder;
     zs_contract_t*  contract;
-    ZSOrderStatus   status;
+    ZSOrderStatus   order_status;
     ZSOrderKey      key;
     dictEntry*      entry;
 
@@ -341,17 +341,17 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 
     // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
 
-    status = order->Status;
+    order_status = order->OrderStatus;
     entry = dictFind(blotter->OrderDict, &key);
     if (entry)
     {
         zs_order_t* old_order;
         old_order = (zs_order_t*)entry->v.val;
-        if (is_finished_status(status))
+        if (is_finished_status(order_status))
         // if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
         {
             // 重复订单
-            if (status == old_order->Status) {
+            if (order_status == old_order->OrderStatus) {
                 return 0;
             }
         }
@@ -372,13 +372,13 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 
     strcpy(lorder->OrderSysID, order->OrderSysID);
     lorder->FilledQty = order->FilledQty;
-    lorder->Status = order->Status;
+    lorder->OrderStatus = order->OrderStatus;
     lorder->OrderTime = order->OrderTime;
     lorder->CancelTime = order->CancelTime;
 
     zs_account_on_order_rtn(blotter->Account, lorder, contract);
 
-    if (order->Status == ZS_OS_Canceld || order->Status == ZS_OS_PartCancled)
+    if (is_finished_status(order->OrderStatus))
     {
         zs_position_engine_t* position;
         position = zs_get_position_engine(blotter, order->Sid);
@@ -404,9 +404,9 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 
     lorder->FilledQty += trade->Volume;
     if (lorder->FilledQty == lorder->OrderQty)
-        lorder->Status = ZS_OS_Filled;
+        lorder->OrderStatus = ZS_OS_Filled;
     else
-        lorder->Status = ZS_OS_PartFilled;
+        lorder->OrderStatus = ZS_OS_PartFilled;
 
     zs_position_engine_t*  position;
     position = zs_get_position_engine(blotter, trade->Sid);

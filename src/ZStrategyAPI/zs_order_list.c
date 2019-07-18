@@ -39,6 +39,36 @@ int zs_orderlist_remove(zs_orderlist_t* orderlist, zs_order_t* order)
     return 0;
 }
 
+
+int zs_orderlist_size(zs_orderlist_t* orderlist)
+{
+    return ztl_dlist_size(orderlist);
+}
+
+int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size)
+{
+    int index = 0;
+    zs_order_t* order = NULL;
+    ztl_dlist_iterator_t* iter;
+    iter = ztl_dlist_iter_new(orderlist, ZTL_DLSTART_HEAD);
+    while (iter)
+    {
+        zs_order_t* temp;
+        temp = (zs_order_t*)iter->nodelink;
+
+        if (index >= size) {
+            break;
+        }
+        orders[index++] = temp;
+
+        iter = ztl_dlist_next(orderlist, iter);
+    }
+
+    ztl_dlist_iter_del(orderlist, iter);
+    return index;
+}
+
+
 zs_order_t* zs_order_find(zs_orderlist_t* orderlist, int32_t frontid, int32_t sessionid,
     const char orderid[])
 {

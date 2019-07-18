@@ -248,7 +248,7 @@ struct zs_order_s
     ZSDirection     Direction;
     ZSOffsetFlag    OffsetFlag;
     ZSOrderType     OrderType;
-    ZSOrderStatus   Status;
+    ZSOrderStatus   OrderStatus;
     char            OrderID[ORDER_ID_LEN];
     char            OrderSysID[ORDER_SYSID_LEN];
     int32_t         TradingDay;
@@ -421,6 +421,7 @@ struct zs_cancel_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            OrderID[ORDER_ID_LEN];
 
@@ -437,6 +438,7 @@ struct zs_quote_order_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
 

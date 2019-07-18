@@ -158,10 +158,10 @@ int zs_slippage_process_cancel(zs_slippage_t* slippage,
             cur_order->OrderID == cancelReq->OrderID)
         {
             // found
-            cur_order->Status = ZS_OS_Canceld;
+            cur_order->OrderStatus = ZS_OS_Canceld;
             if (cur_order->FilledQty > 0)
             {
-                cur_order->Status = ZS_OS_PartCancled;
+                cur_order->OrderStatus = ZS_OS_PartCancled;
                 cur_order->CancelTime = (int32_t)(ztl_intdatetime() % 100000000);
             }
 
@@ -293,7 +293,7 @@ int zs_slippage_process_order(zs_slippage_t* slippage,
         zs_generate_trade(&trade, cur_order, filled_price, fill_qty);
         slippage->Handler(slippage, ZS_SDT_Trade, &trade, sizeof(trade));
 
-        if (cur_order->Status == ZS_OS_Filled)
+        if (cur_order->OrderStatus == ZS_OS_Filled)
         {
             ztl_dlist_erase(order_list, iter);
 
@@ -334,16 +334,16 @@ static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req
     order->OffsetFlag = order_req->OffsetFlag;
     order->OrderType = order_req->OrderType;
 
-    order->Status = ZS_OS_Accepted;
+    order->OrderStatus = ZS_OS_Accepted;
 
     if (filled_volume == 0 && order->FilledQty == 0) {
-        order->Status = ZS_OS_Accepted;
+        order->OrderStatus = ZS_OS_Accepted;
     }
     else if ((filled_volume + order->FilledQty) < order_req->OrderQty) {
-        order->Status = ZS_OS_PartFilled;
+        order->OrderStatus = ZS_OS_PartFilled;
     }
     else if ((filled_volume + order->FilledQty) == order_req->OrderQty) {
-        order->Status = ZS_OS_Filled;
+        order->OrderStatus = ZS_OS_Filled;
     }
 
     if (!order->OrderSysID[0])
@@ -362,14 +362,14 @@ static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req
 static void zs_update_order(zs_order_t* order, int filled_qty)
 {
     if (filled_qty == 0 && order->FilledQty == 0) {
-        order->Status = ZS_OS_Accepted;
+        order->OrderStatus = ZS_OS_Accepted;
     }
     else if ((filled_qty + order->FilledQty) < order->OrderQty) {
-        order->Status = ZS_OS_PartFilled;
+        order->OrderStatus = ZS_OS_PartFilled;
         order->FilledQty += filled_qty;
     }
     else if ((filled_qty + order->FilledQty) == order->OrderQty) {
-        order->Status = ZS_OS_Filled;
+        order->OrderStatus = ZS_OS_Filled;
         order->FilledQty += filled_qty;
     }
 }

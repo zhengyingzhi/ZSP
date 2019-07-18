@@ -26,8 +26,13 @@ typedef ztl_dlist_t zs_orderlist_t;
 
 zs_orderlist_t* zs_orderlist_create();
 void zs_orderlist_release(zs_orderlist_t* orderlist);
+
 int zs_orderlist_append(zs_orderlist_t* orderlist, zs_order_t* order);
 int zs_orderlist_remove(zs_orderlist_t* orderlist, zs_order_t* order);
+
+int zs_orderlist_size(zs_orderlist_t* orderlist);
+
+int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size);
 
 zs_order_t* zs_order_find(zs_orderlist_t* orderlist, int32_t frontid, int32_t sessionid, 
     const char orderid[]);

@@ -443,7 +443,7 @@ int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_nam
     return 0;
 }
 
-zs_cta_strategy_t* zs_strategy_find_single(zs_strategy_engine_t* zse, uint32_t strategy_id)
+zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id)
 {
     zs_cta_strategy_t* strategy;
     strategy = ztl_map_find(zse->StrategyMap, strategy_id);

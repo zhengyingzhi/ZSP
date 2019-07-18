@@ -80,7 +80,7 @@ int zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid, zs_cta_stra
 
 int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, zs_cta_strategy_t* strategy_array[], int size);
 
-zs_cta_strategy_t* zs_strategy_find_single(zs_strategy_engine_t* zse, uint32_t strategy_id);
+zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id);
 
 /* operations for cta strategy
  */

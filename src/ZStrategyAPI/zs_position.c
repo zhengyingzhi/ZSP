@@ -1,5 +1,7 @@
 ﻿#include <assert.h>
 
+#include "zs_constants_helper.h"
+
 #include "zs_position.h"
 
 #include "zs_order_list.h"
@@ -131,9 +133,7 @@ int zs_position_handle_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
     }
 
     // 仅处理撤单和拒单，解冻冻结数量
-    if (order->Status != ZS_OS_Canceld && 
-        order->Status != ZS_OS_PartCancled && 
-        order->Status != ZS_OS_Rejected)
+    if (is_finished_status(order->OrderStatus))
     {
         return 0;
     }
