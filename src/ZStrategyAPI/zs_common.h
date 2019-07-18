@@ -11,6 +11,7 @@
 
 /* ZS version */
 #define ZS_Version          "0.0.1"
+#define ZS_Version_int      1
 
 
 #endif//_ZS_COMMON_H_INCLUDED_

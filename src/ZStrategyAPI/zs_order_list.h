@@ -25,13 +25,15 @@ extern "C" {
 typedef ztl_dlist_t zs_orderlist_t;
 
 zs_orderlist_t* zs_orderlist_create();
-void zs_orderlist_release(zs_orderlist_t* orderList);
-int zs_orderlist_append(zs_orderlist_t* orderList, zs_order_t* pOrder);
-int zs_orderlist_remove(zs_orderlist_t* orderList, zs_order_t* pOrder);
+void zs_orderlist_release(zs_orderlist_t* orderlist);
+int zs_orderlist_append(zs_orderlist_t* orderlist, zs_order_t* order);
+int zs_orderlist_remove(zs_orderlist_t* orderlist, zs_order_t* order);
 
-zs_order_t* zs_order_find(zs_orderlist_t* orderList, ZSExchangeID exchangeID,
-    const char OrderSysID[]);
+zs_order_t* zs_order_find(zs_orderlist_t* orderlist, int32_t frontid, int32_t sessionid, 
+    const char orderid[]);
 
+zs_order_t* zs_order_find_by_sysid(zs_orderlist_t* orderlist, ZSExchangeID exchangeid,
+    const char order_sysid[]);
 
 #ifdef __cplusplus
 }

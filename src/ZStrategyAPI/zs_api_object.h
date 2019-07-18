@@ -12,6 +12,7 @@
 #include "zs_constants.h"
 
 
+#define ORDER_ID_LEN        12
 #define ORDER_SYSID_LEN     16
 #define TRADE_ID_LEN        16
 #define BROKER_ID_LEN       16
@@ -211,7 +212,7 @@ struct zs_trade_s
 
     char            OrderSysID[ORDER_SYSID_LEN];
     char            TradeID[TRADE_ID_LEN];
-    int64_t         OrderID;
+    char            OrderID[ORDER_ID_LEN];
 
     uint64_t        Sid;
     double          Price;
@@ -248,7 +249,7 @@ struct zs_order_s
     ZSOffsetFlag    OffsetFlag;
     ZSOrderType     OrderType;
     ZSOrderStatus   Status;
-    int64_t         OrderID;
+    char            OrderID[ORDER_ID_LEN];
     char            OrderSysID[ORDER_SYSID_LEN];
     int32_t         TradingDay;
     int32_t         OrderDate;
@@ -394,6 +395,7 @@ struct zs_order_req_s
     char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
+    char            OrderID[ORDER_ID_LEN];
 
     uint64_t        Sid;
     double          OrderPrice;
@@ -401,8 +403,11 @@ struct zs_order_req_s
     ZSDirection     Direction;
     ZSOffsetFlag    OffsetFlag;
     ZSOrderType     OrderType;
-    uint32_t        OrderID;
     int64_t         OrderTime;
+
+    // for api returned
+    int32_t         FrontID;
+    int32_t         SessionID;
 
     // IB
     ZSProductClass  ProductClass;
@@ -417,8 +422,8 @@ struct zs_cancel_req_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     char            AccountID[ACCOUNT_ID_LEN];
+    char            OrderID[ORDER_ID_LEN];
 
-    int64_t         OrderID;
     int64_t         CancelTime;
     char            OrderSysID[ORDER_SYSID_LEN];
 

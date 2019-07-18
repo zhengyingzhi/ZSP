@@ -293,9 +293,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
     // 交易核心管理(当前只有一个)
     zs_blotter_t* blotter;
-    blotter = zs_blotter_create(algo);
-
-    strcpy(blotter->Account->AccountID, "000100000002");
+    blotter = zs_blotter_create(algo, "000100000002");
     zs_blotter_manager_add(&algo->BlotterMgr, blotter);
 
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）
@@ -374,3 +372,9 @@ int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results)
     return 0;
 }
 
+const char* zs_version(int* pver)
+{
+    if (pver)
+        *pver = ZS_Version_int;
+    return ZS_Version;
+}

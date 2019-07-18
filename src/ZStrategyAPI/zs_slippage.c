@@ -323,6 +323,7 @@ static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req
 {
     strcpy(order->Symbol, order_req->Symbol);
     strcpy(order->AccountID, order_req->AccountID);
+    strcpy(order->OrderID, order_req->OrderID);
     order->ExchangeID = order_req->ExchangeID;
     order->Sid = order_req->Sid;
     order->OrderPrice = order_req->OrderPrice;
@@ -332,7 +333,6 @@ static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req
     order->Direction = order_req->Direction;
     order->OffsetFlag = order_req->OffsetFlag;
     order->OrderType = order_req->OrderType;
-    order->OrderID = order_req->OrderID;
 
     order->Status = ZS_OS_Accepted;
 
@@ -383,7 +383,8 @@ static void zs_generate_trade(zs_trade_t* trade, const zs_order_t* order, double
     uint32_t tid = ztl_atomic_add(&_zs_trade_id, 1);
     sprintf(trade->TradeID, "%u", tid);
 
-    trade->OrderID = order->OrderID;
+    strcpy(trade->OrderID, order->OrderID);
+
     trade->Price = filled_price;
     trade->Volume = filled_qty;
 

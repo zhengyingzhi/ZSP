@@ -382,15 +382,9 @@ int zs_strategy_del(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
     return 0;
 }
 
-int zs_strategy_init(zs_strategy_engine_t* zse, uint32_t strategy_id)
+int zs_strategy_init(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 {
     // 初始化策略
-    zs_cta_strategy_t* strategy;
-    strategy = zs_strategy_find2(zse, strategy_id);
-    if (!strategy) {
-        // ERRORID: 无效的策略ID
-        return -1;
-    }
 
     if (!strategy->Instance) {
         strategy->Instance = strategy->Entry->create(strategy, "");
@@ -429,18 +423,27 @@ int zs_strategy_update(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, c
     return 0;
 }
 
-int zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id,
-    zs_cta_strategy_t* strategy_array[], int size)
+int zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid, zs_cta_strategy_t* strategy_array[], int size)
 {
     int index = 0;
-    zs_cta_strategy_t* strategy;
-    strategy = ztl_map_find(zse->StrategyMap, strategy_id);
+    dictEntry* entry;
+    // zs_cta_strategy_t* strategy;
 
-    strategy_array[index++] = strategy;
+    entry = dictFind(zse->Tick2StrategyList, (void*)sid);
+    if (entry)
+    {
+        // ztl_dlist_t* dlist = (ztl_dlist_t*)entry->v.val;
+    }
+
     return index;
 }
 
-zs_cta_strategy_t* zs_strategy_find2(zs_strategy_engine_t* zse, uint32_t strategy_id)
+int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, zs_cta_strategy_t* strategy_array[], int size)
+{
+    return 0;
+}
+
+zs_cta_strategy_t* zs_strategy_find_single(zs_strategy_engine_t* zse, uint32_t strategy_id)
 {
     zs_cta_strategy_t* strategy;
     strategy = ztl_map_find(zse->StrategyMap, strategy_id);

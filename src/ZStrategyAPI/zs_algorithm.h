@@ -56,6 +56,8 @@ int zs_algorithm_stop(zs_algorithm_t* algo);
 int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results);
 
 
+// get version
+const char* zs_version(int* pver);
 
 #ifdef __cplusplus
 }

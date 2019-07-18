@@ -16,6 +16,14 @@ extern "C" {
 #endif
 
 
+/// is order finished status
+// #define is_finished_status(status)  ((status) == ZS_OS_Filled || (status) == ZS_OS_Canceld || (status) == ZS_OS_PartCancled || (status) == ZS_OS_Rejected)
+extern int finished_status_table[];
+static inline int is_finished_status(ZSOrderStatus status) {
+    return finished_status_table[status];
+}
+
+
 /// convert exchagne name as exchange id
 ZSExchangeID zs_convert_exchange_name(const char* exchange_name);
 

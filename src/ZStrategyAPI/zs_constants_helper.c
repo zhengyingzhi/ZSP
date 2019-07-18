@@ -13,12 +13,13 @@
 #include "zs_core.h"
 
 
-static const char* exchange_names[] = { ZS_EXCHANGE_UNKNOWN,
+const char* exchange_names[] = { ZS_EXCHANGE_UNKNOWN,
     ZS_EXCHANGE_SSE, ZS_EXCHANGE_SZSE, ZS_EXCHANGE_NEEQ,
     ZS_EXCHANGE_CFFEX, ZS_EXCHANGE_SHFE, ZS_EXCHANGE_DCE, ZS_EXCHANGE_CZCE, ZS_EXCHANGE_INE,
     ZS_EXCHANGE_SGE, ZS_EXCHANGE_CFE, ZS_EXCHANGE_TEST
 };
 
+int finished_status_table[] = { 0, 0, 0, 0, 1, 1, 1, 1, 0 };
 
 
 uint32_t zs_data_increment(zs_data_head_t* zdh)

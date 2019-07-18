@@ -20,9 +20,11 @@
 extern "C" {
 #endif
 
+
 /* 
- * 持仓更新
+ * 内部持仓细节
  */
+typedef struct zs_position_engine_s zs_position_engine_t;
 struct zs_position_engine_s
 {
     zs_contract_t*  Contract;
@@ -67,9 +69,14 @@ struct zs_position_engine_s
     double          ShortMargin;
     double          ShortCost;
     int64_t         ShortUpdateTime;
+
+    int (*handle_order_req)(zs_position_engine_t* pos, zs_order_req_t* order_req);
+    int (*handle_order_rtn)(zs_position_engine_t* pos, zs_order_t* order);
+    double(*handle_trade_rtn)(zs_position_engine_t* pos, zs_trade_t* trade);
+    void (*sync_last_price)(zs_position_engine_t* pos, double lastpx);
 };
 
-typedef struct zs_position_engine_s zs_position_engine_t;
+
 
 // 创建持仓管理对象
 zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contract);
@@ -77,13 +84,13 @@ zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contra
 void zs_position_release(zs_position_engine_t* pos);
 
 // 报单更新
-int zs_position_on_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req);
+int zs_position_handle_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req);
 
 // 订单更新
-int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order);
+int zs_position_handle_order_rtn(zs_position_engine_t* pos, zs_order_t* order);
 
 // 成交更新
-double zs_position_on_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade);
+double zs_position_handle_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade);
 
 
 // 最新价格更新
