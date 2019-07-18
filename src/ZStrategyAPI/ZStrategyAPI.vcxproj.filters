@@ -97,6 +97,9 @@
     <ClInclude Include="zs_bar_series.h">
       <Filter>Strategy</Filter>
     </ClInclude>
+    <ClInclude Include="zs_strategy_entry.h">
+      <Filter>Strategy</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

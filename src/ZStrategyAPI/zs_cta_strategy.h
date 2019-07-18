@@ -14,7 +14,7 @@
 
 #include "zs_core.h"
 
-#include "zs_strategy_api.h"
+#include "zs_strategy_entry.h"
 
 
 #ifdef __cplusplus

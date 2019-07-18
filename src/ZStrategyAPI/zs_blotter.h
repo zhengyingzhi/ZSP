@@ -68,6 +68,10 @@ struct zs_blotter_s
     // 接口
     zs_trade_api_t*     TradeApi;
     zs_md_api_t*        MdApi;
+
+    int (*handle_order_submit)(zs_blotter_t* blotter, zs_order_req_t* order_req);
+    int (*handle_order_returned)(zs_blotter_t* blotter, zs_order_t* order);
+    int (*handle_order_trade)(zs_blotter_t* blotter, zs_trade_t* trade);
 };
 
 

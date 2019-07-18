@@ -9,7 +9,7 @@
 
 #include "zs_event_engine.h"
 
-#include "zs_strategy_api.h"
+#include "zs_strategy_entry.h"
 
 #include "zs_strategy_engine.h"
 

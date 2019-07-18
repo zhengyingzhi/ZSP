@@ -97,6 +97,10 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo)
 
     //blotter->TradeApi = zs_broker_get_tradeapi()
 
+    blotter->handle_order_submit = zs_handle_order_submit;
+    blotter->handle_order_returned = zs_handle_order_returned;
+    blotter->handle_order_trade = zs_handle_order_trade;
+
     return blotter;
 }
 

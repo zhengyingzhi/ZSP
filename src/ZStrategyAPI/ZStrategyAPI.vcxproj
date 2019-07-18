@@ -66,6 +66,7 @@
     <ClInclude Include="zs_slippage.h" />
     <ClInclude Include="zs_strategy_demo.h" />
     <ClInclude Include="zs_strategy_engine.h" />
+    <ClInclude Include="zs_strategy_entry.h" />
     <ClInclude Include="zs_trading_calendar.h" />
   </ItemGroup>
   <ItemGroup>

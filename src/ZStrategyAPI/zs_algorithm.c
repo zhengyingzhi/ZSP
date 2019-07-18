@@ -38,8 +38,7 @@ static void _zs_algo_handle_order(zs_event_engine_t* ee, void* userdata,
     order = (zs_order_t*)zd_data_body(zdh);
 
     blotter = zs_blotter_manager_get(&algo->BlotterMgr, order->AccountID);
-
-    zs_handle_order_returned(blotter, order);
+    blotter->handle_order_returned(blotter, order);
 }
 
 static void _zs_algo_handle_trade(zs_event_engine_t* ee, void* userdata, 
@@ -55,8 +54,7 @@ static void _zs_algo_handle_trade(zs_event_engine_t* ee, void* userdata,
     trade = (zs_trade_t*)zd_data_body(zdh);
 
     blotter = zs_blotter_manager_get(&algo->BlotterMgr, trade->AccountID);
-
-    zs_handle_order_trade(blotter, trade);
+    blotter->handle_order_trade(blotter, trade);
 }
 
 static void _zs_algo_handle_md(zs_event_engine_t* ee, void* userdata, 
