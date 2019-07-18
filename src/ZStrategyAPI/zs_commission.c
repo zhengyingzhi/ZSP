@@ -150,10 +150,10 @@ double zs_per_share_calculate(zs_commission_model_t* comm_model,
     else if (order)
     {
         if (order->Direction == ZS_D_Long) {
-            commission = order->Price * order->Quantity * per_share->BuyCost;
+            commission = order->OrderPrice * order->OrderQty * per_share->BuyCost;
         }
         else {
-            double filled_money = order->Price * order->Quantity;
+            double filled_money = order->OrderPrice * order->OrderQty;
             commission = filled_money * per_share->SellCost + filled_money * 0.001;
         }
     }
@@ -186,15 +186,15 @@ double zs_per_contract_calculate(zs_commission_model_t* comm_model,
         symbol = trade->Symbol;
         price = trade->Price;
         volume = trade->Volume;
-        offset = trade->Offset;
+        offset = trade->OffsetFlag;
         sid = trade->Sid;
     }
     else if (order)
     {
         symbol = order->Symbol;
-        price = order->Price;
-        volume = order->Quantity;
-        offset = order->Offset;
+        price = order->OrderPrice;
+        volume = order->OrderQty;
+        offset = order->OffsetFlag;
         sid = order->Sid;
     }
     else {

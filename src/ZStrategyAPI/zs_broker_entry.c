@@ -11,6 +11,7 @@
  */
 static void zs_td_on_connect(zs_trade_api_t* tdctx);
 static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason);
+static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata);
 static void zs_td_on_login(zs_trade_api_t* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata);
 static void zs_td_on_logout(zs_trade_api_t* tdctx, zs_logout_t* logout_rsp, zs_error_data_t* errdata);
 static void zs_td_on_rtn_order(zs_trade_api_t* tdctx, zs_order_t* order);
@@ -22,6 +23,7 @@ static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int 
 zs_trade_api_handlers_t td_handlers = {
     zs_td_on_connect,
     zs_td_on_disconnect,
+    zs_td_on_authenticate,
     zs_td_on_login,
     zs_td_on_logout,
     zs_td_on_rtn_order,
@@ -273,6 +275,9 @@ static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason)
         // log error
     }
 }
+
+static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata)
+{}
 
 static void zs_td_on_login(zs_trade_api_t* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata)
 {

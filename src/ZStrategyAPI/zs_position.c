@@ -110,16 +110,16 @@ void zs_position_release(zs_position_engine_t* pos)
 
 int zs_position_on_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req)
 {
-    if (order_req->Offset == ZS_OF_Open) {
+    if (order_req->OffsetFlag == ZS_OF_Open) {
         return 0;
     }
 
-    return _zs_position_new_order(pos, order_req->Direction, order_req->Offset, order_req->Quantity);
+    return _zs_position_new_order(pos, order_req->Direction, order_req->OffsetFlag, order_req->OrderQty);
 }
 
 int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
 {
-    if (order->Offset == ZS_OF_Open) {
+    if (order->OffsetFlag == ZS_OF_Open) {
         return 0;
     }
 
@@ -131,12 +131,12 @@ int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
         return 0;
     }
 
-    int residual_qty = order->Quantity - order->Filled;
+    int residual_qty = order->OrderQty - order->FilledQty;
 
     if (order->Direction != ZS_D_Long)
     {
         pos->ShortFrozen -= residual_qty;
-        if (order->Offset == ZS_OF_Close || order->Offset == ZS_OF_CloseYd)
+        if (order->OffsetFlag == ZS_OF_Close || order->OffsetFlag == ZS_OF_CloseYd)
         {
             if (residual_qty > pos->ShortYdFrozen) {
                 pos->ShortTdFrozen -= residual_qty - pos->ShortYdFrozen;
@@ -146,7 +146,7 @@ int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
                 pos->ShortYdFrozen -= residual_qty;
             }
         }
-        else if (order->Offset == ZS_OF_CloseToday)
+        else if (order->OffsetFlag == ZS_OF_CloseToday)
         {
             pos->ShortTdFrozen -= residual_qty;
         }
@@ -154,7 +154,7 @@ int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
     else if (order->Direction == ZS_D_Short)
     {
         pos->LongFrozen -= residual_qty;
-        if (order->Offset == ZS_OF_Close || order->Offset == ZS_OF_CloseYd)
+        if (order->OffsetFlag == ZS_OF_Close || order->OffsetFlag == ZS_OF_CloseYd)
         {
             if (residual_qty > pos->LongYdFrozen) {
                 pos->LongTdFrozen -= residual_qty - pos->LongYdFrozen;
@@ -164,7 +164,7 @@ int zs_position_on_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
                 pos->LongYdFrozen -= residual_qty;
             }
         }
-        else if (order->Offset == ZS_OF_CloseToday)
+        else if (order->OffsetFlag == ZS_OF_CloseToday)
         {
             pos->LongTdFrozen -= residual_qty;
         }
@@ -185,13 +185,13 @@ double zs_position_on_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade)
     price = trade->Price;
     volume = trade->Volume;
     direction = trade->Direction;
-    offset = trade->Offset;
+    offset = trade->OffsetFlag;
 
     // 保证金
     margin_ratio = (direction == ZS_D_Long) ? pos->LongMarginRatio : pos->ShortMarginRatio;
 
     // 开仓保存一条明细
-    if (trade->Offset == ZS_OF_Open)
+    if (trade->OffsetFlag == ZS_OF_Open)
     {
         // zs_position_detail_t pos_detail;
         // append to PositionDetails

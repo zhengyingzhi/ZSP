@@ -9,9 +9,12 @@
 
 #include <stdint.h>
 
-#include "zs_common.h"
+#include "zs_constants.h"
+
 
 #define ORDER_SYSID_LEN     16
+#define TRADE_ID_LEN        16
+#define BROKER_ID_LEN       16
 #define ACCOUNT_ID_LEN      16
 
 #ifdef __cplusplus
@@ -72,8 +75,19 @@ struct zs_error_data_s
 typedef struct zs_error_data_s zs_error_data_t;
 
 /* login */
+struct zs_authenticate_s
+{
+    char            BrokerID[BROKER_ID_LEN];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserProductInfo[32];
+    int             Result;
+};
+typedef struct zs_authenticate_s zs_authenticate_t;
+
+/* login */
 struct zs_login_s
 {
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     int             Result;
 };
@@ -82,6 +96,7 @@ typedef struct zs_login_s zs_login_t;
 /* logout */
 struct zs_logout_s
 {
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     int             Result;
 };
@@ -92,11 +107,11 @@ struct zs_tick_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
-    int64_t         UpdateTime;
     zs_dt_t         TickDt;
     uint64_t        Sid;
     int32_t         TradingDay;
     int32_t         ActionDay;
+    int32_t         UpdateTime;
 
     double          OpenPrice;
     double          HighPrice;
@@ -104,7 +119,7 @@ struct zs_tick_s
     double          LastPrice;
 
     int64_t         Volume;
-    int64_t         Turnover;
+    double          Turnover;
     double          OpenInterest;
     double          PreOpenInterest;
     double          PreClosePrice;
@@ -121,7 +136,7 @@ struct zs_tick_s
     double          BidPrice[5];
     int32_t         BidVolume[5];
 
-    float           AskPrice[5];
+    double          AskPrice[5];
     int32_t         AskVolume[5];
 };
 typedef struct zs_tick_s zs_tick_t;
@@ -131,11 +146,11 @@ struct zs_tickl2_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
-    int64_t         UpdateTime;
     zs_dt_t         MdDt;
     uint64_t        Sid;
     int32_t         TradingDay;
     int32_t         ActionDay;
+    int32_t         UpdateTime;
 
     double          OpenPrice;
     double          HighPrice;
@@ -190,11 +205,12 @@ struct zs_trade_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
 
     char            OrderSysID[ORDER_SYSID_LEN];
-    char            TradeID[ORDER_SYSID_LEN];
+    char            TradeID[TRADE_ID_LEN];
     int64_t         OrderID;
 
     uint64_t        Sid;
@@ -202,9 +218,10 @@ struct zs_trade_s
     int32_t         Volume;
 
     ZSDirection     Direction;
-    ZSOffsetFlag    Offset;
+    ZSOffsetFlag    OffsetFlag;
     int32_t         TradingDay;
-    int64_t         TradeTime;
+    int32_t         TradeTime;
+    int32_t         IsLast;
 
     double          RealizedPnl;
     double          CurrMargin;
@@ -218,23 +235,29 @@ struct zs_order_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
-    char            BrokerID[8];
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
-    double          Price;
-    int32_t         Quantity;
-    int32_t         Filled;
+    double          OrderPrice;
+    double          AvgPrice;
+    int32_t         OrderQty;
+    int32_t         FilledQty;
     ZSDirection     Direction;
-    ZSOffsetFlag    Offset;
+    ZSOffsetFlag    OffsetFlag;
     ZSOrderType     OrderType;
     ZSOrderStatus   Status;
     int64_t         OrderID;
     char            OrderSysID[ORDER_SYSID_LEN];
-    int64_t         OrderTime;
-    int64_t         CancelTime;
-    int64_t         UpdateTime;
+    int32_t         TradingDay;
+    int32_t         OrderDate;
+    int32_t         OrderTime;
+    int32_t         CancelTime;
+
+    // internal fields
+    int32_t         Multiplier;
+    int32_t         IsLast;
 
     // ctp 
     int32_t         FrontID;
@@ -251,9 +274,8 @@ struct zs_position_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
-    char            BrokerID[8];
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
-    char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
     ZSDirection     Direction;
@@ -261,14 +283,19 @@ struct zs_position_s
     int32_t         TdPosition;
     int32_t         YdPosition;
     int32_t         Frozen;
-    int32_t         PositionDate;
+    int32_t         Available;
+    ZSPositionDateType  PositionDate;
 
+    int32_t         TradingDay;
+
+    double          MarketValue;
     double          PositionCost;
     double          UseMargin;
     double          AvgPrice;
     double          LastPrice;
     double          PositionPnl;
 
+    int32_t         Multiplier;
     int32_t         IsLast;
 };
 typedef struct zs_position_s zs_position_t;
@@ -277,18 +304,18 @@ struct zs_position_detail_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
-    char            BrokerID[8];
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
     ZSDirection     Direction;
     int32_t         Position;
-    int32_t         PositionDate;
+    ZSPositionDateType  PositionDate;
 
     int32_t         TradingDay;
     int32_t         OpenDate;
-    char            TradeID[16];
+    char            TradeID[TRADE_ID_LEN];
 
     double          OpenPrice;
     double          PositionPrice;
@@ -297,13 +324,14 @@ struct zs_position_detail_s
     double          CloseAmount;
     int32_t         CloseVolume;
 
+    int32_t         Multiplier;
     int32_t         IsLast;
 };
 typedef struct zs_position_detail_s zs_position_detail_t;
 
 struct zs_fund_account_s
 {
-    char            BrokerID[8];
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            AccountName[24];
     double          PreBalance;
@@ -316,6 +344,7 @@ struct zs_fund_account_s
     double          HoldingPnl;
     double          PositionValue;
     int64_t         UniqueID;
+    int32_t         TradingDay;
 
     char            SHHolerCode[12];
     char            SZHolerCode[12];
@@ -334,7 +363,7 @@ struct zs_contract_s
     int32_t         Multiplier;
     int32_t         Decimal;
 
-    ZSOptionType    OptType;
+    ZSStrikeType    StrikeType;
     double          StrikePrice;
     char            UnderlyingSymbol[8];
     uint64_t        UnderlyingSid;
@@ -362,15 +391,15 @@ struct zs_order_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
-    char            BrokerID[8];
+    char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
 
     uint64_t        Sid;
-    double          Price;
-    int32_t         Quantity;
+    double          OrderPrice;
+    int32_t         OrderQty;
     ZSDirection     Direction;
-    ZSOffsetFlag    Offset;
+    ZSOffsetFlag    OffsetFlag;
     ZSOrderType     OrderType;
     uint32_t        OrderID;
     int64_t         OrderTime;

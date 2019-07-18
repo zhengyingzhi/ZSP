@@ -1,15 +1,15 @@
 /*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
- * define the order struct
+ * the constants helpers
  */
 
-#ifndef _ZS_HELPER_H_INCLUDED_
-#define _ZS_HELPER_H_INCLUDED_
+#ifndef _ZS_CONSTANTS_HELPER_H_
+#define _ZS_CONSTANTS_HELPER_H_
 
 #include <stdint.h>
 
-#include "zs_common.h"
+#include "zs_constants.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,4 +26,4 @@ const char* zs_convert_exchange_id(ZSExchangeID exchange_id);
 }
 #endif
 
-#endif//_ZS_HELPER_H_INCLUDED_
+#endif//_ZS_CONSTANTS_HELPER_H_

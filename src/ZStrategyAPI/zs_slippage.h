@@ -51,7 +51,7 @@ typedef enum
 
 
 /* 处理结果回调函数(即订单回报，成交回报等) */
-typedef void(*zs_slippage_handler_pt)(zs_slippage_t* slippage, ZSSlippageDataType dataType, void* data, int datasz);
+typedef void(*zs_slippage_handler_pt)(zs_slippage_t* slippage, ZSSlippageDataType datatype, void* data, int datasz);
 
 /* 可根据指定不同的成交撮合方式（TODO:需要可快速获取合约信息，如PriceTick,DecimalPoint等） */
 typedef struct zs_slippage_model_s zs_slippage_model_t;
@@ -64,13 +64,13 @@ struct zs_slippage_model_s
     double              VolumeForBar;
 
     // Process how orders get filled, get filled_price, filled_volume
-    int (*process_order_by_bar)(zs_slippage_model_t* slippageModel, 
-            zs_bar_reader_t* barReader, const zs_order_t* order, 
-            double* pFilledPrice, int* pFilledVolume);
+    int (*process_order_by_bar)(zs_slippage_model_t* slippage_model,
+            zs_bar_reader_t* bar_reader, const zs_order_t* order, 
+            double* pfilled_price, int* pfilled_qty);
 
-    int(*process_order_by_tick)(zs_slippage_model_t* slippageModel,
-        zs_tick_t* tickData, const zs_order_t* order,
-        double* pFilledPrice, int* pFilledVolume);
+    int (*process_order_by_tick)(zs_slippage_model_t* slippage_model,
+            zs_tick_t* tick, const zs_order_t* order,
+            double* pfilled_price, int* pfilled_qty);
 };
 
 struct zs_slippage_s

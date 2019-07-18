@@ -43,8 +43,8 @@ int zs_order(zs_algorithm_t* algo, const char* accountID,
     strncpy(order_req.AccountID, accountID, sizeof(order_req.AccountID) - 1);
     strncpy(order_req.Symbol, contract->Symbol, sizeof(order_req.Symbol) - 1);
     order_req.Sid = sid;
-    order_req.Quantity = abs(quanty);
-    order_req.Price = limitPrice;
+    order_req.OrderQty = abs(quanty);
+    order_req.OrderPrice = limitPrice;
     order_req.OrderType = limitPrice > 0.000001 ? ZS_OT_Limit : ZS_OT_Market;
     order_req.Direction = quanty > 0 ? ZS_D_Long : ZS_D_Short;
 

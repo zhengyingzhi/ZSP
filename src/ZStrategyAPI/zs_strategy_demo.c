@@ -78,7 +78,7 @@ void stg_demo_on_update(my_strategy_demo_t* instance, zs_cta_strategy_t* context
 void stg_demo_handle_order(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_order_t* order)
 {
     printf("stg demo got order: %s,%d,%d,%.2f\n", order->Symbol, order->Direction, 
-        order->Quantity, order->Price);
+        order->OrderQty, order->OrderPrice);
     // zs_cta_order(context, NULL);
 }
 

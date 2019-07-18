@@ -9,9 +9,9 @@
 
 #include "zs_broker_backtest.h"
 
-#include "zs_slippage.h"
+#include "zs_constants_helper.h"
 
-#include "zs_helper.h"
+#include "zs_slippage.h"
 
 
 /* the backtest trader apis */
@@ -26,6 +26,7 @@ zs_trade_api_t bt_tdapi = {
     zs_bt_trade_release,
     zs_bt_trade_regist,
     zs_bt_trade_connect,
+    NULL,
     NULL,                   // login
     NULL,                   // logout
     zs_bt_order,

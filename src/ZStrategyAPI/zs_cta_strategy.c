@@ -45,11 +45,11 @@ int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, doubl
     strncpy(order_req.AccountID, strategy->pAccountID, sizeof(order_req.AccountID) - 1);
     strncpy(order_req.UserID, strategy->pCustomID, sizeof(order_req.UserID) - 1);
     // fill symbol, exchangeid, brokerid ...
-    order_req.Sid = sid;
-    order_req.Quantity = order_qty;
-    order_req.Price = order_price;
+    order_req.Sid       = sid;
+    order_req.OrderQty  = order_qty;
+    order_req.OrderPrice= order_price;
     order_req.Direction = direction;
-    order_req.Offset = offset;
+    order_req.OffsetFlag= offset;
 
     return zs_cta_place_order(strategy, &order_req);
 }

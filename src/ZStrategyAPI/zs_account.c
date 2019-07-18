@@ -259,26 +259,26 @@ int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs
     int rv;
     double frozen_margin;
 
-    if (order_req->Offset != ZS_OF_Open)
+    if (order_req->OffsetFlag != ZS_OF_Open)
     {
         return 0;
     }
 
     // 冻结资金
     rv = freeze_margin(account, order_req->Symbol, order_req->Sid, 
-        order_req->Direction, order_req->Price, order_req->Quantity, 
+        order_req->Direction, order_req->OrderPrice, order_req->OrderQty,
         order_req->UserID, contract, &frozen_margin);
     if (rv != 0)
     {
         // ERRORID:
     }
 
-    rv = freeze_commission(account, order_req->Offset, order_req->Price, order_req->Quantity, contract);
+    rv = freeze_commission(account, order_req->OffsetFlag, order_req->OrderPrice, order_req->OrderQty, contract);
     if (rv != 0)
     {
         double frozen_margin = 0;
         free_frozen_margin(account, order_req->Symbol, order_req->Sid, order_req->Direction,
-            order_req->Price, order_req->Quantity, order_req->UserID, order_req->Contract, &frozen_margin);
+            order_req->OrderPrice, order_req->OrderQty, order_req->UserID, order_req->Contract, &frozen_margin);
 
         // ERRORID: 手续费不够
         return rv;
@@ -289,19 +289,19 @@ int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs
 
 int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contract_t* contract)
 {
-    int vol = order->Quantity - order->Filled;
+    int vol = order->OrderQty - order->FilledQty;
     if (vol <= 0) {
         // do not process the order filled
         return 0;
     }
 
-    if (order->Offset == ZS_OF_Open)
+    if (order->OffsetFlag == ZS_OF_Open)
     {
         double frozen_margin = 0;
         free_frozen_margin(account, order->Symbol, order->Sid, order->Direction,
-            order->Price, vol, order->UserID, contract, &frozen_margin);
+            order->OrderPrice, vol, order->UserID, contract, &frozen_margin);
     }
-    free_frozen_commission(account, order->Offset, order->Price, vol, contract);
+    free_frozen_commission(account, order->OffsetFlag, order->OrderPrice, vol, contract);
 
     return 0;
 }
@@ -322,12 +322,12 @@ int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t
         margin_ratio = contract->ShortMarginRateByMoney;
     margin = calculate_margin(price, volume, contract->Multiplier, margin_ratio);
 
-    if (order->Offset == ZS_OF_Open)
+    if (order->OffsetFlag == ZS_OF_Open)
     {
         // 开仓，重新计算保证金
         double frozen_margin = 0;
         free_frozen_margin(account, order->Symbol, order->Sid, order->Direction,
-            order->Price, volume, order->UserID, contract, &frozen_margin);
+            order->OrderPrice, volume, order->UserID, contract, &frozen_margin);
 
         update_use_margin(account, margin);
         update_avail_cash(account, -margin);
@@ -338,7 +338,7 @@ int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t
         update_avail_cash(account, margin);
     }
 
-    free_frozen_commission(account, order->Offset, order->Price, volume, contract);
+    free_frozen_commission(account, order->OffsetFlag, order->OrderPrice, volume, contract);
     account->FundAccount.Commission += trade->Commission;
     update_avail_cash(account, -trade->Commission);
 

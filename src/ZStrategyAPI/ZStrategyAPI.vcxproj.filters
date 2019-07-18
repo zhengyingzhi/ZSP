@@ -82,9 +82,6 @@
     <ClInclude Include="zs_hashdict.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="zs_helper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="zs_cta_strategy.h">
       <Filter>Strategy</Filter>
     </ClInclude>
@@ -99,6 +96,12 @@
     </ClInclude>
     <ClInclude Include="zs_strategy_entry.h">
       <Filter>Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_constants_helper.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -161,9 +164,6 @@
     <ClCompile Include="zs_configs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="zs_helper.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="zs_protocol.c">
       <Filter>Finance</Filter>
     </ClCompile>
@@ -211,6 +211,9 @@
     </ClCompile>
     <ClCompile Include="zs_bar_series.c">
       <Filter>Strategy</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_constants_helper.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

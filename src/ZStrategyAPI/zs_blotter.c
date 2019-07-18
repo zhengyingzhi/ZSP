@@ -248,7 +248,7 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     // blotter->WorkWorkOrderList
 
     // ³Ö²Ö
-    if (order_req->Offset != ZS_OF_Open)
+    if (order_req->OffsetFlag != ZS_OF_Open)
     {
         position = zs_get_position_engine(blotter, order_req->Sid);
         if (position)
@@ -320,7 +320,7 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
     }
 
     strcpy(lorder->OrderSysID, order->OrderSysID);
-    lorder->Filled = order->Filled;
+    lorder->FilledQty = order->FilledQty;
     lorder->Status = order->Status;
     lorder->OrderTime = order->OrderTime;
     lorder->CancelTime = order->CancelTime;
@@ -351,8 +351,8 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
         return -1;
     }
 
-    lorder->Filled += trade->Volume;
-    if (lorder->Filled == lorder->Quantity)
+    lorder->FilledQty += trade->Volume;
+    if (lorder->FilledQty == lorder->OrderQty)
         lorder->Status = ZS_OS_Filled;
     else
         lorder->Status = ZS_OS_PartFilled;
