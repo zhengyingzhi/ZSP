@@ -59,8 +59,14 @@ static int zs_str_cmp(void* priv, const void* s1, const void* s2) {
     return (k1->len == k2->len) && memcmp((ZStrKey*)k1->ptr, k2->ptr, k2->len) == 0;
 }
 
-void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* alloc_ctx);
+static dictEntry* zs_strdict_find(ztl_dict_t* dict, const char* str, int length)
+{
+    ZStrKey key = { length, (char*)str };
+    return dictFind(dict, &key);
+}
 
+void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* alloc_ctx);
+void* zs_str_keydup2(const char* str, int length, void*(alloc_pt)(void*, size_t), void* alloc_ctx);
 
 #ifdef __cplusplus
 }

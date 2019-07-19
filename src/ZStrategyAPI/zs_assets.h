@@ -13,11 +13,12 @@
 #include <ZToolLib/ztl_map.h>
 #include <ZToolLib/ztl_palloc.h>
 
+#include "zs_hashdict.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef dict ztl_dict_t;
 
 typedef uint64_t zs_sid_t;
 

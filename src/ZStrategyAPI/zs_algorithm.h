@@ -18,13 +18,13 @@
 #include "zs_blotter_manager.h"
 #include "zs_configs.h"
 #include "zs_core.h"
+#include "zs_hashdict.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef dict ztl_dict_t;
 
 /* global algorithm */
 

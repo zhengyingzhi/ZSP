@@ -17,7 +17,7 @@
 #include "zs_broker_api.h"
 #include "zs_core.h"
 
-typedef dict ztl_dict_t;
+
 
 #ifdef __cplusplus
 extern "C" {

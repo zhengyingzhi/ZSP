@@ -82,12 +82,12 @@ zs_commission_t* zs_commission_create(zs_algorithm_t* algo);
 
 void zs_commission_release(zs_commission_t* comm);
 
-void zs_commssion_set_per_share(zs_commission_t* comm, zs_comm_per_share_t* perShareCost);
-void zs_commssion_set_per_contract(zs_commission_t* comm, zs_comm_per_contract_t* perContractCost, const char* symbol);
+void zs_commssion_set_per_share(zs_commission_t* comm, zs_comm_per_share_t* per_share_cost);
+void zs_commssion_set_per_contract(zs_commission_t* comm, zs_comm_per_contract_t* per_contract_cost, const char* symbol);
 
-zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int isEquity);
+zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int is_equity);
 
-double zs_commission_calculate(zs_commission_t* comm, int isEquity, zs_order_t* order, zs_trade_t* trade);
+double zs_commission_calculate(zs_commission_t* comm, int is_equity, zs_order_t* order, zs_trade_t* trade);
 
 
 #ifdef __cplusplus

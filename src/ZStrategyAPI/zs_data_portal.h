@@ -18,8 +18,8 @@
 #include "zs_broker_api.h"
 #include "zs_core.h"
 #include "zs_data_feed.h"
+#include "zs_hashdict.h"
 
-typedef dict ztl_dict_t;
 
 #ifdef __cplusplus
 extern "C" {

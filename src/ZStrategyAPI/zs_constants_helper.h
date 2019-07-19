@@ -8,6 +8,8 @@
 #define _ZS_CONSTANTS_HELPER_H_
 
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "zs_constants.h"
 
@@ -29,6 +31,12 @@ ZSExchangeID zs_convert_exchange_name(const char* exchange_name);
 
 /// convert exchagne name as exchange id
 const char* zs_convert_exchange_id(ZSExchangeID exchange_id);
+
+/// make internal id for ordersysid, tradeid
+static int zs_make_id(char dst_id[], ZSExchangeID exchange_id, const char* src_id)
+{
+    return sprintf(dst_id, "%d.%s", exchange_id, src_id);
+}
 
 #ifdef __cplusplus
 }

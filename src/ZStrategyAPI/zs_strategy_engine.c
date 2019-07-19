@@ -5,7 +5,11 @@
 
 #include "zs_assets.h"
 
+#include "zs_constants_helper.h"
+
 #include "zs_data_portal.h"
+
+#include "zs_hashdict.h"
 
 #include "zs_event_engine.h"
 
@@ -74,21 +78,18 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userdata,
     // 处理订单回报事件
     zs_strategy_engine_t*   zse;
     zs_cta_strategy_t*      strategy;
-    zs_cta_strategy_t*      strategy_array[MAX_STRATEGY_COUNT];
     zs_data_head_t*         zdh;
     zs_order_t*             order;
-    zs_sid_t                sid;
-    uint32_t                count;
 
     zse = (zs_strategy_engine_t*)userdata;
     zdh = (zs_data_head_t*)evdata;
     order = (zs_order_t*)zd_data_body(zdh);
-    sid = order->Sid;
 
     // find the strategy related the order
     strategy = zs_orderdict_find(zse->OrderStrategyDict, order->FrontID, order->SessionID, order->OrderID);
-    if (strategy && strategy->Entry->handle_order)
+    if (strategy && strategy->Entry->handle_order) {
         strategy->Entry->handle_order(strategy->Instance, strategy, order);
+    }
 }
 
 static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userdata,
@@ -97,28 +98,33 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userdata,
     // 同理处理成交事件
     zs_strategy_engine_t*   zse;
     zs_cta_strategy_t*      strategy;
-    //zs_cta_strategy_t*      strategy_array[MAX_STRATEGY_COUNT];
     zs_data_head_t*         zdh;
     zs_trade_t*             trade;
+    dictEntry*              entry;
     zs_sid_t                sid;
+    char                    zs_tradeid[32];
 
     zse = (zs_strategy_engine_t*)userdata;
     zdh = (zs_data_head_t*)evdata;
     trade = (zs_trade_t*)zd_data_body(zdh);
     sid = trade->Sid;
 
-#if 0
-    uint32_t count = _zs_strategy_retrieve(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        strategy = (zs_cta_strategy_t*)strategy_array[i];
-        if (!strategy)
-            continue;
-
-        if (strategy->Entry->handle_trade)
-            strategy->Entry->handle_trade(strategy->Instance, strategy, trade);
+    int len = zs_make_id(zs_tradeid, trade->ExchangeID, trade->TradeID);
+    entry = zs_strdict_find(zse->TradeDict, zs_tradeid, len);
+    if (entry) {
+        // 重复的成交回报
+        return;
     }
-#endif//0
+
+    ZStrKey* key;
+    key = zs_str_keydup2(zs_tradeid, len, ztl_palloc, zse->Pool);
+    dictAdd(zse->TradeDict, key, trade);
+
+    // since trade's frontid & session was filled when blotter process trade
+    strategy = zs_orderdict_find(zse->OrderStrategyDict, trade->FrontID, trade->SessionID, trade->OrderID);
+    if (strategy && strategy->Entry->handle_trade) {
+        strategy->Entry->handle_trade(strategy->Instance, strategy, trade);
+    }
 }
 
 static void _zs_strategy_handle_tick(zs_event_engine_t* ee, void* userdata, 
@@ -138,18 +144,19 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, void* userdata,
     tick = (zs_tick_t*)zd_data_body(zdh);
     sid = tick->Sid;
 
-    count = _zs_strategy_retrieve(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
+    count = zs_strategy_find_by_sid(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
     for (uint32_t i = 0; i < count; ++i)
     {
         strategy = (zs_cta_strategy_t*)strategy_array[i];
-        if (!strategy)
-        {
+        if (!strategy) {
             continue;
         }
 
-        if (strategy->Entry->handle_tick)
+        if (strategy->Entry->handle_tick) {
             strategy->Entry->handle_tick(strategy->Instance, strategy, tick);
+        }
     }
+
     // TODO: generate minute bar, and try notify to each strategy
 }
 
@@ -170,22 +177,23 @@ static void _zs_strategy_handle_bar(zs_event_engine_t* ee, void* userdata,
     bar = (zs_bar_t*)zd_data_body(zdh);
     sid = bar->Sid;
 
-    count = _zs_strategy_retrieve(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
+    count = zs_strategy_find_by_sid(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
     for (uint32_t i = 0; i < count; ++i)
     {
         strategy = (zs_cta_strategy_t*)strategy_array[i];
-        if (!strategy)
-        {
+        if (!strategy) {
             continue;
         }
 
         zs_bar_reader_t* bar_reader = NULL;
         memcpy(&bar_reader, bar, sizeof(void*));
 
-        if (strategy->Entry->handle_bar)
+        if (strategy->Entry->handle_bar) {
             strategy->Entry->handle_bar(strategy->Instance, strategy, bar_reader);
+        }
     }
 }
+
 
 /* zs_strategy engine */
 zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
@@ -256,6 +264,11 @@ void zs_strategy_engine_release(zs_strategy_engine_t* zse)
     if (zse->AccountStrategyDict) {
         dictRelease(zse->AccountStrategyDict);
         zse->AccountStrategyDict = NULL;
+    }
+
+    if (zse->TradeDict) {
+        dictRelease(zse->TradeDict);
+        zse->TradeDict = NULL;
     }
 
 }
@@ -435,12 +448,12 @@ int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
         ztl_map_add(zse->StrategyMap, strategy->StrategyID, strategy);
     }
 
-    ZStrKey key = { (int)strlen(strategy->pAccountID), (char*)strategy->pAccountID };
-    vec = (ztl_vector_t*)dictFind(zse->AccountStrategyDict, &key);
+    int len = (int)strlen(strategy->pAccountID);
+    vec = (ztl_vector_t*)zs_strdict_find(zse->AccountStrategyDict, (char*)strategy->pAccountID, len);
     if (!vec) {
         vec = ztl_vector_create(MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
 
-        ZStrKey* pkey = (ZStrKey*)ztl_pcalloc(zse->Pool, ztl_align(sizeof(ZStrKey) + key.len, sizeof(void*)));
+        ZStrKey* pkey = zs_str_keydup2(strategy->pAccountID, len, ztl_palloc, zse->Pool);
         dictAdd(zse->AccountStrategyDict, pkey, strategy);
     }
     vec->push_ptr(vec, strategy);
@@ -497,12 +510,18 @@ int zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid, zs_cta_stra
 {
     int index = 0;
     dictEntry* entry;
-    // zs_cta_strategy_t* strategy;
+    zs_cta_strategy_t* strategy;
 
     entry = dictFind(zse->Tick2StrategyList, (void*)sid);
     if (entry)
     {
-        // ztl_dlist_t* dlist = (ztl_dlist_t*)entry->v.val;
+        ztl_array_t* array;
+        array = (ztl_array_t*)entry->v.val;
+        for (index = 0; index < (int)ztl_array_size(array) && index < size; ++index)
+        {
+            strategy = (zs_cta_strategy_t*)ztl_array_at(array, index);
+            strategy_array[index] = strategy;
+        }
     }
 
     return index;

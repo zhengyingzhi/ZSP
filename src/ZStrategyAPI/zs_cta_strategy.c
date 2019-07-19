@@ -239,9 +239,10 @@ int zs_cta_get_trades(zs_cta_strategy_t* strategy, zs_trade_t* trades[], int siz
 {
     int32_t index;
     zs_trade_t* trade;
-    for (index = 0; index < (int32_t)ztl_array_size(&strategy->Blotter->Trades); ++index)
+
+    for (index = 0; index < (int32_t)ztl_array_size(strategy->Blotter->TradeArray); ++index)
     {
-        trade = (zs_trade_t*)ztl_array_at(&strategy->Blotter->Trades, index);
+        trade = (zs_trade_t*)ztl_array_at(strategy->Blotter->TradeArray, index);
         if (index >= size) {
             break;
         }

@@ -13,8 +13,8 @@
 
 
 #define ORDER_ID_LEN        12
-#define ORDER_SYSID_LEN     16
-#define TRADE_ID_LEN        16
+#define ORDER_SYSID_LEN     24
+#define TRADE_ID_LEN        24
 #define BROKER_ID_LEN       16
 #define ACCOUNT_ID_LEN      16
 
@@ -209,10 +209,10 @@ struct zs_trade_s
     char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
-
+    
+    char            OrderID[ORDER_ID_LEN];
     char            OrderSysID[ORDER_SYSID_LEN];
     char            TradeID[TRADE_ID_LEN];
-    char            OrderID[ORDER_ID_LEN];
 
     uint64_t        Sid;
     double          Price;
@@ -228,6 +228,9 @@ struct zs_trade_s
     double          CurrMargin;
     double          Commission;
 
+    // ctp 
+    int32_t         FrontID;
+    int32_t         SessionID;
     char            Padding[12];
 };
 typedef struct zs_trade_s zs_trade_t;
@@ -240,6 +243,9 @@ struct zs_order_s
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
 
+    char            OrderID[ORDER_ID_LEN];
+    char            OrderSysID[ORDER_SYSID_LEN];
+
     uint64_t        Sid;
     double          OrderPrice;
     double          AvgPrice;
@@ -249,8 +255,6 @@ struct zs_order_s
     ZSOffsetFlag    OffsetFlag;
     ZSOrderType     OrderType;
     ZSOrderStatus   OrderStatus;
-    char            OrderID[ORDER_ID_LEN];
-    char            OrderSysID[ORDER_SYSID_LEN];
     int32_t         TradingDay;
     int32_t         OrderDate;
     int32_t         OrderTime;
@@ -285,7 +289,7 @@ struct zs_position_s
     int32_t         YdPosition;
     int32_t         Frozen;
     int32_t         Available;
-    ZSPositionDateType  PositionDate;
+    ZSPosDateType   PositionDate;
 
     int32_t         TradingDay;
 
@@ -308,15 +312,15 @@ struct zs_position_detail_s
     char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
+    char            TradeID[TRADE_ID_LEN];
 
     uint64_t        Sid;
     ZSDirection     Direction;
     int32_t         Position;
-    ZSPositionDateType  PositionDate;
+    ZSPosDateType   PositionDate;
 
     int32_t         TradingDay;
     int32_t         OpenDate;
-    char            TradeID[TRADE_ID_LEN];
 
     double          OpenPrice;
     double          PositionPrice;

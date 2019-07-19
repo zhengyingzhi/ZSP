@@ -66,13 +66,13 @@ void zs_commission_release(zs_commission_t* comm)
     }
 }
 
-void zs_commssion_set_per_share(zs_commission_t* comm, zs_comm_per_share_t* perShareCost)
+void zs_commssion_set_per_share(zs_commission_t* comm, zs_comm_per_share_t* per_share_cost)
 {
-    comm->PerShareCost = *perShareCost;
+    comm->PerShareCost = *per_share_cost;
 }
 
 void zs_commssion_set_per_contract(zs_commission_t* comm, 
-    zs_comm_per_contract_t* perContractCost, const char* symbol)
+    zs_comm_per_contract_t* per_contract_cost, const char* symbol)
 {
     if (!symbol || !symbol[0]) {
         return;
@@ -84,14 +84,14 @@ void zs_commssion_set_per_contract(zs_commission_t* comm,
     zs_comm_per_contract_t* per_contract;
     per_contract = (zs_comm_per_contract_t*)ztl_pcalloc(comm->Algorithm->Pool,
         sizeof(zs_comm_per_contract_t));
-    *per_contract = *perContractCost;
+    *per_contract = *per_contract_cost;
 
     ztl_map_add(comm->VarietyMap, vi, per_contract);
 }
 
-zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int isEquity)
+zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int is_equity)
 {
-    if (isEquity) {
+    if (is_equity) {
         return comm->EquityModel;
     }
     else {
@@ -133,17 +133,19 @@ double zs_per_share_calculate(zs_commission_model_t* comm_model,
     zs_commission_t* comm;
     zs_comm_per_share_t* per_share;
 
+    double commission;
+    double filled_money;
+
     comm = (zs_commission_t*)comm_model->UserData;
     per_share = &comm->PerShareCost;
 
-    double commission;
     if (trade)
     {
         if (trade->Direction == ZS_D_Long) {
             commission = trade->Price * trade->Volume * per_share->BuyCost;
         }
         else {
-            double filled_money = trade->Price * trade->Volume;
+            filled_money = trade->Price * trade->Volume;
             commission = filled_money * per_share->SellCost + filled_money * 0.001;
         }
     }
@@ -153,7 +155,7 @@ double zs_per_share_calculate(zs_commission_model_t* comm_model,
             commission = order->OrderPrice * order->OrderQty * per_share->BuyCost;
         }
         else {
-            double filled_money = order->OrderPrice * order->OrderQty;
+            filled_money = order->OrderPrice * order->OrderQty;
             commission = filled_money * per_share->SellCost + filled_money * 0.001;
         }
     }

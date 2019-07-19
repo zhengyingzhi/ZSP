@@ -49,9 +49,7 @@ struct zs_strategy_engine_s
     ztl_dict_t*         DailyBarsDict;      // 日线历史行情，可由统一的DataPortal管理
     ztl_dict_t*         MinuteBarsDict;     // 
 
-    ztl_dict_t*         TradeIDDict;        // 成交ID集合 ExchangeID+TradeID
-
-    ztl_vector_t*       StrategyPaths;      // 可支持的策略路径列表 deprecated
+    ztl_dict_t*         TradeDict;          // 成交ID集合 ExchangeID+TradeID
 };
 
 /* cta engine related

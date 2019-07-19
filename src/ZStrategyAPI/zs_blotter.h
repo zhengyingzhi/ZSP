@@ -48,7 +48,8 @@ struct zs_blotter_s
     zs_orderlist_t*     WorkOrderList;
 
     // 成交管理
-    ztl_array_t         Trades;
+    ztl_dict_t*         TradeDict;        // 成交ID集合 ExchangeID+TradeID
+    ztl_array_t*        TradeArray;
 
     // 持仓管理 <sid, zs_positions_t>
     ztl_map_t*          Positions;
@@ -69,9 +70,15 @@ struct zs_blotter_s
     zs_trade_api_t*     TradeApi;
     zs_md_api_t*        MdApi;
 
+    int (*order)(zs_blotter_t* blotter, zs_order_req_t* order_req);
+    int (*quote_order)(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
+    int (*cancel)(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req);
+
     int (*handle_order_submit)(zs_blotter_t* blotter, zs_order_req_t* order_req);
     int (*handle_order_returned)(zs_blotter_t* blotter, zs_order_t* order);
     int (*handle_order_trade)(zs_blotter_t* blotter, zs_trade_t* trade);
+    int (*handle_tick)(zs_blotter_t* blotter, zs_tick_t* tick);
+    int (*handle_bar)(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader);
 };
 
 
@@ -99,8 +106,8 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order);
 int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade);
 
 // 行情事件
-int zs_handle_md_bar(zs_algorithm_t* algo, zs_bar_reader_t* bar_reader);
-int zs_handle_md_tick(zs_algorithm_t* algo, zs_tick_t* tick);
+int zs_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick);
+int zs_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader);
 
 
 #ifdef __cplusplus

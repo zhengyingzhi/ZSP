@@ -41,7 +41,9 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter->OrderDict = zs_orderdict_create(blotter->Pool);
     blotter->WorkOrderList = zs_orderlist_create();
 
-    ztl_array_init(&blotter->Trades, pool, 8192, sizeof(void*));
+    blotter->TradeDict = dictCreate(&strHashDictType, blotter->Pool);
+    blotter->TradeArray = (ztl_array_t*)ztl_pcalloc(blotter->Pool, sizeof(ztl_array_t));
+    ztl_array_init(blotter->TradeArray, NULL, 1024, sizeof(zs_trade_t*));
 
     blotter->Positions = ztl_map_create(64);
 
@@ -58,11 +60,23 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
 
     blotter->RiskControl = algo->RiskControl;
 
-    //blotter->TradeApi = zs_broker_get_tradeapi()
+    // FIXME: the api object
+    blotter->TradeApi = zs_broker_get_tradeapi(algo->Broker, account_conf->TradeApiName);
+    if (blotter->TradeApi->create)
+        blotter->TradeApi->ApiInstance = blotter->TradeApi->create("", 0);
+    blotter->MdApi = zs_broker_get_mdapi(algo->Broker, account_conf->MDApiName);
+    if (blotter->MdApi->create)
+        blotter->MdApi->ApiInstance = blotter->MdApi->create("", 0);
+
+    blotter->order = zs_blotter_order;
+    blotter->quote_order = zs_blotter_quote_order;
+    blotter->cancel = zs_blotter_cancel;
 
     blotter->handle_order_submit = zs_handle_order_submit;
     blotter->handle_order_returned = zs_handle_order_returned;
     blotter->handle_order_trade = zs_handle_order_trade;
+    blotter->handle_tick = zs_handle_tick;
+    blotter->handle_bar = zs_handle_bar;
 
     return blotter;
 }
@@ -86,6 +100,16 @@ void zs_blotter_release(zs_blotter_t* blotter)
     if (blotter->WorkOrderList) {
         zs_orderlist_create(blotter->WorkOrderList);
         blotter->WorkOrderList = NULL;
+    }
+
+    if (blotter->TradeDict) {
+        dictRelease(blotter->TradeDict);
+        blotter->TradeDict = NULL;
+    }
+
+    if (blotter->TradeArray) {
+        ztl_array_release(blotter->TradeArray);
+        blotter->TradeArray = NULL;
     }
 
     if (blotter->Positions) {
@@ -330,12 +354,35 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 {
     // 开仓单成交：调整持仓，重新计算占用资金，计算持仓成本
     // 平仓单成交：解冻持仓，回笼资金
+    zs_contract_t* contract;
     zs_order_t* work_order;
+
+    // 过滤重复成交
+    char zs_tradeid[32];
+
+    int len = zs_make_id(zs_tradeid, trade->ExchangeID, trade->TradeID);
+    dictEntry* entry = zs_strdict_find(blotter->TradeDict, zs_tradeid, len);
+    if (entry) {
+        // 重复的成交回报
+        return 1;
+    }
+
+    ZStrKey* key = zs_str_keydup2(zs_tradeid, len, ztl_palloc, blotter->Pool);
+    zs_trade_t* dup_trade = (zs_trade_t*)ztl_palloc(blotter->Pool, sizeof(zs_trade_t));
+    ztl_memcpy(dup_trade, trade, sizeof(zs_trade_t));
+    dictAdd(blotter->TradeDict, key, trade);
+
+    ztl_array_push_back(blotter->TradeArray, trade);
+
+    // 原始挂单
     work_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);
     if (!work_order)
     {
+        // ERRORID: not find original order
         return -1;
     }
+
+    contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, trade->Sid);
 
     work_order->FilledQty += trade->Volume;
     if (work_order->FilledQty == work_order->OrderQty)
@@ -345,15 +392,20 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 
     zs_position_engine_t*  position;
     position = zs_get_position_engine(blotter, trade->Sid);
-    if (position)
+    if (!position)
     {
-        position->handle_trade_rtn(position, trade);
+        position = zs_position_create(blotter->Pool, contract);
     }
+    position->handle_trade_rtn(position, trade);
 
-    // how to get asset type
+    // get commission model by asset type
     zs_commission_model_t* comm_model;
-    comm_model = zs_commission_model_get(blotter->Commission, 0);
+    comm_model = zs_commission_model_get(blotter->Commission, contract->ProductClass != ZS_PC_Future);
     double comm = comm_model->calculate(comm_model, work_order, trade);
+
+    trade->Commission = comm;
+    trade->FrontID = work_order->FrontID;
+    trade->SessionID = work_order->SessionID;
 
     blotter->Account->FundAccount.Commission += comm;
 
@@ -378,41 +430,27 @@ static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_
     }
 }
 
-int zs_handle_md_bar(zs_algorithm_t* algo, zs_bar_reader_t* bar_reader)
-{
-    // 遍历所有blotter的所有持仓，更新浮动盈亏等，最新价格等
-    zs_blotter_t* blotter;
-
-    for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)
-    {
-        blotter = (zs_blotter_t*)ztl_array_at((&algo->BlotterMgr.BlotterArray), i);
-
-        ztl_map_pair_t pairs[1024] = { 0 };
-        ztl_map_to_array(blotter->Positions, pairs, 1024);
-        _zs_sync_price_to_positions(pairs, 1024, bar_reader);
-    }
-
-    return 0;
-}
-
-int zs_handle_md_tick(zs_algorithm_t* algo, zs_tick_t* tick)
+int zs_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
 {
     zs_sid_t sid;
-    zs_blotter_t* blotter;
     zs_position_engine_t* position;
-    sid = zs_asset_lookup(algo->AssetFinder, tick->ExchangeID, tick->Symbol, (int)strlen(tick->Symbol));
+    sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, tick->ExchangeID, tick->Symbol, (int)strlen(tick->Symbol));
 
-    // 遍历所有blotter，根据tickData找到更新浮动盈亏等，最新价格等
-    for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)
+    position = zs_get_position_engine(blotter, sid);
+    if (position)
     {
-        blotter = (zs_blotter_t*)ztl_array_at((&algo->BlotterMgr.BlotterArray), i);
-        position = zs_get_position_engine(blotter, sid);
-        if (position)
-        {
-            zs_position_sync_last_price(position, tick->LastPrice);
-        }
+        zs_position_sync_last_price(position, tick->LastPrice);
     }
 
     return 0;
 }
 
+int zs_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
+{
+    // 遍历所有blotter的所有持仓，更新浮动盈亏等，最新价格等
+    ztl_map_pair_t pairs[1024] = { 0 };
+    ztl_map_to_array(blotter->Positions, pairs, 1024);
+    _zs_sync_price_to_positions(pairs, 1024, bar_reader);
+
+    return 0;
+}

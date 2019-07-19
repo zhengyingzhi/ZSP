@@ -157,7 +157,7 @@ void zs_data_demo()
         if (i == 0)
             continue;
 
-        for (int k = 0; k < ztl_array_size(&series->Array); ++k)
+        for (int k = 0; k < (int)ztl_array_size(&series->Array); ++k)
         {
             value_t px = *(value_t*)ztl_array_at(&series->Array, k);
             fprintf(stderr, "%s px:%lf\n", series->Name, px);

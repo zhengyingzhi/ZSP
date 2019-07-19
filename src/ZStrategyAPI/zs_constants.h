@@ -251,7 +251,7 @@ typedef enum
 {
     ZS_PD_Today,
     ZS_PD_Yesterday
-}ZSPositionDateType;
+}ZSPosDateType;
 
 
 #endif//_ZS_CONSTANTS_H_INCLUDED_

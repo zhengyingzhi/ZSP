@@ -1,4 +1,5 @@
 #include <ZToolLib/ztl_utils.h>
+#include <ZToolLib/ztl_memcpy.h>
 
 #include "zs_hashdict.h"
 
@@ -28,6 +29,15 @@ void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* al
     ZStrKey* dup_key = (ZStrKey*)alloc_pt(alloc_ctx, ztl_align(sizeof(ZStrKey) + skey->len, 4));
     dup_key->len = skey->len;
     dup_key->ptr = (char*)(dup_key + 1);
-    memcpy(dup_key->ptr, skey->ptr, skey->len);
+    ztl_memcpy(dup_key->ptr, skey->ptr, skey->len);
+    return dup_key;
+}
+
+void* zs_str_keydup2(const char* str, int length, void*(alloc_pt)(void*, size_t), void* alloc_ctx)
+{
+    ZStrKey* dup_key = (ZStrKey*)alloc_pt(alloc_ctx, ztl_align(sizeof(ZStrKey) + length, sizeof(void*)));
+    dup_key->len = length;
+    dup_key->ptr = (char*)(dup_key + 1);
+    ztl_memcpy(dup_key->ptr, str, length);
     return dup_key;
 }

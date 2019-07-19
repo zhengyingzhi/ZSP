@@ -57,44 +57,6 @@ static void _zs_algo_handle_trade(zs_event_engine_t* ee, void* userdata,
     blotter->handle_order_trade(blotter, trade);
 }
 
-static void _zs_algo_handle_md(zs_event_engine_t* ee, void* userdata, 
-    uint32_t evtype, void* evdata)
-{
-    zs_algorithm_t* algo;
-    // zs_blotter_t*   blotter;
-    zs_data_head_t* zdh;
-
-    algo = (zs_algorithm_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-
-    // 行情事件，分bar和tick
-    // 根据最新行情，更新交易核心的最新价格，浮动盈亏等
-
-    // 保存行情到data_portal中，便于程序可随时访问最新价格？
-
-    // how to identify data type???
-    if (evtype == ZS_DT_MD_Bar || 1)
-    {
-        zs_bar_reader_t* bar_reader;
-        memcpy(&bar_reader, zd_data_body(zdh), sizeof(void*));
-
-        double closepx = bar_reader->current(bar_reader, 16, "close");
-        printf("algo md handler bar close:%.2lf\n", closepx);
-
-        zs_handle_md_bar(algo, bar_reader);
-    }
-    else if (evtype == ZS_DT_MD_Tick)
-    {
-        zs_tick_t* tick_data;
-        memcpy(&tick_data, zd_data_body(zdh), sizeof(void*));
-
-        double closepx = tick_data->LastPrice;
-        printf("algo md handler tick close:%.2lf\n", closepx);
-
-        zs_handle_md_tick(algo, tick_data);
-    }
-}
-
 static void _zs_algo_handle_position(zs_event_engine_t* ee, void* userdata,
     uint32_t evtype, void* evdata)
 {
@@ -126,6 +88,51 @@ static void _zs_algo_handle_other(zs_event_engine_t* ee, void* userdata,
 }
 
 
+static void _zs_algo_handle_tick(zs_event_engine_t* ee, void* userdata, 
+    uint32_t evtype, void* evdata)
+{
+    zs_algorithm_t* algo;
+    zs_data_head_t* zdh;
+    zs_tick_t*      tick;
+    zs_blotter_t*   blotter;
+
+    algo = (zs_algorithm_t*)userdata;
+    zdh = (zs_data_head_t*)evdata;
+    tick = (zs_tick_t*)zd_data_body(zdh);
+
+    for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)
+    {
+        blotter = (zs_blotter_t*)ztl_array_at((&algo->BlotterMgr.BlotterArray), i);
+        blotter->handle_tick(blotter, tick);
+    }
+
+}
+
+static void _zs_algo_handle_bar(zs_event_engine_t* ee, void* userdata,
+    uint32_t evtype, void* evdata)
+{
+    zs_algorithm_t* algo;
+    zs_data_head_t* zdh;
+    zs_blotter_t*   blotter;
+
+    algo = (zs_algorithm_t*)userdata;
+    zdh = (zs_data_head_t*)evdata;
+
+    zs_bar_reader_t* bar_reader;
+    memcpy(&bar_reader, zd_data_body(zdh), sizeof(void*));
+
+    double closepx = bar_reader->current(bar_reader, 16, "close");
+    printf("algo md handler bar close:%.2lf\n", closepx);
+
+    for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)
+    {
+        blotter = (zs_blotter_t*)ztl_array_at((&algo->BlotterMgr.BlotterArray), i);
+        blotter->handle_bar(blotter, bar_reader);
+    }
+
+}
+
+
 static int _zs_load_strategies(zs_algorithm_t* algo)
 {
     zs_strategy_engine_t* zse;
@@ -147,8 +154,8 @@ static int _zs_load_strategies(zs_algorithm_t* algo)
     return 0;
 }
 
-static int _zs_make_assets_info(zs_asset_finder_t* AssetFinder, 
-    zs_data_portal_t* dataPortal)
+static int _zs_make_assets_info(zs_asset_finder_t* asset_finder, 
+    zs_data_portal_t* data_portal)
 {
     // 回测时，把数据放到assetFinder的map中，便于查找
     // 可再封装提供一个函数，处理每一个合约信息
@@ -260,7 +267,8 @@ static void zs_algorithm_register(zs_algorithm_t* algo)
     zs_ee_register(ee, algo, ZS_DT_QryPosition, _zs_algo_handle_position);
     zs_ee_register(ee, algo, ZS_DT_QryAccount, _zs_algo_handle_account);
     zs_ee_register(ee, algo, ZS_DT_QryContract, _zs_algo_handle_contract);
-    zs_ee_register(ee, algo, ZS_DT_MD_Tick, _zs_algo_handle_md);
+    zs_ee_register(ee, algo, ZS_DT_MD_Tick, _zs_algo_handle_tick);
+    zs_ee_register(ee, algo, ZS_DT_MD_Bar, _zs_algo_handle_bar);
     zs_ee_register(ee, algo, ZS_DT_Timer, _zs_algo_handle_timer);
     zs_ee_register(ee, algo, ZS_DT_Other, _zs_algo_handle_other);
 }
