@@ -34,7 +34,7 @@ struct zs_strategy_entry_s
     const char* Author;         // the strategy author
     const char* Version;        // the strategy version
     uint32_t    Flags;          // the strategy flag
-    void*       HLib;           // ztl_dso_handle_t object
+    void*       HLib;           // the dso object
 
     // 策略对象的创建与销毁
     void* (*create)(zs_cta_strategy_t* context, const char* setting);

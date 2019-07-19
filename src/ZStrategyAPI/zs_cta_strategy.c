@@ -35,8 +35,7 @@ zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* context, zs_sid_t sid);
 zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const char* setting, uint32_t strategy_id)
 {
     zs_cta_strategy_t* strategy;
-    strategy = malloc(sizeof(zs_cta_strategy_t));
-    memset(strategy, 0, sizeof(zs_cta_strategy_t));
+    strategy = ztl_pcalloc(engine->Pool, sizeof(zs_cta_strategy_t));
 
     strategy->StrategyID = strategy_id;
     strategy->RunStatus = ZS_RS_Unknown;

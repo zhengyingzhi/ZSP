@@ -86,7 +86,7 @@ int zs_blotter_cancel(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req);
 
 int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req);
 
-// getters
+// working order getters
 zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid);
 zs_order_t* zs_get_order_by_id(zs_blotter_t* blotter, int32_t frontid, int32_t sessionid, const char* orderid);
 

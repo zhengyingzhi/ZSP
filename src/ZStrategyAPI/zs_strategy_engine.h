@@ -34,13 +34,13 @@ struct zs_strategy_engine_s
     zs_asset_finder_t*  AssetFinder;
     ztl_pool_t*         Pool;
 
-    ztl_array_t         StrategyEntries;    // 所有导入的策略
+    ztl_array_t*        StrategyEntries;    // 所有导入的策略
 
-    ztl_array_t         AllStrategy;        // 所有策略实例 [zs_cta_strategy_t*]
-    ztl_map_t*          StrategyMap;        // <strategyid, zs_cta_strategy_t*列表>
+    ztl_array_t*        AllStrategy;        // 所有策略实例 [zs_cta_strategy_t*]
+    ztl_map_t*          StrategyMap;        // <strategyid, zs_cta_strategy_t*>
     ztl_dict_t*         Tick2StrategyList;  // <Sid, zs_cta_strategy_t*列表>
     ztl_dict_t*         BarGenDict;         // bar合成器<Sid, ztl_bar_gen_t*>
-    ztl_dict_t*         OrderStrategyDict;  // <account, <orderid, zs_cta_strategy_t*>>
+    zs_orderdict_t*     OrderStrategyDict;  // <order_key, zs_cta_strategy_t*>
     ztl_dict_t*         AccountStrategyDict;// <account, zs_cta_strategy_t*列表>
 
     uint32_t            StrategyBaseID;
@@ -51,7 +51,7 @@ struct zs_strategy_engine_s
 
     ztl_dict_t*         TradeIDDict;        // 成交ID集合 ExchangeID+TradeID
 
-    ztl_vector_t*       StrategyPaths;      // 可支持的策略路径列表
+    ztl_vector_t*       StrategyPaths;      // 可支持的策略路径列表 deprecated
 };
 
 /* cta engine related
@@ -68,8 +68,9 @@ int zs_strategy_unload(zs_strategy_engine_t* zse, zs_strategy_entry_t* entry);
 
 /* 策略的添加、删除、启动、停止、更新等操作
  */
-int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy, 
+int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy, 
     const char* strategy_name, const char* setting);
+int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 int zs_strategy_init(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 int zs_strategy_del(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 int zs_strategy_start(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);

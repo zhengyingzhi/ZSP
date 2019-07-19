@@ -18,64 +18,6 @@
 #include "zs_risk_control.h"
 
 
-typedef struct  
-{
-    uint16_t    ExchangeID;
-    uint16_t    Length;
-    char*       pOrderSysID;
-}ZSOrderSysKey;
-
-typedef struct
-{
-    int32_t     SessionID;
-    uint16_t    FrontID;
-    uint16_t    Length;
-    char*       pOrderID;
-}ZSOrderKey;
-
-static uint64_t _zs_order_keyhash(const void *key) {
-    ZSOrderKey* skey = (ZSOrderKey*)key;
-    return dictGenHashFunction((unsigned char*)skey->pOrderID, skey->Length);
-}
-
-static void* _zs_order_keydup(void* priv, const void* key) {
-    zs_blotter_t* blotter = (zs_blotter_t*)priv;
-    ZSOrderKey* skey = (ZSOrderKey*)key;
-    ZSOrderKey* dup_key = (ZSOrderKey*)ztl_palloc(blotter->Pool, ztl_align(sizeof(ZSOrderKey) + skey->Length + 1, 4));
-    dup_key->SessionID = skey->SessionID;
-    dup_key->Length = skey->Length;
-    dup_key->pOrderID = (char*)(dup_key + 1);
-    ztl_memcpy(dup_key->pOrderID, skey->pOrderID, skey->Length);  // could be use a faster copy
-    return dup_key;
-}
-
-static void* _zs_order_valdup(void* priv, const void* obj) {
-    zs_blotter_t* blotter = (zs_blotter_t*)priv;
-    zs_order_t* dupord = ztl_palloc(blotter->Pool, sizeof(zs_order_t));
-    ztl_memcpy(dupord, obj, sizeof(zs_order_t));
-    return dupord;
-}
-
-static int _zs_order_keycmp(void* priv, const void* s1, const void* s2) {
-    (void)priv;
-    ZSOrderKey* k1 = (ZSOrderKey*)s1;
-    ZSOrderKey* k2 = (ZSOrderKey*)s2;
-    return (k1->SessionID == k2->SessionID) \
-        && (k1->FrontID == k2->FrontID) \
-        && memcmp(k1->pOrderID, k2->pOrderID, k2->Length) == 0;
-}
-
-static dictType orderHashDictType = {
-    _zs_order_keyhash,
-    _zs_order_keydup,
-    _zs_order_valdup,
-    _zs_order_keycmp,
-    NULL,
-    NULL
-};
-
-
-//////////////////////////////////////////////////////////////////////////
 
 zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
 {
@@ -96,7 +38,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
 
     blotter->Algorithm = algo;
 
-    blotter->OrderDict = dictCreate(&orderHashDictType, blotter);
+    blotter->OrderDict = zs_orderdict_create(blotter->Pool);
     blotter->WorkOrderList = zs_orderlist_create();
 
     ztl_array_init(&blotter->Trades, pool, 8192, sizeof(void*));
@@ -137,7 +79,7 @@ void zs_blotter_release(zs_blotter_t* blotter)
     }
 
     if (blotter->OrderDict) {
-        dictRelease(blotter->OrderDict);
+        zs_orderdict_release(blotter->OrderDict);
         blotter->OrderDict = NULL;
     }
 
@@ -224,19 +166,15 @@ int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
     // 保存订单到 OrderDict 和 WorkOrderDict
     // TODO: conv order_req as order object
 
-    zs_order_t      order;
-    ZSOrderKey      key;
+    zs_order_t* order;
+    order = (zs_order_t*)ztl_pcalloc(blotter->Pool, sizeof(zs_order_t));
 
-    order.SessionID = order_req->SessionID;
-    order.FrontID = order_req->FrontID;
-    strcpy(order.OrderID, order_req->OrderID);
-    strcpy(order.UserID, order_req->UserID);
+    order->SessionID = order_req->SessionID;
+    order->FrontID = order_req->FrontID;
+    strcpy(order->OrderID, order_req->OrderID);
+    strcpy(order->UserID, order_req->UserID);
 
-    key.SessionID = order_req->SessionID;
-    key.FrontID = order_req->FrontID;
-    key.Length = (int)strlen(order_req->OrderID);
-
-    dictAdd(blotter->OrderDict, &key, &order);
+    zs_orderdict_add_order(blotter->OrderDict, order);
 
     // zs_orderlist_append(blotter->WorkOrderList, &order);
 
@@ -267,7 +205,7 @@ zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid
 
 
 //////////////////////////////////////////////////////////////////////////
-// 订单事件
+// 订单回报事件
 int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
     // 处理订单提交请求:
@@ -326,29 +264,22 @@ int zs_handle_quote_order_submit(zs_blotter_t* blotter,
 
 int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 {
-    zs_order_t*     lorder;
+    zs_order_t*     work_order;
+    zs_order_t*     old_order;
     zs_contract_t*  contract;
     ZSOrderStatus   order_status;
-    ZSOrderKey      key;
-    dictEntry*      entry;
-
-    key.SessionID = order->SessionID;
-    key.FrontID = order->FrontID;
-    key.Length = (int)strlen(order->OrderID);
-    key.pOrderID = order->OrderID;
 
     contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
 
     // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
 
     order_status = order->OrderStatus;
-    entry = dictFind(blotter->OrderDict, &key);
-    if (entry)
+
+    old_order = zs_orderdict_find(blotter->OrderDict, order->FrontID, order->SessionID, order->OrderID);
+    if (old_order)
     {
-        zs_order_t* old_order;
-        old_order = (zs_order_t*)entry->v.val;
         if (is_finished_status(order_status))
-        // if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
+            // if (status == ZS_OS_Filled || status == ZS_OS_Canceld || status == ZS_OS_Rejected)
         {
             // 重复订单
             if (order_status == old_order->OrderStatus) {
@@ -356,27 +287,31 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
             }
         }
 
-        // 更新订单状态
+        // 更新订单状态等数据
     }
     else
     {
-        dictAdd(blotter->OrderDict, &key, order);
+        // we should make a copy order object
+        zs_order_t* dup_order;
+        dup_order = (zs_order_t*)ztl_palloc(blotter->Pool, sizeof(zs_order_t));
+        ztl_memcpy(dup_order, order, sizeof(zs_order_t));
+        zs_orderdict_add_order(blotter->OrderDict, dup_order);
     }
 
     // working order
-    lorder = zs_get_order_by_sysid(blotter, order->ExchangeID, order->OrderSysID);
-    if (!lorder)
+    work_order = zs_get_order_by_sysid(blotter, order->ExchangeID, order->OrderSysID);
+    if (!work_order)
     {
         return -1;
     }
 
-    strcpy(lorder->OrderSysID, order->OrderSysID);
-    lorder->FilledQty = order->FilledQty;
-    lorder->OrderStatus = order->OrderStatus;
-    lorder->OrderTime = order->OrderTime;
-    lorder->CancelTime = order->CancelTime;
+    strcpy(work_order->OrderSysID, order->OrderSysID);
+    work_order->FilledQty = order->FilledQty;
+    work_order->OrderStatus = order->OrderStatus;
+    work_order->OrderTime = order->OrderTime;
+    work_order->CancelTime = order->CancelTime;
 
-    zs_account_on_order_rtn(blotter->Account, lorder, contract);
+    zs_account_on_order_rtn(blotter->Account, work_order, contract);
 
     if (is_finished_status(order->OrderStatus))
     {
@@ -395,18 +330,18 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 {
     // 开仓单成交：调整持仓，重新计算占用资金，计算持仓成本
     // 平仓单成交：解冻持仓，回笼资金
-    zs_order_t* lorder;
-    lorder = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);
-    if (!lorder)
+    zs_order_t* work_order;
+    work_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);
+    if (!work_order)
     {
         return -1;
     }
 
-    lorder->FilledQty += trade->Volume;
-    if (lorder->FilledQty == lorder->OrderQty)
-        lorder->OrderStatus = ZS_OS_Filled;
+    work_order->FilledQty += trade->Volume;
+    if (work_order->FilledQty == work_order->OrderQty)
+        work_order->OrderStatus = ZS_OS_Filled;
     else
-        lorder->OrderStatus = ZS_OS_PartFilled;
+        work_order->OrderStatus = ZS_OS_PartFilled;
 
     zs_position_engine_t*  position;
     position = zs_get_position_engine(blotter, trade->Sid);
@@ -418,7 +353,7 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     // how to get asset type
     zs_commission_model_t* comm_model;
     comm_model = zs_commission_model_get(blotter->Commission, 0);
-    double comm = comm_model->calculate(comm_model, lorder, trade);
+    double comm = comm_model->calculate(comm_model, work_order, trade);
 
     blotter->Account->FundAccount.Commission += comm;
 
@@ -426,15 +361,16 @@ int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 }
 
 
-static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_reader_t* barReader)
+// 行情事件
+static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_reader_t* bar_reader)
 {
     for (int k = 0; k < size; ++k)
     {
-        if (pairs[k].Value == NULL) {
+        if (!pairs[k].Value) {
             break;
         }
 
-        double last_price = barReader->current(barReader, (zs_sid_t)pairs[k].Key, "close");
+        double last_price = bar_reader->current(bar_reader, (zs_sid_t)pairs[k].Key, "close");
         if (last_price < 0.0001) {
             continue;
         }
