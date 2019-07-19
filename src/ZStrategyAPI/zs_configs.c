@@ -442,3 +442,75 @@ zs_conf_strategy_t* zs_configs_find_strategy(zs_algo_param_t* algo_param, const 
 
     return NULL;
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+struct zs_json_s
+{
+    cJSON*  cjson;
+};
+
+zs_json_t* zs_json_parse(const char* buffer, int32_t length)
+{
+    (void)length;
+
+    cJSON* cjson;
+    cjson = cJSON_Parse(buffer);
+    if (!cjson)
+    {
+        // invalid json buffer
+        return NULL;
+    }
+
+    zs_json_t* zjson = (zs_json_t*)malloc(sizeof(zs_json_t));
+    zjson->cjson = cjson;
+    return zjson;
+}
+
+void zs_json_release(zs_json_t* zjson)
+{
+    if (zjson)
+    {
+        if (zjson->cjson)
+            cJSON_Delete(zjson->cjson);
+        free(zjson);
+    }
+}
+
+int zs_json_get_object(zs_json_t* zjson, const char* key, zs_json_t** pvalue)
+{
+    return -1;
+}
+
+int zs_json_get_string(zs_json_t* zjson, const char* key, char value[], int size)
+{
+    cJSON* obj;
+    obj = cJSON_GetObjectItem(zjson->cjson, key);
+    if (obj) {
+        strncpy(value, obj->valuestring, size);
+        return 0;
+    }
+    return -1;
+}
+
+int zs_json_get_int(zs_json_t* zjson, const char* key, int* value)
+{
+    cJSON* obj;
+    obj = cJSON_GetObjectItem(zjson->cjson, key);
+    if (obj) {
+        *value = obj->valueint;
+        return 0;
+    }
+    return -1;
+}
+
+int zs_json_get_double(zs_json_t* zjson, const char* key, double* value)
+{
+    cJSON* obj;
+    obj = cJSON_GetObjectItem(zjson->cjson, key);
+    if (obj) {
+        *value = obj->valuedouble;
+        return 0;
+    }
+    return -1;
+}

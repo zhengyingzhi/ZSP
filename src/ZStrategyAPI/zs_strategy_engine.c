@@ -194,7 +194,31 @@ static void _zs_strategy_handle_bar(zs_event_engine_t* ee, void* userdata,
     }
 }
 
+static void _zs_strategy_handle_timer(zs_event_engine_t* ee, void* userdata,
+    uint32_t evtype, void* evdata)
+{
+    uint32_t i;
+    zs_cta_strategy_t*      strategy;
+    zs_strategy_engine_t*   zse;
 
+    zse = (zs_strategy_engine_t*)userdata;
+
+    for (i = 0; i < ztl_array_size(zse->AllStrategy); ++i)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(zse->AllStrategy, i);
+        if (!strategy) {
+            continue;
+        }
+
+
+        if (strategy->Entry->on_timer) {
+            strategy->Entry->on_timer(strategy->Instance, strategy, 0);
+        }
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 /* zs_strategy engine */
 zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
 {
@@ -219,6 +243,9 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
     zse->BarGenDict         = dictCreate(&uintHashDictType, zse);
     zse->OrderStrategyDict  = zs_orderdict_create(zse->Pool);
     zse->AccountStrategyDict= dictCreate(&strHashDictType, zse);
+
+    // FIXME:
+    zs_strategy_engine_load(zse, NULL);
 
     zs_strategy_register_event(zse);
 
@@ -275,7 +302,18 @@ void zs_strategy_engine_release(zs_strategy_engine_t* zse)
 
 void zs_strategy_engine_stop(zs_strategy_engine_t* zse)
 {
-    //
+    uint32_t i;
+    zs_cta_strategy_t* strategy;
+
+    for (i = 0; i < ztl_array_size(zse->AllStrategy); ++i)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(zse->AllStrategy, i);
+        if (!strategy) {
+            continue;
+        }
+
+        zs_strategy_stop(zse, strategy);
+    }
 }
 
 static void zs_strategy_register_event(zs_strategy_engine_t* zse)
@@ -286,6 +324,7 @@ static void zs_strategy_register_event(zs_strategy_engine_t* zse)
     zs_ee_register(ee, zse, ZS_DT_Trade, _zs_strategy_handle_trade);
     zs_ee_register(ee, zse, ZS_DT_MD_Tick, _zs_strategy_handle_tick);
     zs_ee_register(ee, zse, ZS_DT_MD_Bar, _zs_strategy_handle_bar);
+    zs_ee_register(ee, zse, ZS_DT_Timer, _zs_strategy_handle_timer);
 }
 
 
@@ -294,21 +333,22 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* libpaths)
     // load all strategy entries from dso
 
     const char* libpath;
-    for (uint32_t i = 0; i < ztl_array_size(libpaths); ++i)
+
+    if (libpaths)
     {
-        libpath = ztl_array_at(libpaths, i);
-        zs_strategy_load(zse, libpath);
+        for (uint32_t i = 0; i < ztl_array_size(libpaths); ++i)
+        {
+            libpath = ztl_array_at(libpaths, i);
+            zs_strategy_load(zse, libpath);
+        }
     }
 
-#if 0
+#if 1
     // load demo strategy
-    zs_strategy_entry_t* entry = NULL;
-    zs_demo_strategy_entry(&entry);
-    entry->Instance = entry->create(0);
+    zs_strategy_entry_t* strategy_entry = NULL;
+    zs_demo_strategy_entry(&strategy_entry);
 
-    ztl_map_add(zse->StrategyMap, 16, entry);
-    void** dst = ztl_array_push(&zse->AllStrategy);
-    *dst = entry;
+    ztl_array_push_back(zse->StrategyEntries, strategy_entry);
 #endif
 
     return 0;
@@ -316,7 +356,7 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* libpaths)
 
 int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
 {
-    zs_strategy_entry_t* entry;
+    zs_strategy_entry_t* strategy_entry;
     ztl_dso_handle_t* dso;
 
     dso = ztl_dso_load(libpath);
@@ -336,8 +376,8 @@ int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
         return -2;
     }
 
-    entry_func(&entry);
-    if (!entry)
+    entry_func(&strategy_entry);
+    if (!strategy_entry)
     {
         // ERRORID: not got entry object
         ztl_dso_unload(dso);
@@ -345,64 +385,62 @@ int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
     }
 
 #if 0
-    entry = (zs_strategy_entry_t*)ztl_pcalloc(zse->Pool, sizeof(zs_strategy_entry_t));
-    entry->HLib         = dso;
-    entry->create       = ztl_dso_symbol(dso, "create");
-    entry->release      = ztl_dso_symbol(dso, "release");
-    entry->get_version  = ztl_dso_symbol(dso, "get_version");
-    entry->get_info     = ztl_dso_symbol(dso, "get_info");
-    entry->on_init      = ztl_dso_symbol(dso, "on_init");
-    entry->on_start     = ztl_dso_symbol(dso, "on_start");
-    entry->on_stop      = ztl_dso_symbol(dso, "on_stop");
-    entry->on_update    = ztl_dso_symbol(dso, "on_update");
-    entry->on_timer     = ztl_dso_symbol(dso, "on_timer");
-    entry->before_trading_start = ztl_dso_symbol(dso, "before_trading_start");
+    strategy_entry = (zs_strategy_entry_t*)ztl_pcalloc(zse->Pool, sizeof(zs_strategy_entry_t));
+    strategy_entry->HLib         = dso;
+    strategy_entry->create       = ztl_dso_symbol(dso, "create");
+    strategy_entry->release      = ztl_dso_symbol(dso, "release");
+    strategy_entry->get_version  = ztl_dso_symbol(dso, "get_version");
+    strategy_entry->get_info     = ztl_dso_symbol(dso, "get_info");
+    strategy_entry->on_init      = ztl_dso_symbol(dso, "on_init");
+    strategy_entry->on_start     = ztl_dso_symbol(dso, "on_start");
+    strategy_entry->on_stop      = ztl_dso_symbol(dso, "on_stop");
+    strategy_entry->on_update    = ztl_dso_symbol(dso, "on_update");
+    strategy_entry->on_timer     = ztl_dso_symbol(dso, "on_timer");
+    strategy_entry->before_trading_start = ztl_dso_symbol(dso, "before_trading_start");
 
-    entry->handle_order = ztl_dso_symbol(dso, "handle_order");
-    entry->handle_trade = ztl_dso_symbol(dso, "handle_trade");
-    entry->handle_bar   = ztl_dso_symbol(dso, "handle_bar");
-    entry->handle_tick  = ztl_dso_symbol(dso, "handle_tick");
-    entry->handle_tickl2= ztl_dso_symbol(dso, "handle_tickl2");
+    strategy_entry->handle_order = ztl_dso_symbol(dso, "handle_order");
+    strategy_entry->handle_trade = ztl_dso_symbol(dso, "handle_trade");
+    strategy_entry->handle_bar   = ztl_dso_symbol(dso, "handle_bar");
+    strategy_entry->handle_tick  = ztl_dso_symbol(dso, "handle_tick");
+    strategy_entry->handle_tickl2= ztl_dso_symbol(dso, "handle_tickl2");
 
-    if (entry->get_version) {
-        entry->Version = entry->get_version(0);
-    }
-    if (entry->get_info) {
-        entry->get_info(entry->StrategyName, entry->Author, 0);
+    if (strategy_entry->get_version) {
+        strategy_entry->Version = strategy_entry->get_version(0);
     }
     else {
         // error ?
     }
 #endif//0
 
-    entry->HLib = dso;
+    strategy_entry->HLib = dso;
 
-    void** pdst = ztl_array_push(zse->StrategyEntries);
-    *pdst = entry;
+    ztl_array_push_back(zse->StrategyEntries, strategy_entry);
 
     return 0;
 }
 
-int zs_strategy_unload(zs_strategy_engine_t* zse, zs_strategy_entry_t* entry)
+int zs_strategy_unload(zs_strategy_engine_t* zse, zs_strategy_entry_t* strategy_entry)
 {
     ztl_dso_handle_t* dso;
 
-    dso = (ztl_dso_handle_t*)entry->HLib;
+    dso = (ztl_dso_handle_t*)strategy_entry->HLib;
 
-    if (dso) {
+    if (dso)
+    {
         ztl_dso_unload(dso);
-        // entry->HLib = NULL;
+        // strategy_entry->HLib = NULL;
     }
 
     return 0;
 }
+
 
 int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy, 
     const char* strategy_name, const char* setting)
 {
     // 创建一个策略对象
     zs_cta_strategy_t*      strategy;
-    zs_strategy_entry_t*    entry;
+    zs_strategy_entry_t*    strategy_entry;
 
     // 是否已存在，FIXME：同时加载多个相同名的策略时如何处理？
     strategy = ztl_array_find(zse->AllStrategy, (char*)strategy_name, _cta_strategy_name_comp);
@@ -412,17 +450,19 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
         return 0;
     }
 
-    entry = ztl_array_find(zse->StrategyEntries, (char*)strategy_name, _strategy_entry_name_comp);
-    if (!entry)
+    strategy_entry = ztl_array_find(zse->StrategyEntries, (char*)strategy_name, _strategy_entry_name_comp);
+    if (!strategy_entry)
     {
-        // ERRORID: not find the strategy entry
+        // ERRORID: not find the strategy entry, maybe load failed before
         return -1;
     }
 
     uint32_t next_strategy_id = zse->StrategyBaseID++;
     strategy = zs_cta_strategy_create(zse, setting, next_strategy_id);
 
-    zs_cta_strategy_set_entry(strategy, entry);
+    zs_cta_strategy_set_entry(strategy, strategy_entry);
+
+    // FIXME: when set blotter to strategy object ?
 
     // 调用策略初始化函数
     if (strategy->Entry->create) {

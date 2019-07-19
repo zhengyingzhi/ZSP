@@ -5,6 +5,8 @@
 
 #include "zs_assets.h"
 
+#include "zs_configs.h"
+
 #include "zs_constants_helper.h"
 
 #include "zs_data_portal.h"
@@ -34,20 +36,57 @@ zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* context, zs_sid_t sid);
 
 zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const char* setting, uint32_t strategy_id)
 {
+    zs_json_t* zjson;
     zs_cta_strategy_t* strategy;
+    char strategy_name[16];
+    char account_id[16];
+    char symbol[32];
+
     strategy = ztl_pcalloc(engine->Pool, sizeof(zs_cta_strategy_t));
 
     strategy->StrategyID = strategy_id;
     strategy->RunStatus = ZS_RS_Unknown;
 
-    strategy->StrategySetting = (char*)setting;
-    // TODO: ananlyze setting
-    strategy->pAccountID = NULL;
-    strategy->pCustomID = NULL;     // FIXME: maybe strategy name
+    strategy->StrategySetting = setting;
+
+    // ananlyze the setting
+    zjson = zs_json_parse(setting, 0);
+    if (!zjson) {
+        // ERRORID: invalid strategy setting buffer
+        return NULL;
+    }
+
+    memset(strategy_name, 0, sizeof(strategy_name));
+    zs_json_get_string(zjson, "strategy_name", strategy_name, sizeof(strategy_name));
+    if (!strategy_name[0]) {
+        // ERRORID: no strategy_name in strategy setting
+        return NULL;
+    }
+
+    memset(account_id, 0, sizeof(account_id));
+    zs_json_get_string(zjson, "account_id", account_id, sizeof(account_id));
+    if (!account_id[0]) {
+        // ERRORID: no account id in strategy setting
+        return NULL;
+    }
+
+    memset(symbol, 0, sizeof(symbol));
+    zs_json_get_string(zjson, "symbol", symbol, sizeof(symbol));
+    if (!symbol[0]) {
+        // ERRORID: no symbol in strategy setting
+        return NULL;
+    }
+
+    zs_json_release(zjson);
+
+    strategy->pAccountID = ztl_pcalloc(engine->Pool, 16);
+    strcpy(strategy->pAccountID, account_id);
+    strategy->pCustomID = ztl_pcalloc(engine->Pool, 16);
+    strcpy(strategy->pCustomID, strategy_name);
 
     strategy->Engine = engine;
-    strategy->Entry = NULL;
-    strategy->Blotter = NULL;
+    strategy->Entry = NULL;         // will be assigned outside
+    strategy->Blotter = NULL;       // will be assigned outside
     strategy->AssetFinder = engine->AssetFinder;
 
     strategy->lookup_symbol = zs_cta_lookup_symbol;
@@ -69,7 +108,6 @@ void zs_cta_strategy_release(zs_cta_strategy_t* strategy)
 {
     if (strategy)
     {
-        free(strategy);
     }
 }
 

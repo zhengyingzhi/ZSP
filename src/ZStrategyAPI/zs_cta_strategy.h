@@ -28,9 +28,9 @@ struct zs_cta_strategy_s
     int32_t     StrategyID;     // the strategy id in cta engine
     ZSRunStatus RunStatus;      // 
 
-    char*       StrategySetting;//
-    const char* pAccountID;
-    const char* pCustomID;
+    const char* StrategySetting;//
+    char*       pAccountID;
+    char*       pCustomID;
 
     void*       Instance;       // the instance returned by create
     void*       UserData;       // the user data for each strategy instance

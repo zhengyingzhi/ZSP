@@ -72,11 +72,11 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter->quote_order = zs_blotter_quote_order;
     blotter->cancel = zs_blotter_cancel;
 
-    blotter->handle_order_submit = zs_handle_order_submit;
-    blotter->handle_order_returned = zs_handle_order_returned;
-    blotter->handle_order_trade = zs_handle_order_trade;
-    blotter->handle_tick = zs_handle_tick;
-    blotter->handle_bar = zs_handle_bar;
+    blotter->handle_order_submit = zs_blotter_handle_order_submit;
+    blotter->handle_order_returned = zs_blotter_handle_order_returned;
+    blotter->handle_order_trade = zs_blotter_handle_order_trade;
+    blotter->handle_tick = zs_blotter_handle_tick;
+    blotter->handle_bar = zs_blotter_handle_bar;
 
     return blotter;
 }
@@ -135,7 +135,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         return rv;
     }
 
-    rv = zs_handle_order_submit(blotter, order_req);
+    rv = zs_blotter_handle_order_submit(blotter, order_req);
     if (rv != 0) {
         return rv;
     }
@@ -155,7 +155,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         order.OffsetFlag = order_req->OffsetFlag;
         // other fields...
 
-        zs_handle_order_returned(blotter, &order);
+        zs_blotter_handle_order_returned(blotter, &order);
         return rv;
     }
 
@@ -228,9 +228,39 @@ zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid
 }
 
 
+int zs_blotter_handle_account(zs_blotter_t* blotter, zs_account_t* account)
+{
+    return 0;
+}
+
+int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos)
+{
+    return 0;
+}
+
+int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_t* pos_detail)
+{
+    return 0;
+}
+
+int zs_blotter_handle_qry_order(zs_blotter_t* blotter, zs_order_t* order)
+{
+    return 0;
+}
+
+int zs_blotter_handle_qry_trade(zs_blotter_t* blotter, zs_trade_t* trade)
+{
+    return 0;
+}
+
+int zs_blotter_handle_timer(zs_blotter_t* blotter, int64_t flag)
+{
+    return 0;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // 订单回报事件
-int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
+int zs_blotter_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
     // 处理订单提交请求:
     // 1. 风控
@@ -280,13 +310,13 @@ int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
     return 0;
 }
 
-int zs_handle_quote_order_submit(zs_blotter_t* blotter,
+int zs_blotter_handle_quote_order_submit(zs_blotter_t* blotter,
     zs_quote_order_req_t* quote_req)
 {
     return -1;
 }
 
-int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
+int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 {
     zs_order_t*     work_order;
     zs_order_t*     old_order;
@@ -350,7 +380,7 @@ int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
     return 0;
 }
 
-int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
+int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 {
     // 开仓单成交：调整持仓，重新计算占用资金，计算持仓成本
     // 平仓单成交：解冻持仓，回笼资金
@@ -430,7 +460,7 @@ static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_
     }
 }
 
-int zs_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
+int zs_blotter_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
 {
     zs_sid_t sid;
     zs_position_engine_t* position;
@@ -445,7 +475,7 @@ int zs_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
     return 0;
 }
 
-int zs_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
+int zs_blotter_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
 {
     // 遍历所有blotter的所有持仓，更新浮动盈亏等，最新价格等
     ztl_map_pair_t pairs[1024] = { 0 };

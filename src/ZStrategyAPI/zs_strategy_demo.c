@@ -20,112 +20,103 @@
 /* 一个调试策略demo */
 typedef struct my_strategy_demo_s
 {
-    int index;
-    char accountID[16];
-    const char* symbols[4];
-    // zs_cta_strategy_t* context;
+    int             index;
+    zs_sid_t        sid;
+    ZSExchangeID    exchangeid;
+    char            accountID[16];
+    char            symbol[32];
 }my_strategy_demo_t;
 
 
 void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
 {
-    my_strategy_demo_t* stgdemo;
-    stgdemo = (my_strategy_demo_t*)calloc(1, sizeof(my_strategy_demo_t));
+    my_strategy_demo_t* instance;
+    instance = (my_strategy_demo_t*)calloc(1, sizeof(my_strategy_demo_t));
 
-    stgdemo->symbols[0] = "000001.SZSE";
+    strcpy(instance->symbol, "000001.SZSE");
+    instance->exchangeid = ZS_EI_SZSE;
+    instance->sid = context->lookup_symbol(context, instance->exchangeid, instance->symbol);
 
     // we could assign our user data to UserData field
     context->UserData = NULL;
 
-    return stgdemo;
+    return instance;
 }
 
 void stg_demo_release(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
-    if (context->Instance)
+    if (instance)
     {
-        free(context->Instance);
-        context->Instance = NULL;
+        free(instance);
+        context->UserData = NULL;
     }
 }
 
 int stg_demo_is_trading_symbol(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_sid_t sid)
 {
-    return 1;
+    if (sid == instance->sid)
+        return 1;
+    return 0;
 }
 
 // 策略
 void stg_demo_on_init(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
-    printf("stg demo init\n");
+    fprintf(stderr, "stg demo init\n");
 }
 
 void stg_demo_on_start(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
-    printf("stg demo start\n");
+    fprintf(stderr, "stg demo start\n");
 }
 
 void stg_demo_on_stop(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
-    printf("stg demo stop\n");
+    fprintf(stderr, "stg demo stop\n");
 }
 
 void stg_demo_on_update(my_strategy_demo_t* instance, zs_cta_strategy_t* context, void* data, int size)
 {
-    printf("stg demo update\n");
+    fprintf(stderr, "stg demo update\n");
 }
 
 void stg_demo_handle_order(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_order_t* order)
 {
-    printf("stg demo got order: %s,%d,%d,%.2f\n", order->Symbol, order->Direction, 
-        order->OrderQty, order->OrderPrice);
-    // zs_cta_order(context, NULL);
+    fprintf(stderr, "stg demo handle order: id:%s, symbol:%s,dir:%d,qty:%d,price:%.2f,offset:%d\n", 
+        order->OrderID, order->Symbol, order->Direction, order->OrderQty, order->OrderPrice, order->OffsetFlag);
 }
-
 
 void stg_demo_handle_trade(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_trade_t* trade)
 {
-    printf("stg demo got trade: %s,%d,%d,%.2f\n", trade->Symbol, trade->Direction,
-        trade->Volume, trade->Price);
+    printf("stg demo handle trade: id:%s, symbol:%s,dir:%d,qty:%d,price:%.2f,offset:%d\n",
+        trade->OrderID, trade->Symbol, trade->Direction, trade->Volume, trade->Price, trade->OffsetFlag);
 }
 
 // 行情通知
 void stg_demo_handle_bar(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
 {
-    my_strategy_demo_t* mystg;
-    //zs_portfolio_t* portfolio;
-    double closepx;
-
-    mystg = instance;
-    mystg->index += 1;
-
-    int exchangeid = 0;
-    zs_sid_t sid = 10;
-    const char* symbol = mystg->symbols[0];
-    if (strstr(symbol, "SSE"))
-        exchangeid = ZS_EI_SSE;
-    else
-        exchangeid = ZS_EI_SZSE;
-    sid = zs_asset_lookup(context->AssetFinder, exchangeid, symbol, (int)strlen(symbol));
-
-    closepx = bar_reader->current(bar_reader, sid, "close");
-    printf("stg demo %d, closepx:%.2lf\n", mystg->index, closepx);
-
-    // try send an order
-    int rv = context->order(context, sid, 100, closepx, ZS_D_Long, ZS_OF_Open);
-    printf("std demo send order rv:%d\n", rv);
 }
 
 void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_tick_t* tick)
 {
     // visit the tick data
+    fprintf(stderr, "demo handle_tick symbol:%s, lastpx:%.2lf, vol:%lld\n",
+        tick->Symbol, tick->LastPrice, tick->Volume);
+
+    instance->index += 1;
+    if (instance->index == 2)
+    {
+        // try send an order
+        int rv = context->order(context, instance->sid, 100, tick->LastPrice, ZS_D_Long, ZS_OF_Open);
+        fprintf(stderr, "std demo send order rv:%d\n", rv);
+    }
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 static zs_strategy_entry_t stg_demo =
 {
-    "stg_demo",         // strategy name
+    "strategy_demo",    // strategy name
     "zsp",              // author
     "1.0.0",            // version
     0,                  // flag

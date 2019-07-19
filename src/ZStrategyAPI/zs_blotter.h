@@ -99,15 +99,25 @@ zs_order_t* zs_get_order_by_id(zs_blotter_t* blotter, int32_t frontid, int32_t s
 
 zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid);
 
+
+// 查询回报事件
+// int zs_blotter_handle_invetor(zs_blotter_t* blotter, zs_investor_t* investor);
+int zs_blotter_handle_account(zs_blotter_t* blotter, zs_account_t* account);
+int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos);
+int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_t* pos_detail);
+int zs_blotter_handle_qry_order(zs_blotter_t* blotter, zs_order_t* order);
+int zs_blotter_handle_qry_trade(zs_blotter_t* blotter, zs_trade_t* trade);
+int zs_blotter_handle_timer(zs_blotter_t* blotter, int64_t flag);
+
 // 订单事件
-int zs_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req);
-int zs_handle_quote_order_submit(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
-int zs_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order);
-int zs_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade);
+int zs_blotter_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req);
+int zs_blotter_handle_quote_order_submit(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
+int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order);
+int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade);
 
 // 行情事件
-int zs_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick);
-int zs_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader);
+int zs_blotter_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick);
+int zs_blotter_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader);
 
 
 #ifdef __cplusplus

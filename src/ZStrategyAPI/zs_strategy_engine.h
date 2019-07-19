@@ -43,13 +43,9 @@ struct zs_strategy_engine_s
     zs_orderdict_t*     OrderStrategyDict;  // <order_key, zs_cta_strategy_t*>
     ztl_dict_t*         AccountStrategyDict;// <account, zs_cta_strategy_t*列表>
 
-    uint32_t            StrategyBaseID;
-
-    ztl_dict_t*         SubedSymbols;       // 已订阅的合约行情
-    ztl_dict_t*         DailyBarsDict;      // 日线历史行情，可由统一的DataPortal管理
-    ztl_dict_t*         MinuteBarsDict;     // 
-
     ztl_dict_t*         TradeDict;          // 成交ID集合 ExchangeID+TradeID
+
+    uint32_t            StrategyBaseID;     // 策略编号
 };
 
 /* cta engine related

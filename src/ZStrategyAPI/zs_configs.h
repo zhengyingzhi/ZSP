@@ -133,6 +133,20 @@ zs_conf_strategy_t* zs_configs_find_strategy(zs_algo_param_t* algo_param, const 
  * 平台使用该接口作为模块间的配置参数传递
  */
 
+typedef struct zs_json_s zs_json_t;
+zs_json_t* zs_json_parse(const char* buffer, int32_t length);
+
+void zs_json_release(zs_json_t* zjson);
+
+int zs_json_get_object(zs_json_t* zjson, const char* key, zs_json_t** pvalue);
+
+int zs_json_get_string(zs_json_t* zjson, const char* key, char value[], int size);
+
+int zs_json_get_int(zs_json_t* zjson, const char* key, int* value);
+
+int zs_json_get_double(zs_json_t* zjson, const char* key, double* value);
+
+
 #ifdef __cplusplus
 }
 #endif

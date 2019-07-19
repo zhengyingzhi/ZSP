@@ -18,6 +18,8 @@
 
 #include "zs_event_engine.h"
 
+#include "zs_risk_control.h"
+
 #include "zs_simulator.h"
 
 #include "zs_strategy_engine.h"
@@ -25,112 +27,47 @@
 
 
 /* algo event handlers */
-static void _zs_algo_handle_order(zs_event_engine_t* ee, void* userdata, 
-    uint32_t evtype, void* evdata)
+static inline zs_blotter_t* _zs_get_blotter(zs_algorithm_t* algo, const char* accountid)
 {
-    zs_algorithm_t* algo;
-    zs_blotter_t*   blotter;
-    zs_data_head_t* zdh;
-    zs_order_t*     order;
-
-    algo = (zs_algorithm_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    order = (zs_order_t*)zd_data_body(zdh);
-
-    blotter = zs_blotter_manager_get(&algo->BlotterMgr, order->AccountID);
-    blotter->handle_order_returned(blotter, order);
+    return zs_blotter_manager_get(&algo->BlotterMgr, accountid);
 }
 
-static void _zs_algo_handle_trade(zs_event_engine_t* ee, void* userdata, 
-    uint32_t evtype, void* evdata)
-{
-    zs_algorithm_t* algo;
-    zs_blotter_t*   blotter;
-    zs_data_head_t* zdh;
-    zs_trade_t*     trade;
+static void _zs_algo_handle_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-    algo = (zs_algorithm_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    trade = (zs_trade_t*)zd_data_body(zdh);
+static void _zs_algo_handle_trade(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-    blotter = zs_blotter_manager_get(&algo->BlotterMgr, trade->AccountID);
-    blotter->handle_order_trade(blotter, trade);
-}
+static void _zs_algo_handle_qry_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-static void _zs_algo_handle_position(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
-{
-    // 持仓事件
-}
+static void _zs_algo_handle_qry_trade(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-static void _zs_algo_handle_account(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
-{
-    // 账户事件
-}
+static void _zs_algo_handle_position(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-static void _zs_algo_handle_contract(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
-{
-    // 合约事件
-}
+static void _zs_algo_handle_position_detail(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-static void _zs_algo_handle_timer(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
-{
-    // Timer事件
-}
+static void _zs_algo_handle_account(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-static void _zs_algo_handle_other(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
-{
-    // 其它事件
-}
+static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
+static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-static void _zs_algo_handle_tick(zs_event_engine_t* ee, void* userdata, 
-    uint32_t evtype, void* evdata)
-{
-    zs_algorithm_t* algo;
-    zs_data_head_t* zdh;
-    zs_tick_t*      tick;
-    zs_blotter_t*   blotter;
+static void _zs_algo_handle_other(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-    algo = (zs_algorithm_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    tick = (zs_tick_t*)zd_data_body(zdh);
+static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-    for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)
-    {
-        blotter = (zs_blotter_t*)ztl_array_at((&algo->BlotterMgr.BlotterArray), i);
-        blotter->handle_tick(blotter, tick);
-    }
+static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
 
-}
-
-static void _zs_algo_handle_bar(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
-{
-    zs_algorithm_t* algo;
-    zs_data_head_t* zdh;
-    zs_blotter_t*   blotter;
-
-    algo = (zs_algorithm_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-
-    zs_bar_reader_t* bar_reader;
-    memcpy(&bar_reader, zd_data_body(zdh), sizeof(void*));
-
-    double closepx = bar_reader->current(bar_reader, 16, "close");
-    printf("algo md handler bar close:%.2lf\n", closepx);
-
-    for (uint32_t i = 0; i < ztl_array_size(&algo->BlotterMgr.BlotterArray); ++i)
-    {
-        blotter = (zs_blotter_t*)ztl_array_at((&algo->BlotterMgr.BlotterArray), i);
-        blotter->handle_bar(blotter, bar_reader);
-    }
-
-}
 
 
 static int _zs_load_strategies(zs_algorithm_t* algo)
@@ -151,14 +88,6 @@ static int _zs_load_strategies(zs_algorithm_t* algo)
     // 加载所有策略，内部会自动注册策略模拟所需的事件（订单，成交，行情事件）
     //zs_strategy_engine_load(zse, &stgLibArray);
 
-    return 0;
-}
-
-static int _zs_make_assets_info(zs_asset_finder_t* asset_finder, 
-    zs_data_portal_t* data_portal)
-{
-    // 回测时，把数据放到assetFinder的map中，便于查找
-    // 可再封装提供一个函数，处理每一个合约信息
     return 0;
 }
 
@@ -222,6 +151,7 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
  * 注册交易核心事件，风控事件，注册策略事件
  * 加载各接口zs_broker_entry_t(可根据名字获取接口实例)
  */
+void zs_algorithm_register(zs_algorithm_t* algo);
 
 zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
 {
@@ -244,13 +174,52 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
 
 void zs_algorithm_release(zs_algorithm_t* algo)
 {
-    if (algo)
+    if (!algo)
     {
-        // release other objects...
-        zs_ee_release(algo->EventEngine);
-        zs_asset_release(algo->AssetFinder);
-        ztl_destroy_pool(algo->Pool);
+        return;
     }
+
+    zs_algorithm_stop(algo);
+
+    // release objects...
+    if (algo->EventEngine) {
+        zs_ee_release(algo->EventEngine);
+        algo->EventEngine = NULL;
+    }
+
+    if (algo->AssetFinder) {
+        zs_asset_release(algo->AssetFinder);
+        algo->AssetFinder = NULL;
+    }
+
+    if (algo->DataPortal) {
+        zs_data_portal_release(algo->DataPortal);
+        algo->DataPortal = NULL;
+    }
+
+    zs_blotter_manager_release(&algo->BlotterMgr);
+
+    if (algo->Simulator) {
+        zs_simulator_release(algo->Simulator);
+        algo->Simulator = NULL;
+    }
+
+    if (algo->StrategyEngine) {
+        zs_strategy_engine_release(algo->StrategyEngine);
+        algo->StrategyEngine = NULL;
+    }
+
+    if (algo->Broker) {
+        zs_broker_release(algo->Broker);
+        algo->Broker = NULL;
+    }
+
+    if (algo->RiskControl) {
+        zs_risk_control_release(algo->RiskControl);
+        algo->RiskControl = NULL;
+    }
+
+    ztl_destroy_pool(algo->Pool);
 }
 
 int zs_algorithm_init(zs_algorithm_t* algo)
@@ -258,13 +227,14 @@ int zs_algorithm_init(zs_algorithm_t* algo)
     return 0;
 }
 
-static void zs_algorithm_register(zs_algorithm_t* algo)
+void zs_algorithm_register(zs_algorithm_t* algo)
 {
     zs_event_engine_t* ee = algo->EventEngine;
 
     zs_ee_register(ee, algo, ZS_DT_Order, _zs_algo_handle_order);
     zs_ee_register(ee, algo, ZS_DT_Trade, _zs_algo_handle_trade);
     zs_ee_register(ee, algo, ZS_DT_QryPosition, _zs_algo_handle_position);
+    zs_ee_register(ee, algo, ZS_DT_QryPositionDetail, _zs_algo_handle_position_detail);
     zs_ee_register(ee, algo, ZS_DT_QryAccount, _zs_algo_handle_account);
     zs_ee_register(ee, algo, ZS_DT_QryContract, _zs_algo_handle_contract);
     zs_ee_register(ee, algo, ZS_DT_MD_Tick, _zs_algo_handle_tick);
@@ -372,6 +342,18 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
 int zs_algorithm_stop(zs_algorithm_t* algo)
 {
+    if (!algo->Running) {
+        return 0;
+    }
+
+    algo->Running = 0;
+
+    // TODO: stop the compenents
+
+    if (algo->StrategyEngine) {
+        zs_strategy_engine_stop(algo->StrategyEngine);
+    }
+
     return 0;
 }
 
@@ -386,3 +368,181 @@ const char* zs_version(int* pver)
         *pver = ZS_Version_int;
     return ZS_Version;
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+static void _zs_algo_handle_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 订单回报事件
+    zs_blotter_t*   blotter;
+    zs_order_t*     order;
+
+    order = (zs_order_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, order->AccountID);
+    if (blotter) {
+        blotter->handle_order_returned(blotter, order);
+    }
+}
+
+static void _zs_algo_handle_trade(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 成交回报事件
+    zs_blotter_t*   blotter;
+    zs_trade_t*     trade;
+
+    trade = (zs_trade_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, trade->AccountID);
+    if (blotter) {
+        blotter->handle_order_trade(blotter, trade);
+    }
+}
+
+static void _zs_algo_handle_qry_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 订单查询事件
+    zs_blotter_t*   blotter;
+    zs_order_t*     order;
+
+    order = (zs_order_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, order->AccountID);
+    if (blotter) {
+        zs_blotter_handle_qry_order(blotter, order);
+    }
+}
+
+static void _zs_algo_handle_qry_trade(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 成交回报事件
+    zs_blotter_t*   blotter;
+    zs_trade_t*     trade;
+
+    trade = (zs_trade_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, trade->AccountID);
+    if (blotter) {
+        zs_blotter_handle_qry_trade(blotter, trade);
+    }
+}
+
+static void _zs_algo_handle_position(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 持仓事件
+    zs_blotter_t*   blotter;
+    zs_position_t*  pos;
+
+    pos = (zs_position_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, pos->AccountID);
+    if (blotter) {
+        zs_blotter_handle_position(blotter, pos);
+    }
+}
+
+static void _zs_algo_handle_position_detail(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 持仓事件
+    zs_blotter_t*   blotter;
+    zs_position_detail_t*  pos_detail;
+
+    pos_detail = (zs_position_detail_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, pos_detail->AccountID);
+    if (blotter) {
+        zs_blotter_handle_position_detail(blotter, pos_detail);
+    }
+}
+
+static void _zs_algo_handle_account(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 账户事件
+    zs_blotter_t*   blotter;
+    zs_account_t*   account;
+
+    account = (zs_account_t*)zd_data_body(evdata);
+
+    blotter = _zs_get_blotter(algo, account->AccountID);
+    if (blotter) {
+        zs_blotter_handle_account(blotter, account);
+    }
+}
+
+static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 合约事件
+    zs_contract_t* contract;
+    zs_sid_t sid;
+
+    contract = (zs_contract_t*)zd_data_body(evdata);
+
+    zs_asset_add_copy(algo->AssetFinder, &sid, contract->ExchangeID,
+        contract->Symbol, (int)strlen(contract->Symbol), contract, sizeof(zs_contract_t));
+}
+
+static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // Timer事件
+    zs_blotter_t* blotter;
+
+    for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
+    {
+        blotter = (zs_blotter_t*)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        zs_blotter_handle_timer(blotter, 0);
+    }
+
+}
+
+static void _zs_algo_handle_other(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 其它事件
+}
+
+
+static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // tick事件
+    zs_tick_t*      tick;
+    zs_blotter_t*   blotter;
+
+    tick = (zs_tick_t*)zd_data_body(evdata);
+
+    for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
+    {
+        blotter = (zs_blotter_t*)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter->handle_tick(blotter, tick);
+    }
+
+}
+
+static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    zs_blotter_t*   blotter;
+
+    zs_bar_reader_t* bar_reader;
+    memcpy(&bar_reader, zd_data_body(evdata), sizeof(void*));
+
+    double closepx = bar_reader->current(bar_reader, 16, "close");
+    fprintf(stderr, "algo md handler bar close:%.2lf\n", closepx);
+
+    for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
+    {
+        blotter = (zs_blotter_t*)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter->handle_bar(blotter, bar_reader);
+    }
+
+}
+
