@@ -193,6 +193,21 @@ int zs_blotter_cancel(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req)
     return rv;
 }
 
+int zs_blotter_subscribe(zs_blotter_t* blotter, zs_subscribe_t* sub_req)
+{
+    int rv;
+    zs_md_api_t* mdapi;
+
+    mdapi = blotter->MdApi;
+    rv = mdapi->subscribe(mdapi->ApiInstance, &sub_req, 1);
+    if (rv != 0)
+    {
+        //
+    }
+
+    return rv;
+}
+
 int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
     // 保存订单到 OrderDict 和 WorkOrderDict
@@ -407,7 +422,8 @@ int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     ztl_memcpy(dup_trade, trade, sizeof(zs_trade_t));
     dictAdd(blotter->TradeDict, key, trade);
 
-    ztl_array_push_back(blotter->TradeArray, trade);
+    void** dst = ztl_array_push(blotter->TradeArray);
+    *dst = trade;
 
     // 原始挂单
     work_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);

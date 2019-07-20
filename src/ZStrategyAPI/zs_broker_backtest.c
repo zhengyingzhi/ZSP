@@ -13,6 +13,12 @@
 
 #include "zs_slippage.h"
 
+#ifdef _MSC_VER
+#include<process.h>
+#include<windows.h>
+#else
+#include <pthread.h>
+#endif//_MSC_VER
 
 
 /* backtest trade api */
@@ -31,6 +37,9 @@ struct zs_bt_md_impl_s
     zs_md_api_handlers_t*   MdHandlers;
     ztl_set_t*              SymbolSet;      // sid set
     zs_algorithm_t*         Algorithm;
+
+    void*                   thr;
+    volatile int32_t        running;
 };
 
 typedef struct zs_bt_trade_impl_s zs_bt_trade_impl_t;
@@ -62,7 +71,8 @@ int zs_bt_trade_regist(zs_bt_trade_impl_t* instance, zs_trade_api_handlers_t* td
     void* tdctx, const zs_conf_account_t* conf)
 {
     instance->TdHandlers = td_handlers;
-    instance->ApiConf = *conf;
+    if (conf)
+        instance->ApiConf = *conf;
     instance->TdCtx = tdctx;
 
     return 0;
@@ -110,6 +120,36 @@ int zs_bt_query(zs_bt_trade_impl_t* instance, ZSApiQueryCategory category, void*
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+static unsigned int __stdcall bt_md_sim_thread(void* data)
+{
+    fprintf(stderr, "bt_md_sim_thread running\n");
+    zs_bt_md_impl_t* md_instrance;
+    md_instrance = (zs_bt_md_impl_t*)data;
+    int index = 0;
+
+    zs_tick_t tick = { 0 };
+
+    while (md_instrance->running)
+    {
+        index += 1;
+        Sleep(3000);
+
+        // publish one tick
+        strcpy(tick.Symbol, "rb1910");
+        tick.LastPrice = 2580;
+        tick.Volume = 123 + index;
+        tick.Turnover = 3456765 + index * 2000;
+        tick.UpdateTime = 142300500 + index * 10000;
+        tick.ExchangeID = ZS_EI_SHFE;
+
+        if (md_instrance->MdHandlers)
+            md_instrance->MdHandlers->on_rtn_mktdata(md_instrance->MdCtx, &tick);
+    }
+    return 0;
+}
+
+
 // create backtest md api instance
 void* zs_bt_md_create(const char* str, int reserve)
 {
@@ -131,7 +171,8 @@ int zs_bt_md_regist(zs_bt_md_impl_t* md_instrance, zs_md_api_handlers_t* md_hand
     void* mdctx, const zs_conf_account_t* conf)
 {
     md_instrance->MdHandlers = md_handlers;
-    md_instrance->ApiConf = *conf;
+    if (conf)
+        md_instrance->ApiConf = *conf;
     md_instrance->MdCtx = mdctx;
 
     return 0;
@@ -141,6 +182,12 @@ int zs_bt_md_connect(zs_bt_md_impl_t* md_instrance, void* addr)
 {
     // do nothing
     (void)md_instrance;
+
+    if (!md_instrance->running)
+    {
+        md_instrance->running = 1;
+        md_instrance->thr = (HANDLE)_beginthreadex(NULL, 0, bt_md_sim_thread, md_instrance, 0, NULL);
+    }
 
     return 0;
 }

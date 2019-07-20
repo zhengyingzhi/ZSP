@@ -340,16 +340,27 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
             tdapi->connect(tdapi->ApiInstance, NULL);
         }
 #else
-        blotter->TradeApi = zs_broker_get_tradeapi(algo->Broker, "backtest");
-        blotter->MdApi = zs_broker_get_mdapi(algo->Broker, "backtest");
+        zs_trade_api_t* tdapi;
+        zs_md_api_t* mdapi;
 
-        if (blotter->TradeApi) {
-            blotter->TradeApi->ApiInstance = blotter->TradeApi->create("", 0);
-            blotter->TradeApi->connect(blotter->TradeApi->ApiInstance, NULL);
+        tdapi = zs_broker_get_tradeapi(algo->Broker, "backtest");
+        mdapi = zs_broker_get_mdapi(algo->Broker, "backtest");
+
+        tdapi->UserData = algo;
+        mdapi->UserData = algo;
+
+        blotter->TradeApi = tdapi;
+        blotter->MdApi = mdapi;
+
+        if (tdapi) {
+            tdapi->ApiInstance = tdapi->create("", 0);
+            tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, NULL);
+            tdapi->connect(blotter->TradeApi->ApiInstance, NULL);
         }
-        if (blotter->MdApi) {
-            blotter->MdApi->ApiInstance = blotter->MdApi->create("", 0);
-            blotter->MdApi->connect(blotter->MdApi->ApiInstance, NULL);
+        if (mdapi) {
+            mdapi->ApiInstance = mdapi->create("", 0);
+            mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, NULL);
+            mdapi->connect(mdapi->ApiInstance, NULL);
         }
 #endif//0
 }
@@ -521,7 +532,7 @@ static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = (zs_blotter_t*)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = *(zs_blotter_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
         zs_blotter_handle_timer(blotter, 0);
     }
 
@@ -543,9 +554,11 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     tick = (zs_tick_t*)zd_data_body(evdata);
 
+    fprintf(stderr, "algo_handle_tick %s,%d\n", tick->Symbol, tick->UpdateTime);
+
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = (zs_blotter_t*)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = *(ztl_array_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
         blotter->handle_tick(blotter, tick);
     }
 
@@ -564,7 +577,7 @@ static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = (zs_blotter_t*)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = *(zs_blotter_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
         blotter->handle_bar(blotter, bar_reader);
     }
 

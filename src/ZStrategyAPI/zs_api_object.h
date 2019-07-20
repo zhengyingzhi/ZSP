@@ -12,11 +12,12 @@
 #include "zs_constants.h"
 
 
-#define ORDER_ID_LEN        12
+#define ORDER_ID_LEN        16
 #define ORDER_SYSID_LEN     24
 #define TRADE_ID_LEN        24
-#define BROKER_ID_LEN       16
+#define BROKER_ID_LEN       12
 #define ACCOUNT_ID_LEN      16
+#define BRANCH_ID_LEN       12
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,7 +72,7 @@ typedef union zs_dt_u
 struct zs_error_data_s
 {
     int             ErrorID;
-    char            ErrorMsg[64];
+    char            ErrorMsg[82];
 };
 typedef struct zs_error_data_s zs_error_data_t;
 
@@ -80,7 +81,7 @@ struct zs_authenticate_s
 {
     char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
-    char            UserProductInfo[32];
+    char            UserProductInfo[16];
     int             Result;
 };
 typedef struct zs_authenticate_s zs_authenticate_t;
@@ -91,6 +92,17 @@ struct zs_login_s
     char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     int             Result;
+
+    int32_t         TradingDay;
+    int32_t         LoginTime;
+    int32_t         FrontID;
+    int32_t         SessionID;
+    int32_t         MaxOrderRef;
+    int32_t     	SHFETime;
+    int32_t     	DCETime;
+    int32_t     	CZCETime;
+    int32_t     	CFFEXTime;
+    int32_t     	INETime;
 };
 typedef struct zs_login_s zs_login_t;
 
@@ -124,6 +136,7 @@ struct zs_tick_s
     double          OpenInterest;
     double          PreOpenInterest;
     double          PreClosePrice;
+    double          PreSettlementPrice;
     double          SettlementPrice;
 
     double          UpperLimit;
@@ -242,6 +255,7 @@ struct zs_order_s
     char            BrokerID[BROKER_ID_LEN];
     char            AccountID[ACCOUNT_ID_LEN];
     char            UserID[ACCOUNT_ID_LEN];
+    char            BranchID[BRANCH_ID_LEN];
 
     char            OrderID[ORDER_ID_LEN];
     char            OrderSysID[ORDER_SYSID_LEN];

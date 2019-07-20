@@ -30,6 +30,7 @@ static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int 
 zs_trade_api_handlers_t td_handlers = {
     zs_td_on_connect,
     zs_td_on_disconnect,
+    NULL,
     zs_td_on_authenticate,
     zs_td_on_login,
     zs_td_on_logout,
@@ -56,6 +57,7 @@ static void zs_md_on_for_quote(zs_md_api_t* mdctx, void* forquote);
 zs_md_api_handlers_t md_handlers = {
     zs_md_on_connect,
     zs_md_on_disconnect,
+    NULL,
     zs_md_on_login,
     zs_md_on_logout,
     zs_md_on_subscribe,

@@ -157,11 +157,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="zs_ctp_common.cpp" />
     <ClCompile Include="zs_ctp_md.cpp" />
     <ClCompile Include="zs_ctp_trade.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="zs_ctp_common.h" />
+    <ClInclude Include="zs_ctp_md.h" />
+    <ClInclude Include="zs_ctp_trade.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -8,6 +8,8 @@
 
 #include "zs_ctp_common.h"
 
+#include "zs_ctp_md.h"
+
 
 #ifdef ZS_HAVE_SE
 #pragma comment(lib, "thostmduserapi_se.lib")
@@ -16,40 +18,8 @@
 #endif//ZS_HAVE_SE
 
 
-class ZSCtpMdSpi : public CThostFtdcMdSpi
-{
-public:
-    ZSCtpMdSpi(CThostFtdcMdApi* apMdApi);
-    virtual ~ZSCtpMdSpi();
-
-public:
-    virtual void OnFrontConnected();
-    virtual void OnFrontDisconnected(int nReason);
-
-    ///登录请求响应
-    virtual void OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///登出请求响应
-    virtual void OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///错误应答
-    virtual void OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///订阅行情应答
-    virtual void OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///取消订阅行情应答
-    virtual void OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///深度行情通知
-    virtual void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData);
-
-public:
-    CThostFtdcMdApi*        m_pMdApi;
-    zs_md_api_handlers_t*   m_Handlers;
-    void*                   m_zsMdCtx;
-    int m_RequestID;
-};
+extern void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
+extern int32_t conv_ctp_time(const char* stime);
 
 
 void* md_create(const char* str, int reserve)
@@ -155,7 +125,11 @@ void ZSCtpMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 {
     // auto re-subscribe?
     zs_login_t loginRsp = { 0 };
-    strcpy(loginRsp.AccountID, pRspUserLogin->UserID);
+    if (pRspUserLogin) {
+        strcpy(loginRsp.BrokerID, pRspUserLogin->BrokerID);
+        strcpy(loginRsp.AccountID, pRspUserLogin->UserID);
+        loginRsp.TradingDay = atoi(pRspUserLogin->TradingDay);
+    }
 
     if (m_Handlers->on_login)
         m_Handlers->on_login(m_zsMdCtx, &loginRsp, NULL);
@@ -166,7 +140,12 @@ void ZSCtpMdSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout,
 {}
 
 void ZSCtpMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    conv_rsp_info(&error, pRspInfo);
+    if (m_Handlers->on_rsp_error)
+        m_Handlers->on_rsp_error(m_zsMdCtx, &error);
+}
 
 void ZSCtpMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, 
     CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -178,9 +157,40 @@ void ZSCtpMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecif
 
 void ZSCtpMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pMD)
 {
-    zs_tick_t zTick = { 0 };
-    strcpy(zTick.Symbol, pMD->InstrumentID);
+    zs_tick_t ztick = { 0 };
+    ztick.TradingDay = atoi(pMD->TradingDay);
+    ztick.ActionDay = atoi(pMD->ActionDay);
+
+    // TODO: process error action day
+    // TODO: filter invalid md
+
+    // ztick.ExchangeID = zs_convert_exchange_name(pMD->ExchangeID);
+    strcpy(ztick.Symbol, pMD->InstrumentID);
+
+    ztick.LastPrice = pMD->LastPrice;
+    ztick.OpenPrice = pMD->OpenPrice;
+    ztick.HighPrice = pMD->HighestPrice;
+    ztick.LowPrice = pMD->LowestPrice;
+    ztick.Volume = pMD->Volume;
+    ztick.Turnover = pMD->Turnover;
+    ztick.OpenInterest = pMD->OpenInterest;
+
+    ztick.SettlementPrice = pMD->SettlementPrice;
+    ztick.UpperLimit = pMD->UpperLimitPrice;
+    ztick.LowerLimit = pMD->LowerLimitPrice;
+
+    ztick.PreClosePrice = pMD->PreClosePrice;
+    ztick.PreOpenInterest = pMD->PreOpenInterest;
+    ztick.PreSettlementPrice = pMD->PreSettlementPrice;
+    ztick.PreDelta = pMD->PreDelta;
+    ztick.CurrDelta = pMD->CurrDelta;
+
+    ztick.UpdateTime = conv_ctp_time(pMD->UpdateTime) * 1000 + pMD->UpdateMillisec;
+    ztick.BidPrice[0] = pMD->BidPrice1;
+    ztick.BidVolume[0] = pMD->BidVolume1;
+    ztick.AskPrice[0] = pMD->AskPrice1;
+    ztick.AskVolume[0] = pMD->AskVolume1;
 
     if (m_Handlers->on_rtn_mktdata)
-        m_Handlers->on_rtn_mktdata(m_zsMdCtx, &zTick);
+        m_Handlers->on_rtn_mktdata(m_zsMdCtx, &ztick);
 }

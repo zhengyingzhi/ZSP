@@ -88,6 +88,10 @@ zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy
 int zs_strategy_engine_save_order(zs_strategy_engine_t* zse, 
     zs_cta_strategy_t* strategy, zs_order_req_t* order_req);
 
+int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, 
+    ZSExchangeID exchangeid, const char* symbol);
+int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sid);
+
 
 #ifdef __cplusplus
 }

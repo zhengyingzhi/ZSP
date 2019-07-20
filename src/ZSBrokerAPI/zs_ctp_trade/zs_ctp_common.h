@@ -4,6 +4,7 @@
 
 #include <ZStrategyAPI/zs_api_object.h>
 #include <ZStrategyAPI/zs_core.h>
+#include <ZStrategyAPI/zs_configs.h>
 
 #ifdef _MSC_VER
 

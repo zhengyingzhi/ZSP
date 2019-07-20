@@ -1,11 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <ThostFtdcTraderApi.h>
-
-#include <ZStrategyAPI/zs_broker_api.h>
+#include <ZStrategyAPI/zs_constants_helper.h>
 
 #include "zs_ctp_common.h"
+
+#include "zs_ctp_trade.h"
 
 #ifdef ZS_HAVE_SE
 #pragma comment(lib, "thosttraderapi_se.lib")
@@ -14,102 +14,8 @@
 #endif//ZS_HAVE_SE
 
 
-class ZSCtpTradeSpi : public CThostFtdcTraderSpi
-{
-public:
-    ZSCtpTradeSpi(CThostFtdcTraderApi* apTradeApi);
-    virtual ~ZSCtpTradeSpi();
-
-    int NextReqID() {
-        return m_RequestID++;
-    }
-
-public:
-    virtual void OnFrontConnected();
-
-    virtual void OnFrontDisconnected(int nReason);
-
-    ///客户端认证响应
-    virtual void OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticateField, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
-
-    ///登录请求响应
-    virtual void OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///登出请求响应
-    virtual void OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///报单录入请求响应
-    virtual void OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///报单操作请求响应
-    virtual void OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///查询最大报单数量响应
-    virtual void OnRspQueryMaxOrderVolume(CThostFtdcQueryMaxOrderVolumeField *pQueryMaxOrderVolume, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
-
-    ///投资者结算结果确认响应
-    virtual void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询报单响应
-    virtual void OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询成交响应
-    virtual void OnRspQryTrade(CThostFtdcTradeField *pTrade, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询投资者持仓响应
-    virtual void OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询资金账户响应
-    virtual void OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询投资者响应
-    virtual void OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询交易编码响应
-    virtual void OnRspQryTradingCode(CThostFtdcTradingCodeField *pTradingCode, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询合约保证金率响应
-    virtual void OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pInstrumentMarginRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询合约手续费率响应
-    virtual void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询交易所响应
-    virtual void OnRspQryExchange(CThostFtdcExchangeField *pExchange, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询产品响应
-    virtual void OnRspQryProduct(CThostFtdcProductField *pProduct, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询合约响应
-    virtual void OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///请求查询行情响应
-    virtual void OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///错误应答
-    virtual void OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
-    ///报单通知
-    virtual void OnRtnOrder(CThostFtdcOrderField *pOrder);
-
-    ///成交通知
-    virtual void OnRtnTrade(CThostFtdcTradeField *pTrade);
-
-    ///报单录入错误回报
-    virtual void OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo);
-
-    ///报单操作错误回报
-    virtual void OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CThostFtdcRspInfoField *pRspInfo);
-
-    ///合约交易状态通知
-    virtual void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus);
-
-public:
-    CThostFtdcTraderApi*        m_pTradeApi;
-    zs_trade_api_handlers_t*    m_Handlers;
-    void*   m_zsTdCtx;
-    int     m_RequestID;
-};
+extern void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
+extern int32_t conv_ctp_time(const char* stime);
 
 
 void* trade_create(const char* str, int reserve)
@@ -225,14 +131,53 @@ void ZSCtpTradeSpi::OnFrontDisconnected(int nReason)
         m_Handlers->on_disconnect(m_zsTdCtx, nReason);
 }
 
+void ZSCtpTradeSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticateField, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+    zs_error_data_t error;
+    zs_authenticate_t auth = { 0 };
+
+    if (pRspAuthenticateField)
+    {
+        strcpy(auth.AccountID, pRspAuthenticateField->UserID);
+        strcpy(auth.BrokerID, pRspAuthenticateField->BrokerID);
+        strcpy(auth.UserProductInfo, pRspAuthenticateField->UserProductInfo);
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_authenticate)
+        m_Handlers->on_authenticate(m_zsTdCtx, &auth, &error);
+}
+
 void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
     // login rsp
-    zs_login_t loginRsp = { 0 };
-    strcpy(loginRsp.AccountID, pRspUserLogin->UserID);
+    zs_error_data_t error;
+    zs_login_t zlogin = { 0 };
+
+    if (pRspUserLogin)
+    {
+        strcpy(zlogin.BrokerID, pRspUserLogin->BrokerID);
+        strcpy(zlogin.AccountID, pRspUserLogin->UserID);
+
+        zlogin.TradingDay = atoi(pRspUserLogin->TradingDay);
+        zlogin.LoginTime = conv_ctp_time(pRspUserLogin->LoginTime);
+        zlogin.SHFETime = conv_ctp_time(pRspUserLogin->SHFETime);
+        zlogin.DCETime = conv_ctp_time(pRspUserLogin->DCETime);
+        zlogin.CZCETime = conv_ctp_time(pRspUserLogin->CZCETime);
+        zlogin.CFFEXTime = conv_ctp_time(pRspUserLogin->FFEXTime);
+        zlogin.INETime = conv_ctp_time(pRspUserLogin->INETime);
+
+        zlogin.MaxOrderRef = atoi(pRspUserLogin->MaxOrderRef);
+
+        zlogin.FrontID = pRspUserLogin->FrontID;
+        zlogin.SessionID = pRspUserLogin->SessionID;
+    }
+
+    conv_rsp_info(&error, pRspInfo);
 
     if (m_Handlers->on_login)
-        m_Handlers->on_login(m_zsTdCtx, &loginRsp, NULL);
+        m_Handlers->on_login(m_zsTdCtx, &zlogin, &error);
 }
 
 void ZSCtpTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -278,22 +223,58 @@ void ZSCtpTradeSpi::OnRspQryProduct(CThostFtdcProductField *pProduct, CThostFtdc
 {}
 
 void ZSCtpTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    zs_contract_t contract = { 0 };
+    if (pInstrument)
+    {
+        // contract.ExchangeID = zs_convert_exchange_name(pInstrument->ExchangeID);
+        strcpy(contract.Symbol, pInstrument->InstrumentID);
+        contract.PriceTick = pInstrument->PriceTick;
+        contract.Multiplier = pInstrument->VolumeMultiple;
+        contract.LongMarginRateByMoney = pInstrument->LongMarginRatio;
+        contract.ShortMarginRateByMoney = pInstrument->ShortMarginRatio;
+        contract.ProductClass = ZS_PC_Future;
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_rsp_data)
+        m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryContract, &contract, sizeof(contract), &error, bIsLast);
+}
 
 void ZSCtpTradeSpi::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {}
 
 void ZSCtpTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    conv_rsp_info(&error, pRspInfo);
+    if (m_Handlers->on_rsp_error)
+        m_Handlers->on_rsp_error(m_zsTdCtx, &error);
+}
 
 void ZSCtpTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 {
     zs_order_t zOrder = { 0 };
-    strcpy(zOrder.Symbol, pOrder->InstrumentID);
+    strcpy(zOrder.BrokerID, pOrder->BrokerID);
     strcpy(zOrder.AccountID, pOrder->InvestorID);
+    strcpy(zOrder.UserID, pOrder->UserID);
+    strcpy(zOrder.Symbol, pOrder->InstrumentID);
+    strcpy(zOrder.OrderID, pOrder->OrderRef);
+    strcpy(zOrder.OrderSysID, pOrder->OrderSysID);
+    strcpy(zOrder.BranchID, pOrder->BranchID);
 
+    // zOrder.ExchangeID = zs_convert_exchange_name(pOrder->ExchangeID);
     zOrder.OrderPrice = pOrder->LimitPrice;
     zOrder.OrderQty = pOrder->VolumeTotal;
+    zOrder.FilledQty = pOrder->VolumeTraded;
+    zOrder.FrontID = pOrder->FrontID;
+    zOrder.SessionID = pOrder->SessionID;
+
+    // TODO: convert
+    // zOrder.Direction = pOrder->Direction;
+    // zOrder.OffsetFlag = pOrder->CombOffsetFlag[0];
 
     if (m_Handlers->on_rtn_order)
         m_Handlers->on_rtn_order(m_zsTdCtx, &zOrder);
@@ -302,7 +283,20 @@ void ZSCtpTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 void ZSCtpTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 {
     zs_trade_t zTrade = { 0 };
+    strcpy(zTrade.BrokerID, pTrade->BrokerID);
+    strcpy(zTrade.AccountID, pTrade->InvestorID);
+    strcpy(zTrade.UserID, pTrade->UserID);
     strcpy(zTrade.Symbol, pTrade->InstrumentID);
+    strcpy(zTrade.OrderID, pTrade->OrderRef);
+    strcpy(zTrade.OrderSysID, pTrade->OrderSysID);
+    strcpy(zTrade.TradeID, pTrade->TradeID);
+
+    zTrade.Volume = pTrade->Volume;
+    zTrade.Price = pTrade->Price;
+
+    // TODO: convert
+    // zTrade.Direction = pTrade->Direction;
+    // zTrade.OffsetFlag = pTrade->CombOffsetFlag[0];
 
     if (m_Handlers->on_rtn_trade)
         m_Handlers->on_rtn_trade(m_zsTdCtx, &zTrade);

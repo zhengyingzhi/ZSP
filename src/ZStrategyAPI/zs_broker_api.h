@@ -126,6 +126,7 @@ struct zs_trade_api_handlers_s
 {
     void (*on_connect)(void* tdctx);
     void (*on_disconnect)(void* tdctx, int reason);
+    void (*on_rsp_error)(void* mdctx, zs_error_data_t* errdata);
     void (*on_authenticate)(void* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata);
     void (*on_login)(void* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata);
     void (*on_logout)(void* tdctx, zs_logout_t* login_out, zs_error_data_t* errdata);
@@ -180,6 +181,7 @@ struct zs_md_api_handlers_s
 {
     void (*on_connect)(void* mdctx);
     void (*on_disconnect)(void* mdctx, int reason);
+    void (*on_rsp_error)(void* mdctx, zs_error_data_t* errdata);
     void (*on_login)(void* mdctx, zs_login_t* login_rsp, zs_error_data_t* errdata);
     void (*on_logout)(void* mdctx, zs_logout_t* logout_rsp, zs_error_data_t* errdata);
     void (*on_subscribe)(void* mdctx, zs_subscribe_t* sub_rsp, int flag);

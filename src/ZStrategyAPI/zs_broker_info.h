@@ -26,7 +26,7 @@ extern "C" {
 struct zs_broker_info_s
 {
     char    BrokerName[16];
-    char    BrokerID[8];
+    char    BrokerID[12];
     char*   TradeAddr[ZS_MAX_ADDR_NUM];
     char*   MdAddr[ZS_MAX_ADDR_NUM];
 };

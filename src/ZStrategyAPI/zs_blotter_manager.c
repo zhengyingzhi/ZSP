@@ -40,7 +40,8 @@ void zs_blotter_manager_add(zs_blotter_manager_t* manager, zs_blotter_t* blotter
     ZStrKey* key = zs_str_keydup2(blotter->Account->AccountID, len, ztl_pcalloc, blotter->Algorithm->Pool);
     dictAdd(manager->BlotterDict, key, blotter);
 
-    ztl_array_push_back(manager->BlotterArray, blotter);
+    void** dst = ztl_array_push(manager->BlotterArray);
+    *dst = blotter;
 }
 
 zs_blotter_t* zs_blotter_manager_get(zs_blotter_manager_t* manager, const char* accountid)
@@ -49,7 +50,7 @@ zs_blotter_t* zs_blotter_manager_get(zs_blotter_manager_t* manager, const char* 
 
     if (!accountid || !accountid[0] || ztl_array_size(manager->BlotterArray) == 1)
     {
-        blotter = (zs_blotter_t*)ztl_array_at(manager->BlotterArray, 0);
+        blotter = *(zs_blotter_t**)ztl_array_at(manager->BlotterArray, 0);
     }
     else
     {

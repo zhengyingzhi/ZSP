@@ -80,6 +80,10 @@ int main(int argc, char* argv[])
 
     rv = zs_algorithm_run(algo, data_portal);
 
+    while (1) {
+        getchar();
+    }
+
     // get run result from algo
     ztl_array_t result;
     ztl_array_init(&result, NULL, 1024, sizeof(void*));

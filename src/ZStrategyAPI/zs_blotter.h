@@ -79,6 +79,7 @@ struct zs_blotter_s
     int (*order)(zs_blotter_t* blotter, zs_order_req_t* order_req);
     int (*quote_order)(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
     int (*cancel)(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req);
+    int (*subscribe)(zs_blotter_t* blotter, zs_subscribe_t* sub_req);
 
     // 回报事件接口
     int (*handle_order_submit)(zs_blotter_t* blotter, zs_order_req_t* order_req);
