@@ -4,17 +4,11 @@
 #include <ZToolLib/ztl_utils.h>
 
 #include "zs_algorithm.h"
-
 #include "zs_assets.h"
-
 #include "zs_blotter.h"
-
 #include "zs_constants_helper.h"
-
 #include "zs_data_portal.h"
-
 #include "zs_position.h"
-
 #include "zs_risk_control.h"
 
 
@@ -70,6 +64,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     if (blotter->MdApi->create)
         blotter->MdApi->ApiInstance = blotter->MdApi->create("", 0);
 
+    blotter->subscribe = zs_blotter_subscribe;
     blotter->order = zs_blotter_order;
     blotter->quote_order = zs_blotter_quote_order;
     blotter->cancel = zs_blotter_cancel;

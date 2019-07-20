@@ -36,7 +36,7 @@ struct zs_bt_md_impl_s
     void*                   MdCtx;
     zs_md_api_handlers_t*   MdHandlers;
     ztl_set_t*              SymbolSet;      // sid set
-    zs_algorithm_t*         Algorithm;
+    // zs_algorithm_t*         Algorithm;
 
     void*                   thr;
     volatile int32_t        running;
@@ -155,6 +155,9 @@ void* zs_bt_md_create(const char* str, int reserve)
 {
     zs_bt_md_impl_t* md_instrance;
     md_instrance = (zs_bt_md_impl_t*)calloc(1, sizeof(zs_bt_md_impl_t));
+
+    md_instrance->SymbolSet = ztl_set_create(32);
+
     return md_instrance;
 }
 
@@ -200,17 +203,10 @@ int zs_bt_md_login(zs_bt_md_impl_t* md_instrance)
 int zs_bt_md_subscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* sub_reqs[], int count)
 {
     // record what instruments subscribe
-    char* instr;
-    zs_sid_t sid;
-    ZSExchangeID exchangeid;
 
     for (int i = 0; i < count; ++i)
     {
-        exchangeid = zs_convert_exchange_name(sub_reqs[i]->Exchange);
-        instr = sub_reqs[i]->Symbol;
-        sid = zs_asset_lookup(md_instrance->Algorithm->AssetFinder, 
-            exchangeid, instr, (int)strlen(instr));
-        ztl_set_add(md_instrance->SymbolSet, sid);
+        ztl_set_add(md_instrance->SymbolSet, sub_reqs[i]->Sid);
     }
 
     return 0;
@@ -219,17 +215,10 @@ int zs_bt_md_subscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* sub_reqs[]
 int zs_bt_md_unsubscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* unsub_reqs[], int count)
 {
     // record what instruments subscribe
-    char* instr;
-    zs_sid_t sid;
-    ZSExchangeID exchangeid;
 
     for (int i = 0; i < count; ++i)
     {
-        exchangeid = zs_convert_exchange_name(unsub_reqs[i]->Exchange);
-        instr = unsub_reqs[i]->Symbol;
-        sid = zs_asset_lookup(md_instrance->Algorithm->AssetFinder,
-            exchangeid, instr, (int)strlen(instr));
-        ztl_set_del(md_instrance->SymbolSet, sid);
+        ztl_set_del(md_instrance->SymbolSet, unsub_reqs[i]->Sid);
     }
 
     return 0;

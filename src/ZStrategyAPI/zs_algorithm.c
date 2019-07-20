@@ -1,27 +1,19 @@
 ﻿#include <ZToolLib/ztl_array.h>
+#include <ZToolLib/ztl_memcpy.h>
 
 #include "zs_algorithm.h"
 
 #include "zs_assets.h"
-
 #include "zs_blotter.h"
-
 #include "zs_broker_entry.h"
-
 #include "zs_broker_backtest.h"
 
 #include "zs_configs.h"
-
 #include "zs_core.h"
-
 #include "zs_data_portal.h"
-
 #include "zs_event_engine.h"
-
 #include "zs_risk_control.h"
-
 #include "zs_simulator.h"
-
 #include "zs_strategy_engine.h"
 
 
@@ -260,17 +252,18 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
     algo->DataPortal = data_portal;
 
     // fake contract info
-    zs_contract_t contract = { 0 };
-    strcpy(contract.Symbol, "rb1910");
-    contract.ExchangeID = ZS_EI_SHFE;
-    contract.ProductClass = ZS_PC_Future;
-    contract.Multiplier = 10;
-    contract.PriceTick = 1.0;
+    zs_contract_t* contract;
+    contract = (zs_contract_t*)ztl_pcalloc(algo->Pool, sizeof(zs_contract_t));
+    strcpy(contract->Symbol, "rb1910");
+    contract->ExchangeID = ZS_EI_SHFE;
+    contract->ProductClass = ZS_PC_Future;
+    contract->Multiplier = 10;
+    contract->PriceTick = 1.0;
 
     zs_sid_t sid;
-    zs_asset_add_copy(algo->AssetFinder, &sid, contract.ExchangeID, contract.Symbol,
-        (int)strlen(contract.Symbol), &contract, sizeof(contract));
-    contract.Sid = sid;
+    zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID, contract->Symbol,
+        (int)strlen(contract->Symbol), contract);
+    contract->Sid = sid;
 
     /* 回测：
      * 0. 创建事件引擎
@@ -522,13 +515,16 @@ static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo
     uint32_t evtype, zs_data_head_t* evdata)
 {
     // 合约事件
-    zs_contract_t* contract;
+    zs_contract_t* contract, *dup_contract;
     zs_sid_t sid;
 
     contract = (zs_contract_t*)zd_data_body(evdata);
 
-    zs_asset_add_copy(algo->AssetFinder, &sid, contract->ExchangeID,
-        contract->Symbol, (int)strlen(contract->Symbol), contract, sizeof(zs_contract_t));
+    dup_contract = (zs_contract_t*)ztl_palloc(algo->Pool, sizeof(zs_contract_t));
+    ztl_memcpy(dup_contract, contract, sizeof(zs_contract_t));
+
+    zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID,
+        contract->Symbol, (int)strlen(contract->Symbol), dup_contract);
 }
 
 static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,

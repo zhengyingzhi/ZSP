@@ -111,8 +111,7 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, zs_strategy_engine_t
     fprintf(stderr, "cta_handle_tick %s,%d\n", tick->Symbol, tick->UpdateTime);
 
     entry = dictFind(zse->Tick2StrategyList, (void*)sid);
-    if (!entry)
-    {
+    if (!entry) {
         return;
     }
 
@@ -146,8 +145,7 @@ static void _zs_strategy_handle_bar(zs_event_engine_t* ee, zs_strategy_engine_t*
     sid = bar->Sid;
 
     entry = dictFind(zse->Tick2StrategyList, (void*)sid);
-    if (!entry)
-    {
+    if (!entry) {
         return;
     }
 
@@ -422,7 +420,16 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
         return 0;
     }
 
-    strategy_entry = ztl_array_find(zse->StrategyEntries, (char*)strategy_name, _strategy_entry_name_comp);
+    strategy_entry = NULL;
+    for (uint32_t x = 0; x < ztl_array_size(zse->StrategyEntries); ++x)
+    {
+        zs_strategy_entry_t* temp = ztl_array_at2(zse->StrategyEntries, x);
+        if (strcmp(temp->StrategyName, strategy_name) == 0) {
+            strategy_entry = temp;
+            break;
+        }
+    }
+
     if (!strategy_entry)
     {
         // ERRORID: not find the strategy entry, maybe load failed before
@@ -586,8 +593,10 @@ int zs_strategy_engine_save_order(zs_strategy_engine_t* zse,
 int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy,
     ZSExchangeID exchangeid, const char* symbol)
 {
-    zs_sid_t sid;
-    zs_subscribe_t sub_req = { 0 };
+    ztl_array_t*    array;
+    zs_sid_t        sid;
+    zs_subscribe_t  sub_req = { 0 };
+
     strcpy(sub_req.Exchange, zs_convert_exchange_id(exchangeid));
     strcpy(sub_req.Symbol, symbol);
 
@@ -600,28 +609,44 @@ int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy
     sid = exchangeid;   // invalid data
 #endif
 
+    sub_req.Sid = sid;
     strategy->Blotter->subscribe(strategy->Blotter, &sub_req);
 
-    dictAdd(zse->Tick2StrategyList, (void*)sid, strategy);
+    array = zs_strategy_find_by_sid(zse, sid);
+    if (!array) {
+        array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+        ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
+        dictAdd(zse->Tick2StrategyList, (void*)sid, array);
+    }
+
+    ztl_array_push_back(array, &strategy);
 
     return 0;
 }
 
 int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sid)
 {
-    zs_contract_t* contract;
-    zs_subscribe_t sub_req = { 0 };
-
+    ztl_array_t*    array;
+    zs_contract_t*  contract;
+    zs_subscribe_t  sub_req = { 0 };
 
     contract = strategy->get_contract(strategy, sid);
     if (contract) {
         strcpy(sub_req.Exchange, zs_convert_exchange_id(contract->ExchangeID));
         strcpy(sub_req.Symbol, contract->Symbol);
     }
+    sub_req.Sid = sid;
 
     strategy->Blotter->subscribe(strategy->Blotter, &sub_req);
 
-    dictAdd(zse->Tick2StrategyList, (void*)sid, strategy);
+    array = zs_strategy_find_by_sid(zse, sid);
+    if (!array) {
+        array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+        ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
+        dictAdd(zse->Tick2StrategyList, (void*)sid, array);
+    }
+
+    ztl_array_push_back(array, &strategy);
 
     return 0;
 }

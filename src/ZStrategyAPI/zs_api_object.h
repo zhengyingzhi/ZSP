@@ -474,6 +474,7 @@ struct zs_subscribe_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     char            Exchange[8];
+    uint64_t        Sid;
 };
 typedef struct zs_subscribe_s zs_subscribe_t;
 

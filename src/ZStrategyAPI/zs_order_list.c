@@ -7,7 +7,7 @@ zs_orderlist_t* zs_orderlist_create()
 {
     zs_orderlist_t* order_list;
     order_list = ztl_dlist_create(32);
-    return 0;
+    return order_list;
 }
 
 void zs_orderlist_release(zs_orderlist_t* orderlist)
