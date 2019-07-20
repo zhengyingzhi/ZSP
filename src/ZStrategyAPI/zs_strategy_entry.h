@@ -16,8 +16,6 @@
 extern "C" {
 #endif
 
-/* other types */
-typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 
 
 /* 策略导出的入口函数 */

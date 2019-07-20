@@ -76,12 +76,19 @@ static int _zs_load_strategies(zs_algorithm_t* algo)
         algo->StrategyEngine = zse;
     }
 
-    //ztl_array_t* stgLibNames;
-    //stgLibNames = &algo->Params->StrategyNames;
-    // ztl_array_t stgLibArray;
+    // 加载策略
 
-    // 加载所有策略，内部会自动注册策略模拟所需的事件（订单，成交，行情事件）
-    //zs_strategy_engine_load(zse, &stgLibArray);
+    // !example code!
+    const char* setting = "{\"symbol\": \"rb1910\", \"strategy_name\": \"strategy_demo\", \"account_id\": \"00100002\"}";
+    zs_cta_strategy_t* strategy = NULL;
+    zs_strategy_create(zse, &strategy, "strategy_demo", setting);
+    if (setting) {
+        zs_strategy_add(zse, strategy);
+    }
+
+    // init and start strategy
+    zs_strategy_init(zse, strategy);
+    zs_strategy_start(zse, strategy);
 
     return 0;
 }
@@ -254,11 +261,11 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
     // fake contract info
     zs_contract_t contract = { 0 };
-    strcpy(contract.Symbol, "000001");
-    contract.ExchangeID = ZS_EI_SZSE;
-    contract.ProductClass = ZS_PC_Stock;
-    contract.Multiplier = 1;
-    contract.PriceTick = 0.01f;
+    strcpy(contract.Symbol, "rb1910");
+    contract.ExchangeID = ZS_EI_SHFE;
+    contract.ProductClass = ZS_PC_Future;
+    contract.Multiplier = 10;
+    contract.PriceTick = 1.0;
 
     zs_sid_t sid;
     zs_asset_add_copy(algo->AssetFinder, &sid, contract.ExchangeID, contract.Symbol,
@@ -558,7 +565,7 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = *(ztl_array_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = *(zs_blotter_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
         blotter->handle_tick(blotter, tick);
     }
 

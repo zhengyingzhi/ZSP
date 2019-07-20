@@ -598,6 +598,8 @@ static void zs_md_on_rtn_mktdata(zs_md_api_t* mdctx, zs_tick_t* tick)
     zdh = _zs_data_create(algo, tick, sizeof(zs_tick_t));
     dst_tick = (zs_tick_t*)zd_data_body(zdh);
 
+    dst_tick->Sid = zs_asset_lookup(algo->AssetFinder, dst_tick->ExchangeID, dst_tick->Symbol, (int)strlen(dst_tick->Symbol));
+
     rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_Tick, zdh);
     if (rv != 0)
     {

@@ -33,8 +33,8 @@ void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
     my_strategy_demo_t* instance;
     instance = (my_strategy_demo_t*)calloc(1, sizeof(my_strategy_demo_t));
 
-    strcpy(instance->symbol, "000001");
-    instance->exchangeid = ZS_EI_SZSE;
+    strcpy(instance->symbol, "rb1910");
+    instance->exchangeid = ZS_EI_SHFE;
     instance->sid = context->lookup_sid(context, instance->exchangeid, instance->symbol, 6);
 
     // we could assign our user data to UserData field
@@ -68,6 +68,8 @@ void stg_demo_on_init(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 void stg_demo_on_start(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
     fprintf(stderr, "stg demo start\n");
+
+    context->subscribe(context, instance->sid);
 }
 
 void stg_demo_on_stop(my_strategy_demo_t* instance, zs_cta_strategy_t* context)

@@ -20,6 +20,8 @@
 
 zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol, int len);
 const char* zs_cta_lookup_symbol(zs_cta_strategy_t* context, zs_sid_t sid);
+int zs_cta_subscribe(zs_cta_strategy_t* context, zs_sid_t sid);
+
 int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset);
 int zs_cta_place_order(zs_cta_strategy_t* strategy, zs_order_req_t* order_req);
 int zs_cta_cancel(zs_cta_strategy_t* strategy, zs_cancel_req_t* cancel_req);
@@ -93,6 +95,8 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
 
     strategy->lookup_sid = zs_cta_lookup_sid;
     strategy->lookup_symbol = zs_cta_lookup_symbol;
+    strategy->subscribe = zs_cta_subscribe;
+
     strategy->order = zs_cta_order;
     strategy->place_order = zs_cta_place_order;
     strategy->cancel_order = zs_cta_cancel;
@@ -147,6 +151,11 @@ const char* zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, zs_sid_t sid)
     }
 
     return contract->Symbol;
+}
+
+int zs_cta_subscribe(zs_cta_strategy_t* strategy, zs_sid_t sid)
+{
+    return zs_strategy_subscribe_bysid(strategy->Engine, strategy, sid);
 }
 
 int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset)
