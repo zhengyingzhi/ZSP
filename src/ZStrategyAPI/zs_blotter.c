@@ -422,8 +422,7 @@ int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
     ztl_memcpy(dup_trade, trade, sizeof(zs_trade_t));
     dictAdd(blotter->TradeDict, key, trade);
 
-    void** dst = ztl_array_push(blotter->TradeArray);
-    *dst = trade;
+    ztl_array_push_back(blotter->TradeArray, &trade);
 
     // Ô­Ê¼¹Òµ¥
     work_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);

@@ -184,8 +184,7 @@ int zs_configs_load_account(zs_algo_param_t* algo_param, ztl_pool_t* pool,
 
         account_conf = (zs_conf_account_t*)ztl_pcalloc(pool, sizeof(zs_conf_account_t));
         if (_zs_configs_parse_accounts(algo_param, tnode, pool, account_conf) == 0) {
-            void** dst = ztl_array_push(&algo_param->AccountConf);
-            *dst = account_conf;
+            ztl_array_push_back(&algo_param->AccountConf, &account_conf);
         }
     }
 
@@ -217,8 +216,7 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
     strcpy(broker_conf->BrokerID, "0000");
     strcpy(broker_conf->BrokerName, "INNER");
     strcpy(broker_conf->ApiName, "backtest");
-    void** dst = ztl_array_push(&algo_param->BrokerConf);
-    *dst = broker_conf;
+    ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
 
     buffer = _zs_read_file_content(conf_file, &length);
     if (!buffer)
@@ -259,8 +257,7 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
         _zs_get_string_object_value(tnode, "TradeAddr", broker_conf->TradeAddr, sizeof(broker_conf->TradeAddr) - 1);
         _zs_get_string_object_value(tnode, "MDAddr", broker_conf->MDAddr, sizeof(broker_conf->MDAddr) - 1);
 
-        void** dst = ztl_array_push(&algo_param->BrokerConf);
-        *dst = broker_conf;
+        ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
     }
 
     cJSON_Delete(json);
@@ -327,8 +324,7 @@ int zs_configs_load_strategy_setting(zs_algo_param_t* algo_param, ztl_pool_t* po
         strategy_conf->Setting = _zs_pool_str_dup(pool, strategy_setting, (int)strlen(strategy_setting));
         free(strategy_setting);
 
-        void** dst = ztl_array_push(&algo_param->StrategyConf);
-        *dst = strategy_conf;
+        ztl_array_push_back(&algo_param->StrategyConf, &strategy_conf);
     }
 
     cJSON_Delete(json);
@@ -406,8 +402,7 @@ static int zs_configs_load_tradings(zs_algo_param_t* algo_param, ztl_pool_t* poo
         trading_conf->Setting = _zs_pool_str_dup(pool, trading_setting, (int)strlen(trading_setting));
         free(trading_setting);
 
-        void** dst = ztl_array_push(&algo_param->TradingConf);
-        *dst = trading_conf;
+        ztl_array_push_back(&algo_param->TradingConf, &trading_conf);
     }
 
     cJSON_Delete(json);
@@ -453,7 +448,7 @@ zs_conf_broker_t* zs_configs_find_broker(zs_algo_param_t* algo_param, const char
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        broker_conf = *(zs_conf_broker_t**)ztl_array_at(&algo_param->BrokerConf, i);
+        broker_conf = (zs_conf_broker_t*)ztl_array_at2(&algo_param->BrokerConf, i);
         if (strcasecmp(broker_conf->BrokerID, brokerid) == 0)
             return broker_conf;
     }
@@ -469,7 +464,7 @@ zs_conf_account_t* zs_configs_find_account(zs_algo_param_t* algo_param, const ch
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        account_conf = *(zs_conf_account_t**)ztl_array_at(&algo_param->AccountConf, i);
+        account_conf = (zs_conf_account_t*)ztl_array_at2(&algo_param->AccountConf, i);
         if (strcmp(account_conf->AccountID, accountid) == 0)
             return account_conf;
     }
@@ -485,7 +480,7 @@ zs_conf_strategy_t* zs_configs_find_strategy(zs_algo_param_t* algo_param, const 
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        strategy_conf = *(zs_conf_strategy_t**)ztl_array_at(&algo_param->StrategyConf, i);
+        strategy_conf = (zs_conf_strategy_t*)ztl_array_at2(&algo_param->StrategyConf, i);
         if (strcmp(strategy_conf->StrategyName, strategy_name) == 0)
             return strategy_conf;
     }

@@ -42,7 +42,7 @@ int zs_data_portal_wrapper(zs_data_portal_t* data_portal, ztl_array_t* raw_datas
     {
         // 实际上value应该是一个set/dict
         zs_bar_t* bar;
-        bar = *(zs_bar_t**)ztl_array_at(raw_datas, i);
+        bar = (zs_bar_t*)ztl_array_at2(raw_datas, i);
         dictAdd(data_portal->Time2Data, (void*)bar->BarTime, (void*)bar);
     }
 

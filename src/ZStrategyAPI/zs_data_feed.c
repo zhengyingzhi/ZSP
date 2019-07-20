@@ -7,13 +7,13 @@
 
 #include "zs_data_feed.h"
 
-int zs_data_load_csv(const char* filename, ztl_array_t* rawDatas)
+int zs_data_load_csv(const char* filename, ztl_array_t* raw_datas)
 {
     zs_bar_t* bar;
 
     for (int i = 1; i <=3; ++i)
     {
-        bar = (zs_bar_t*)ztl_pcalloc(rawDatas->pool, sizeof(zs_bar_t));
+        bar = (zs_bar_t*)ztl_pcalloc(raw_datas->pool, sizeof(zs_bar_t));
         strcpy(bar->Symbol, "000001.SZA");
         bar->OpenPrice = 100.0f + i;
         bar->HighPrice = 100.0f + i + 5 + (i % 2);
@@ -26,8 +26,7 @@ int zs_data_load_csv(const char* filename, ztl_array_t* rawDatas)
         bar->BarTime = 20180800 + i;
         bar->BarTime *= 1000000;
 
-        zs_bar_t** ppaddr = (zs_bar_t**)ztl_array_push(rawDatas);
-        *ppaddr = bar;
+        ztl_array_push_back(raw_datas, &bar);
     }
 
     return 0;

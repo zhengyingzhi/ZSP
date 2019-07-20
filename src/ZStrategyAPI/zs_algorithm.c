@@ -309,7 +309,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
         // TODO
 #if 0
         zs_trading_conf_t* trading_conf;
-        trading_conf = (zs_trading_conf_t*)ztl_array_at(&algo->Params->TradingConf, 0);
+        trading_conf = (zs_trading_conf_t*)ztl_array_at2(&algo->Params->TradingConf, 0);
 
         zs_trade_api_t* tdapi = zs_broker_get_tradeapi(algo->Broker, NULL);
         tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, &trading_conf->TradeConf);
@@ -337,7 +337,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
         zs_trading_conf_t* trading_conf;
         for (uint32_t i = 0; i < ztl_array_size(&algo->Params->TradingConf); ++i)
         {
-            trading_conf = (zs_trading_conf_t*)ztl_array_at(&algo->Params->TradingConf, 0);
+            trading_conf = (zs_trading_conf_t*)ztl_array_at2(&algo->Params->TradingConf, 0);
 
             // 每个账户使用一个交易API和行情API，可直接从配置中获取该账户的账户信息，使用接口信息等
             // 可支持：策略中登录了多个账户（每个账户属于不同的经纪商，如期现同时交易），虽账号不同，但属于同一人
@@ -539,7 +539,7 @@ static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = *(zs_blotter_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
         zs_blotter_handle_timer(blotter, 0);
     }
 
@@ -565,7 +565,7 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = *(zs_blotter_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
         blotter->handle_tick(blotter, tick);
     }
 
@@ -584,7 +584,7 @@ static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
-        blotter = *(zs_blotter_t**)ztl_array_at(algo->BlotterMgr.BlotterArray, i);
+        blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
         blotter->handle_bar(blotter, bar_reader);
     }
 
