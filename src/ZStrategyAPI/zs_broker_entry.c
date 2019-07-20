@@ -1,10 +1,17 @@
 ﻿#include <ZToolLib/ztl_dyso.h>
+#include <ZToolLib/ztl_memcpy.h>
+
+#include <string.h>
 
 #include "zs_algorithm.h"
-
 #include "zs_broker_entry.h"
-
+#include "zs_constants_helper.h"
 #include "zs_event_engine.h"
+
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif//_MSC_VER
+
 
 
 /* global broker trade api handlers
@@ -58,6 +65,7 @@ zs_md_api_handlers_t md_handlers = {
     zs_md_on_for_quote
 };
 
+//////////////////////////////////////////////////////////////////////////
 
 #define set_zd_head_symbol(zdh, obj) \
     do {    \
@@ -83,7 +91,7 @@ static zs_data_head_t* _zs_data_create(zs_algorithm_t* algo, void* data, int siz
     zdh = (zs_data_head_t*)malloc(alloc_size);
     memset(zdh, 0, zd_data_head_size);
     if (data)
-        memcpy(zd_data_body(zdh), data, size);
+        ztl_memcpy(zd_data_body(zdh), data, size);
 
     zdh->Cleanup    = _zs_data_free;
     zdh->RefCount   = 1;
@@ -153,7 +161,7 @@ zs_trade_api_t* zs_broker_get_tradeapi(zs_broker_t* broker, const char* apiname)
             continue;
         }
 
-        if (strcmp(broker->TradeApis[i]->ApiName, apiname) == 0)
+        if (strcasecmp(broker->TradeApis[i]->ApiName, apiname) == 0)
             return broker->TradeApis[i];
     }
     return NULL;
@@ -277,7 +285,21 @@ static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason)
 }
 
 static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata)
-{}
+{
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, auth_rsp, sizeof(zs_authenticate_t));
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_Auth, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
 
 static void zs_td_on_login(zs_trade_api_t* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata)
 {
@@ -327,6 +349,9 @@ static void zs_td_on_rtn_order(zs_trade_api_t* tdctx, zs_order_t* order)
     dst_order = (zs_order_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_order);
 
+    dst_order->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_order->ExchangeID, dst_order->Symbol, (int)strlen(dst_order->Symbol));
+
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Order, zdh);
     if (rv != 0)
     {
@@ -347,6 +372,9 @@ static void zs_td_on_rtn_trade(zs_trade_api_t* tdctx, zs_trade_t* trade)
     dst_trade = (zs_trade_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_trade);
 
+    dst_trade->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_trade->ExchangeID, dst_trade->Symbol, (int)strlen(dst_trade->Symbol));
+
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Trade, zdh);
     if (rv != 0)
     {
@@ -361,7 +389,7 @@ static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int 
 {}
 
 
-static void zs_td_on_qry_account(zs_trade_api_t* tdctx, zs_fund_account_t* account)
+static void zs_td_on_qry_account(zs_trade_api_t* tdctx, zs_fund_account_t* fund_account)
 {
     // 资金账户
 
@@ -371,9 +399,9 @@ static void zs_td_on_qry_account(zs_trade_api_t* tdctx, zs_fund_account_t* accou
 
     algo = (zs_algorithm_t*)tdctx->UserData;
 
-    zdh = _zs_data_create(algo, account, sizeof(zs_fund_account_t));
+    zdh = _zs_data_create(algo, fund_account, sizeof(zs_fund_account_t));
 
-    rv = zs_ee_post(algo->EventEngine, ZS_DT_Trade, zdh);
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryAccount, zdh);
     if (rv != 0)
     {
         // log error
@@ -383,6 +411,24 @@ static void zs_td_on_qry_account(zs_trade_api_t* tdctx, zs_fund_account_t* accou
 static void zs_td_on_qry_order(zs_trade_api_t* tdctx, zs_order_t* order)
 {
     //
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_order_t*     dst_order;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, order, sizeof(zs_order_t));
+    dst_order = (zs_order_t*)zd_data_body(zdh);
+
+    dst_order->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_order->ExchangeID, dst_order->Symbol, (int)strlen(dst_order->Symbol));
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryOrder, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
 }
 
 static void zs_td_on_qry_position(zs_trade_api_t* tdctx, zs_position_t* position)
@@ -397,6 +443,9 @@ static void zs_td_on_qry_position(zs_trade_api_t* tdctx, zs_position_t* position
     zdh = _zs_data_create(algo, position, sizeof(zs_position_t));
     dst_pos = (zs_position_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_pos);
+
+    dst_pos->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_pos->ExchangeID, dst_pos->Symbol, (int)strlen(dst_pos->Symbol));
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPosition, zdh);
     if (rv != 0)
@@ -416,6 +465,9 @@ static void zs_td_on_qry_position_detail(zs_trade_api_t* tdctx, zs_position_deta
     zdh = _zs_data_create(algo, pos_detail, sizeof(zs_position_detail_t));
     dst_pos_detail = (zs_position_detail_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_pos_detail);
+
+    dst_pos_detail->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_pos_detail->ExchangeID, dst_pos_detail->Symbol, (int)strlen(dst_pos_detail->Symbol));
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPositionDetail, zdh);
     if (rv != 0)
@@ -437,6 +489,9 @@ static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract
     dst_contract = (zs_contract_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_contract);
 
+    // dst_contract->Sid = zs_asset_lookup(algo->AssetFinder,
+    //     dst_contract->ExchangeID, dst_contract->Symbol, (int)strlen(dst_contract->Symbol));
+
     // post to ee
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryContract, zdh);
     if (rv != 0)
@@ -448,7 +503,8 @@ static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract
 static void zs_td_on_exchange_state(zs_trade_api_t* tdctx, const char* exchange,
         const char* symbol, int state)
 {
-    //
+    ZSExchangeID exchangeid;
+    exchangeid = zs_convert_exchange_name(exchange);
 }
 
 

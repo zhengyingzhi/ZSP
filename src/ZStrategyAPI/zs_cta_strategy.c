@@ -18,7 +18,8 @@
 #include "zs_strategy_engine.h"
 
 
-zs_sid_t zs_cta_lookup_symbol(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol);
+zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol, int len);
+const char* zs_cta_lookup_symbol(zs_cta_strategy_t* context, zs_sid_t sid);
 int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset);
 int zs_cta_place_order(zs_cta_strategy_t* strategy, zs_order_req_t* order_req);
 int zs_cta_cancel(zs_cta_strategy_t* strategy, zs_cancel_req_t* cancel_req);
@@ -26,6 +27,7 @@ int zs_cta_cancelex(zs_cta_strategy_t* strategy, zs_order_t* order);
 int zs_cta_cancel_all(zs_cta_strategy_t* strategy);
 
 int zs_cta_get_account_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid);
+int zs_cta_get_strategy_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid);
 int zs_cta_get_trading_account(zs_cta_strategy_t* context, zs_account_t** paccount);
 int zs_cta_get_open_orders(zs_cta_strategy_t* context, zs_order_t* open_orders[], int size);
 int zs_cta_get_orders(zs_cta_strategy_t* context, zs_order_t* orders[], int size);
@@ -89,6 +91,7 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
     strategy->Blotter = NULL;       // will be assigned outside
     strategy->AssetFinder = engine->AssetFinder;
 
+    strategy->lookup_sid = zs_cta_lookup_sid;
     strategy->lookup_symbol = zs_cta_lookup_symbol;
     strategy->order = zs_cta_order;
     strategy->place_order = zs_cta_place_order;
@@ -119,20 +122,31 @@ void zs_cta_strategy_set_entry(zs_cta_strategy_t* strategy, zs_strategy_entry_t*
 void zs_cta_strategy_set_blotter(zs_cta_strategy_t* strategy, zs_blotter_t* blotter)
 {
     strategy->Blotter = blotter;
-    strategy->pAccountID = blotter->Account->AccountID;
 }
 
 
-zs_sid_t zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, ZSExchangeID exchangeid, const char* symbol)
+zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* strategy, ZSExchangeID exchangeid, const char* symbol, int len)
 {
     zs_contract_t*  contract;
 
-    contract = zs_asset_find(strategy->Engine->AssetFinder, exchangeid, symbol, (int)strlen(symbol));
+    contract = zs_asset_find(strategy->Engine->AssetFinder, exchangeid, symbol, len);
     if (!contract) {
         return ZS_INVALID_SID;
     }
 
     return contract->Sid;
+}
+
+const char* zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, zs_sid_t sid)
+{
+    zs_contract_t*  contract;
+
+    contract = zs_asset_find_by_sid(strategy->Engine->AssetFinder, sid);
+    if (!contract) {
+        return NULL;
+    }
+
+    return contract->Symbol;
 }
 
 int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset)
@@ -157,7 +171,9 @@ int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, doubl
     order_req.OrderPrice= order_price;
     order_req.Direction = direction;
     order_req.OffsetFlag= offset;
-    order_req.OrderType = ZS_OT_Limit;
+    order_req.OrderType = order_price < 0.001 ? ZS_OT_Market : ZS_OT_Limit;
+
+    // set this member for easily process internally
     order_req.Contract  = contract;
 
     return zs_cta_place_order(strategy, &order_req);
@@ -233,6 +249,12 @@ int zs_cta_get_account_position(zs_cta_strategy_t* strategy, zs_position_engine_
         return 0;
     }
 
+    return -1;
+}
+
+int zs_cta_get_strategy_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid)
+{
+    // ERRORID: not support currently
     return -1;
 }
 

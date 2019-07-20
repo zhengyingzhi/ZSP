@@ -1,0 +1,11 @@
+[
+    {
+        "AccountID": "00100002",
+        "Password": "qwert",
+        "BrokerID": "0000",
+        "TradeAPIName": "backtest",
+        "MDAPIName": "backtest",
+        "AppID": "0000000000000000",
+        "AuthCode": "1234567890"
+    }
+]

@@ -14,6 +14,7 @@
 #include <ZToolLib/ztl_dict.h>
 #include <ZToolLib/ztl_map.h>
 
+#include "zs_api_object.h"
 #include "zs_assets.h"
 #include "zs_broker_api.h"
 #include "zs_core.h"
@@ -49,7 +50,7 @@ struct zs_bar_reader_s
     ZSDataFrequency     DataFrequency;
     uint32_t            Index;
     int64_t             CurrentDt;
-
+    zs_bar_t            Bar;
 
     bool    (*can_trade)(zs_bar_reader_t* bar_reader, zs_sid_t sid);
     int     (*history)(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size);

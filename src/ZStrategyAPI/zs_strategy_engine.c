@@ -47,43 +47,15 @@ static int _strategy_entry_name_comp(void* expect, void* actual)
 
 static void zs_strategy_register_event(zs_strategy_engine_t* zse);
 
-static uint32_t _zs_strategy_retrieve(zs_strategy_engine_t* zse, zs_sid_t sid,
-    zs_cta_strategy_t* strategy_array[], uint32_t array_size)
-{
-    uint32_t count = 0;
-    if (sid == 0)
-    {
-        for (uint32_t i = 0; i < ztl_array_size(zse->AllStrategy) && i < array_size; ++i)
-        {
-            void* strategy = ztl_array_at(zse->AllStrategy, i);
-            if (!strategy) {
-                continue;
-            }
-            strategy_array[count++] = strategy;
-        }
-    }
-    else
-    {
-        strategy_array[0] = ztl_map_find(zse->StrategyMap, sid);
-        if (strategy_array[0])
-            count++;
-    }
-    return count;
-}
-
 /* zs_strategy event handlers */
-static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
+static void _zs_strategy_handle_order(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
+    uint32_t evtype, zs_data_head_t* evdata)
 {
     // 处理订单回报事件
-    zs_strategy_engine_t*   zse;
-    zs_cta_strategy_t*      strategy;
-    zs_data_head_t*         zdh;
-    zs_order_t*             order;
+    zs_cta_strategy_t*  strategy;
+    zs_order_t*         order;
 
-    zse = (zs_strategy_engine_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    order = (zs_order_t*)zd_data_body(zdh);
+    order = (zs_order_t*)zd_data_body(evdata);
 
     // find the strategy related the order
     strategy = zs_orderdict_find(zse->OrderStrategyDict, order->FrontID, order->SessionID, order->OrderID);
@@ -92,21 +64,17 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, void* userdata,
     }
 }
 
-static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
+static void _zs_strategy_handle_trade(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
+    uint32_t evtype, zs_data_head_t* evdata)
 {
-    // 同理处理成交事件
-    zs_strategy_engine_t*   zse;
+    // 处理成交事件
     zs_cta_strategy_t*      strategy;
-    zs_data_head_t*         zdh;
     zs_trade_t*             trade;
     dictEntry*              entry;
     zs_sid_t                sid;
     char                    zs_tradeid[32];
 
-    zse = (zs_strategy_engine_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    trade = (zs_trade_t*)zd_data_body(zdh);
+    trade = (zs_trade_t*)zd_data_body(evdata);
     sid = trade->Sid;
 
     int len = zs_make_id(zs_tradeid, trade->ExchangeID, trade->TradeID);
@@ -127,27 +95,29 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, void* userdata,
     }
 }
 
-static void _zs_strategy_handle_tick(zs_event_engine_t* ee, void* userdata, 
-    uint32_t evtype, void* evdata)
+static void _zs_strategy_handle_tick(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
+    uint32_t evtype, zs_data_head_t* evdata)
 {
     // 处理行情事件(是否需要优化为多线程)
-    zs_strategy_engine_t*   zse;
-    zs_cta_strategy_t*      strategy;
-    zs_cta_strategy_t*      strategy_array[MAX_STRATEGY_COUNT];
-    zs_data_head_t*         zdh;
-    zs_tick_t*              tick;
-    zs_sid_t                sid;
-    uint32_t                count;
+    ztl_array_t*        strategy_array;
+    zs_cta_strategy_t*  strategy;
+    zs_tick_t*          tick;
+    zs_sid_t            sid;
+    dictEntry*          entry;
 
-    zse = (zs_strategy_engine_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    tick = (zs_tick_t*)zd_data_body(zdh);
+    tick = (zs_tick_t*)zd_data_body(evdata);
     sid = tick->Sid;
 
-    count = zs_strategy_find_by_sid(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
-    for (uint32_t i = 0; i < count; ++i)
+    entry = dictFind(zse->Tick2StrategyList, (void*)sid);
+    if (!entry)
     {
-        strategy = (zs_cta_strategy_t*)strategy_array[i];
+        return;
+    }
+
+    strategy_array = (ztl_array_t*)entry->v.val;
+    for (int index = 0; index < (int)ztl_array_size(strategy_array); ++index)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, index);
         if (!strategy) {
             continue;
         }
@@ -160,48 +130,47 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, void* userdata,
     // TODO: generate minute bar, and try notify to each strategy
 }
 
-static void _zs_strategy_handle_bar(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
+static void _zs_strategy_handle_bar(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
+    uint32_t evtype, zs_data_head_t* evdata)
 {
     // 处理行情事件(是否需要优化为多线程)
-    zs_strategy_engine_t*   zse;
-    zs_cta_strategy_t*      strategy;
-    zs_cta_strategy_t*      strategy_array[MAX_STRATEGY_COUNT];
-    zs_data_head_t*         zdh;
-    zs_bar_t*               bar;
-    zs_sid_t                sid;
-    uint32_t                count;
+    ztl_array_t*        strategy_array;
+    zs_cta_strategy_t*  strategy;
+    zs_bar_t*           bar;
+    zs_sid_t            sid;
+    dictEntry*          entry;
 
-    zse = (zs_strategy_engine_t*)userdata;
-    zdh = (zs_data_head_t*)evdata;
-    bar = (zs_bar_t*)zd_data_body(zdh);
+    bar = (zs_bar_t*)zd_data_body(evdata);
     sid = bar->Sid;
 
-    count = zs_strategy_find_by_sid(zse, sid, strategy_array, MAX_STRATEGY_COUNT);
-    for (uint32_t i = 0; i < count; ++i)
+    entry = dictFind(zse->Tick2StrategyList, (void*)sid);
+    if (!entry)
     {
-        strategy = (zs_cta_strategy_t*)strategy_array[i];
+        return;
+    }
+
+    strategy_array = (ztl_array_t*)entry->v.val;
+    for (int index = 0; index < (int)ztl_array_size(strategy_array); ++index)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, index);
         if (!strategy) {
             continue;
         }
 
-        zs_bar_reader_t* bar_reader = NULL;
-        memcpy(&bar_reader, bar, sizeof(void*));
+        zs_bar_reader_t bar_reader = { 0 };
+        memcpy(&bar_reader.Bar, bar, sizeof(zs_bar_t));
 
         if (strategy->Entry->handle_bar) {
-            strategy->Entry->handle_bar(strategy->Instance, strategy, bar_reader);
+            strategy->Entry->handle_bar(strategy->Instance, strategy, &bar_reader);
         }
     }
 }
 
-static void _zs_strategy_handle_timer(zs_event_engine_t* ee, void* userdata,
-    uint32_t evtype, void* evdata)
+static void _zs_strategy_handle_timer(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
+    uint32_t evtype, zs_data_head_t* evdata)
 {
     uint32_t i;
-    zs_cta_strategy_t*      strategy;
-    zs_strategy_engine_t*   zse;
-
-    zse = (zs_strategy_engine_t*)userdata;
+    zs_cta_strategy_t* strategy;
 
     for (i = 0; i < ztl_array_size(zse->AllStrategy); ++i)
     {
@@ -209,7 +178,6 @@ static void _zs_strategy_handle_timer(zs_event_engine_t* ee, void* userdata,
         if (!strategy) {
             continue;
         }
-
 
         if (strategy->Entry->on_timer) {
             strategy->Entry->on_timer(strategy->Instance, strategy, 0);
@@ -441,6 +409,8 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
     // 创建一个策略对象
     zs_cta_strategy_t*      strategy;
     zs_strategy_entry_t*    strategy_entry;
+    zs_blotter_t*           blotter;
+    uint32_t                next_strategy_id;
 
     // 是否已存在，FIXME：同时加载多个相同名的策略时如何处理？
     strategy = ztl_array_find(zse->AllStrategy, (char*)strategy_name, _cta_strategy_name_comp);
@@ -457,12 +427,22 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
         return -1;
     }
 
-    uint32_t next_strategy_id = zse->StrategyBaseID++;
+    next_strategy_id = zse->StrategyBaseID++;
     strategy = zs_cta_strategy_create(zse, setting, next_strategy_id);
+    if (!strategy)
+    {
+        // ERRORID: create cta strategy object failed
+        return -1;
+    }
 
     zs_cta_strategy_set_entry(strategy, strategy_entry);
 
-    // FIXME: when set blotter to strategy object ?
+    blotter = zs_get_blotter(zse->Algorithm, strategy->pAccountID);
+    if (!blotter) {
+        // ERRORID: no account engine for loading this strategy
+        return -1;
+    }
+    zs_cta_strategy_set_blotter(strategy, blotter);
 
     // 调用策略初始化函数
     if (strategy->Entry->create) {
@@ -476,7 +456,7 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
 
 int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 {
-    ztl_vector_t* vec;
+    ztl_array_t* vec;
 
     // add to map and array
 
@@ -489,14 +469,15 @@ int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
     }
 
     int len = (int)strlen(strategy->pAccountID);
-    vec = (ztl_vector_t*)zs_strdict_find(zse->AccountStrategyDict, (char*)strategy->pAccountID, len);
+    vec = (ztl_array_t*)zs_strdict_find(zse->AccountStrategyDict, (char*)strategy->pAccountID, len);
     if (!vec) {
-        vec = ztl_vector_create(MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
+        vec = ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+        ztl_array_init(vec, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
 
         ZStrKey* pkey = zs_str_keydup2(strategy->pAccountID, len, ztl_palloc, zse->Pool);
         dictAdd(zse->AccountStrategyDict, pkey, strategy);
     }
-    vec->push_ptr(vec, strategy);
+    ztl_array_push_back(vec, strategy);
 
     return 0;
 }
@@ -546,30 +527,42 @@ int zs_strategy_update(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, c
     return 0;
 }
 
-int zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid, zs_cta_strategy_t* strategy_array[], int size)
+ztl_array_t* zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid)
 {
-    int index = 0;
     dictEntry* entry;
-    zs_cta_strategy_t* strategy;
 
     entry = dictFind(zse->Tick2StrategyList, (void*)sid);
-    if (entry)
+    if (entry) {
+        return (ztl_array_t*)entry->v.val;
+    }
+
+    return NULL;
+}
+
+int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, zs_cta_strategy_t* strategy_array[], int size)
+{
+    int index;
+    zs_cta_strategy_t* strategy;
+
+    for (index = 0; index < (int)ztl_array_size(zse->AllStrategy) && index < size; ++index)
     {
-        ztl_array_t* array;
-        array = (ztl_array_t*)entry->v.val;
-        for (index = 0; index < (int)ztl_array_size(array) && index < size; ++index)
-        {
-            strategy = (zs_cta_strategy_t*)ztl_array_at(array, index);
-            strategy_array[index] = strategy;
-        }
+        strategy = (zs_cta_strategy_t*)ztl_array_at(zse->AllStrategy, index);
+        strategy_array[index] = strategy;
     }
 
     return index;
 }
 
-int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, zs_cta_strategy_t* strategy_array[], int size)
+ztl_array_t* zs_strategy_find_by_account(zs_strategy_engine_t* zse, const char* accountid)
 {
-    return 0;
+    dictEntry* entry;
+
+    entry = zs_strdict_find(zse->AccountStrategyDict, accountid, (int)strlen(accountid));
+    if (entry) {
+        return (ztl_array_t*)entry->v.val;
+    }
+
+    return NULL;
 }
 
 zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id)
@@ -582,6 +575,9 @@ zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy
 int zs_strategy_engine_save_order(zs_strategy_engine_t* zse, 
     zs_cta_strategy_t* strategy, zs_order_req_t* order_req)
 {
+    zs_orderdict_add(zse->OrderStrategyDict, order_req->FrontID, 
+        order_req->SessionID, order_req->OrderID, strategy);
+
     return 0;
 }
 

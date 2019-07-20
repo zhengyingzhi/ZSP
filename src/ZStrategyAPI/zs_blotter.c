@@ -18,6 +18,8 @@
 #include "zs_risk_control.h"
 
 
+static void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req);
+
 
 zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
 {
@@ -124,10 +126,19 @@ void zs_blotter_release(zs_blotter_t* blotter)
 
 }
 
+void zs_blotter_stop(zs_blotter_t* blotter)
+{
+    // 处理停止时的一些信息
+}
+
 int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
     int rv;
     zs_trade_api_t* tdapi;
+
+    if (!order_req->AccountID[0]) {
+        strcpy(order_req->AccountID, blotter->Account->AccountID);
+    }
 
     rv = zs_risk_control_check(blotter->Algorithm->RiskControl, order_req);
     if (rv != 0)
@@ -135,7 +146,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         return rv;
     }
 
-    rv = zs_blotter_handle_order_submit(blotter, order_req);
+    rv = blotter->handle_order_submit(blotter, order_req);
     if (rv != 0) {
         return rv;
     }
@@ -146,16 +157,9 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
     {
         // send order failed
         zs_order_t order = { 0 };
-        strcpy(order.AccountID, order_req->AccountID);
-        strcpy(order.Symbol, order_req->Symbol);
-        order.ExchangeID = order_req->ExchangeID;
-        order.Sid = order_req->Sid;
-        order.OrderStatus = ZS_OS_Rejected;
-        order.Direction = order_req->Direction;
-        order.OffsetFlag = order_req->OffsetFlag;
-        // other fields...
+        zs_convert_order_req(&order, order_req);
 
-        zs_blotter_handle_order_returned(blotter, &order);
+        blotter->handle_order_returned(blotter, &order);
         return rv;
     }
 
@@ -176,6 +180,10 @@ int zs_blotter_cancel(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req)
     int rv;
     zs_trade_api_t* tdapi;
 
+    if (!cancel_req->AccountID[0]) {
+        strcpy(cancel_req->AccountID, blotter->Account->AccountID);
+    }
+
     tdapi = blotter->TradeApi;
     rv = tdapi->cancel(tdapi->ApiInstance, cancel_req);
     if (rv != 0)
@@ -188,23 +196,17 @@ int zs_blotter_cancel(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req)
 int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
     // 保存订单到 OrderDict 和 WorkOrderDict
-    // TODO: conv order_req as order object
 
     zs_order_t* order;
     order = (zs_order_t*)ztl_pcalloc(blotter->Pool, sizeof(zs_order_t));
 
-    order->SessionID = order_req->SessionID;
-    order->FrontID = order_req->FrontID;
-    strcpy(order->OrderID, order_req->OrderID);
-    strcpy(order->UserID, order_req->UserID);
+    zs_convert_order_req(order, order_req);
 
     zs_orderdict_add_order(blotter->OrderDict, order);
-
-    // zs_orderlist_append(blotter->WorkOrderList, &order);
+    zs_orderlist_append(blotter->WorkOrderList, order);
 
     return 0;
 }
-
 
 zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid)
 {
@@ -228,13 +230,16 @@ zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid
 }
 
 
-int zs_blotter_handle_account(zs_blotter_t* blotter, zs_account_t* account)
+//////////////////////////////////////////////////////////////////////////
+int zs_blotter_handle_account(zs_blotter_t* blotter, zs_fund_account_t* fund_account)
 {
+    memcpy(&blotter->Account->FundAccount, fund_account, sizeof(zs_fund_account_t));
     return 0;
 }
 
 int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos)
 {
+    // TODO: process position
     return 0;
 }
 
@@ -446,13 +451,14 @@ int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 // 行情事件
 static void _zs_sync_price_to_positions(ztl_map_pair_t* pairs, int size, zs_bar_reader_t* bar_reader)
 {
+    double last_price;
     for (int k = 0; k < size; ++k)
     {
         if (!pairs[k].Value) {
             break;
         }
 
-        double last_price = bar_reader->current(bar_reader, (zs_sid_t)pairs[k].Key, "close");
+        last_price = bar_reader->current2(bar_reader, (zs_sid_t)pairs[k].Key, ZS_FT_Close);
         if (last_price < 0.0001) {
             continue;
         }
@@ -464,7 +470,7 @@ int zs_blotter_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
 {
     zs_sid_t sid;
     zs_position_engine_t* position;
-    sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, tick->ExchangeID, tick->Symbol, (int)strlen(tick->Symbol));
+    sid = tick->Sid;
 
     position = zs_get_position_engine(blotter, sid);
     if (position)
@@ -478,9 +484,46 @@ int zs_blotter_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
 int zs_blotter_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
 {
     // 遍历所有blotter的所有持仓，更新浮动盈亏等，最新价格等
-    ztl_map_pair_t pairs[1024] = { 0 };
-    ztl_map_to_array(blotter->Positions, pairs, 1024);
-    _zs_sync_price_to_positions(pairs, 1024, bar_reader);
+    if (bar_reader->DataPortal)
+    {
+        ztl_map_pair_t pairs[1024] = { 0 };
+        ztl_map_to_array(blotter->Positions, pairs, 1024);
+        _zs_sync_price_to_positions(pairs, 1024, bar_reader);
+    }
+    else
+    {
+        double last_price;
+        zs_sid_t sid;
+        zs_position_engine_t* position;
+
+        sid = bar_reader->Bar.Sid;
+        position = zs_get_position_engine(blotter, bar_reader->Bar.Sid);
+        if (position)
+        {
+            last_price = bar_reader->current2(bar_reader, sid, ZS_FT_Close);
+            zs_position_sync_last_price(position, last_price);
+        }
+    }
 
     return 0;
+}
+
+static void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req)
+{
+    strcpy(order->AccountID, order_req->AccountID);
+    strcpy(order->BrokerID, order_req->BrokerID);
+    strcpy(order->Symbol, order_req->Symbol);
+    strcpy(order->UserID, order_req->UserID);
+    order->ExchangeID = order_req->ExchangeID;
+    order->Sid = order_req->Sid;
+    order->OrderQty = order_req->OrderQty;
+    order->OrderPrice = order_req->OrderPrice;
+    order->Direction = order_req->Direction;
+    order->OffsetFlag = order_req->OffsetFlag;
+    order->OrderType = order_req->OrderType;
+    // order->TradingDay = blotter->TradingDay;
+    order->OrderStatus = ZS_OS_Rejected;
+
+    order->FrontID = order_req->FrontID;
+    order->SessionID = order_req->SessionID;
 }

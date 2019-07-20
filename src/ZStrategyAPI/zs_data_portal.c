@@ -118,7 +118,11 @@ int _zs_bar_reader_history(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* 
 double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const char* field)
 {
     zs_bar_t* bar;
-    bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+
+    if (bar_reader->DataPortal)
+        bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    else
+        bar = &bar_reader->Bar;
 
     if (!bar) {
         return 0;
@@ -156,7 +160,12 @@ double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const c
 double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFieldType field)
 {
     zs_bar_t* bar;
-    bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+
+    if (bar_reader->DataPortal)
+        bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    else
+        bar = &bar_reader->Bar;
+
     if (!bar) {
         return 0;
     }
@@ -182,6 +191,8 @@ double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFiel
         return bar->SettlePrice;
     case ZS_FT_AdjustFactor:
         return bar->AdjustFactor;
+    case ZS_FT_Time:
+        return (double)bar->BarTime;
     default:
         return 0;
     }

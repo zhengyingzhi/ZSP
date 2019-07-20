@@ -33,8 +33,8 @@ struct zs_algorithm_s
     int32_t                 Running;
     ztl_pool_t*             Pool;
     zs_algo_param_t*        Params;
-    zs_data_portal_t*       DataPortal;
     zs_event_engine_t*      EventEngine;    // 事件引擎
+    zs_data_portal_t*       DataPortal;     // 统一数据入口
     zs_simulator_t*         Simulator;      // 回测模拟器(回测事件的产生与事件驱动)
     zs_blotter_manager_t    BlotterMgr;     // 多账户交易管理
     zs_asset_finder_t*      AssetFinder;    // 合约管理
@@ -55,6 +55,7 @@ int zs_algorithm_stop(zs_algorithm_t* algo);
 
 int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results);
 
+zs_blotter_t* zs_get_blotter(zs_algorithm_t* algo, const char* accountid);
 
 // get version
 const char* zs_version(int* pver);

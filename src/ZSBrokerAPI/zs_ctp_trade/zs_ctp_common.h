@@ -22,36 +22,41 @@ extern "C" {
 #endif
 
 /* trader apis */
-ZS_CTP_API void* trade_create(const char* str, int reserve);
+void* trade_create(const char* str, int reserve);
 
-ZS_CTP_API void trade_release(void* apiInstance);
+void trade_release(void* instance);
 
-ZS_CTP_API void trade_regist(void* apiInstance, zs_trade_api_handlers_t* handlers,
-    void* tdCtx, const zs_broker_conf_t* apiConf);
+void trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
+    void* tdctx, const zs_conf_broker_t* conf);
 
-ZS_CTP_API void trade_connect(void* apiInstance, void* addr);
+void trade_connect(void* instance, void* addr);
 
-ZS_CTP_API int trade_order(void* apiInstance, const zs_order_t* orderReq);
+int trade_order(void* instance, const zs_order_t* order_req);
 
-ZS_CTP_API int trade_cancel(void* apiInstance, const zs_cancel_req_t* cancelReq);
+int trade_cancel(void* instance, const zs_cancel_req_t* cancel_req);
 
 
 
 /* md apis */
-ZS_CTP_API void* md_create(const char* str, int reserve);
+void* md_create(const char* str, int reserve);
 
-ZS_CTP_API void md_release(void* apiInstance);
+void md_release(void* instance);
 
-ZS_CTP_API void md_regist(void* apiInstance, zs_md_api_handlers_t* handlers,
-    void* tdCtx, const zs_broker_conf_t* apiConf);
+void md_regist(void* instance, zs_md_api_handlers_t* handlers,
+    void* mdctx, const zs_conf_broker_t* conf);
 
-ZS_CTP_API void md_connect(void* apiInstance, void* addr);
+void md_connect(void* instance, void* addr);
 
-ZS_CTP_API int md_login(void* apiInstance);
+int md_login(void* instance);
 
-ZS_CTP_API int md_subscribe(void* apiInstance, char* ppInstruments[], int count);
+int md_subscribe(void* instance, char* ppInstruments[], int count);
 
-ZS_CTP_API int md_unsubscribe(void* apiInstance, char* ppInstruments[], int count);
+int md_unsubscribe(void* instance, char* ppInstruments[], int count);
+
+
+/* the exported dso entry
+ */
+ZS_CTP_API int trade_api_entry(zs_trade_api_t* tdapi);
 
 
 #ifdef __cplusplus

@@ -7,6 +7,12 @@
 
 #include "zs_ctp_common.h"
 
+#ifdef ZS_HAVE_SE
+#pragma comment(lib, "thosttraderapi_se.lib")
+#else
+#pragma comment(lib, "thosttraderapi.lib")
+#endif//ZS_HAVE_SE
+
 
 class ZSCtpTradeSpi : public CThostFtdcTraderSpi
 {
@@ -119,10 +125,10 @@ void* trade_create(const char* str, int reserve)
     return NULL;
 }
 
-void trade_release(void* apiInstance)
+void trade_release(void* instance)
 {
     ZSCtpTradeSpi* tdspi;
-    tdspi = (ZSCtpTradeSpi*)apiInstance;
+    tdspi = (ZSCtpTradeSpi*)instance;
 
     if (tdspi->m_pTradeApi)
     {
@@ -134,47 +140,47 @@ void trade_release(void* apiInstance)
     delete tdspi;
 }
 
-void trade_regist(void* apiInstance, zs_trade_api_handlers_t* handlers,
-    void* tdCtx, const zs_broker_conf_t* apiConf)
+void trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
+    void* tdctx, const zs_conf_broker_t* conf)
 {
     ZSCtpTradeSpi* tdspi;
-    tdspi = (ZSCtpTradeSpi*)apiInstance;
+    tdspi = (ZSCtpTradeSpi*)instance;
 
     tdspi->m_Handlers = handlers;
-    tdspi->m_zsTdCtx = tdCtx;
+    tdspi->m_zsTdCtx = tdctx;
 }
 
-void trade_connect(void* apiInstance, void* addr)
+void trade_connect(void* instance, void* addr)
 {
     ZSCtpTradeSpi* tdspi;
-    tdspi = (ZSCtpTradeSpi*)apiInstance;
+    tdspi = (ZSCtpTradeSpi*)instance;
 
     tdspi->m_pTradeApi->RegisterFront(0);
 
     tdspi->m_pTradeApi->Init();
 }
 
-int trade_order(void* apiInstance, const zs_order_t* orderReq)
+int trade_order(void* instance, const zs_order_t* order_req)
 {
-    CThostFtdcInputOrderField lOrder = { 0 };
-    strcpy(lOrder.InstrumentID, orderReq->Symbol);
+    CThostFtdcInputOrderField input_order = { 0 };
+    strcpy(input_order.InstrumentID, order_req->Symbol);
 
     ZSCtpTradeSpi* tdspi;
-    tdspi = (ZSCtpTradeSpi*)apiInstance;
+    tdspi = (ZSCtpTradeSpi*)instance;
 
     int rv;
-    rv = tdspi->m_pTradeApi->ReqOrderInsert(&lOrder, tdspi->NextReqID());
+    rv = tdspi->m_pTradeApi->ReqOrderInsert(&input_order, tdspi->NextReqID());
 
     return rv;
 }
 
-int trade_cancel(void* apiInstance, const zs_cancel_req_t* cancelReq)
+int trade_cancel(void* instance, const zs_cancel_req_t* cancelReq)
 {
     CThostFtdcInputOrderActionField lAction= { 0 };
     strcpy(lAction.InstrumentID, cancelReq->Symbol);
 
     ZSCtpTradeSpi* tdspi;
-    tdspi = (ZSCtpTradeSpi*)apiInstance;
+    tdspi = (ZSCtpTradeSpi*)instance;
 
     int rv;
     rv = tdspi->m_pTradeApi->ReqOrderAction(&lAction, tdspi->NextReqID());
@@ -182,6 +188,15 @@ int trade_cancel(void* apiInstance, const zs_cancel_req_t* cancelReq)
     return rv;
 }
 
+
+int trade_api_entry(zs_trade_api_t* tdapi)
+{
+    tdapi->create = trade_create;
+    tdapi->release = trade_release;
+    // tdapi->regist = trade_regist;
+    // tdapi->connect = trade_connect;
+    return 0;
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -201,13 +216,13 @@ void ZSCtpTradeSpi::OnFrontConnected()
 {
     // auto request login ?
     if (m_Handlers->on_connect)
-        m_Handlers->on_connect(m_zsTdCtx, 0);
+        m_Handlers->on_connect(m_zsTdCtx);
 }
 
 void ZSCtpTradeSpi::OnFrontDisconnected(int nReason)
 {
-    if (m_Handlers->on_connect)
-        m_Handlers->on_connect(m_zsTdCtx, nReason);
+    if (m_Handlers->on_disconnect)
+        m_Handlers->on_disconnect(m_zsTdCtx, nReason);
 }
 
 void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -217,7 +232,7 @@ void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, C
     strcpy(loginRsp.AccountID, pRspUserLogin->UserID);
 
     if (m_Handlers->on_login)
-        m_Handlers->on_login(m_zsTdCtx, &loginRsp);
+        m_Handlers->on_login(m_zsTdCtx, &loginRsp, NULL);
 }
 
 void ZSCtpTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -277,11 +292,11 @@ void ZSCtpTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
     strcpy(zOrder.Symbol, pOrder->InstrumentID);
     strcpy(zOrder.AccountID, pOrder->InvestorID);
 
-    zOrder.Price = (float)pOrder->LimitPrice;
-    zOrder.Quantity = pOrder->VolumeTotal;
+    zOrder.OrderPrice = pOrder->LimitPrice;
+    zOrder.OrderQty = pOrder->VolumeTotal;
 
-    if (m_Handlers->on_order)
-        m_Handlers->on_order(m_zsTdCtx, &zOrder);
+    if (m_Handlers->on_rtn_order)
+        m_Handlers->on_rtn_order(m_zsTdCtx, &zOrder);
 }
 
 void ZSCtpTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
@@ -289,8 +304,8 @@ void ZSCtpTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
     zs_trade_t zTrade = { 0 };
     strcpy(zTrade.Symbol, pTrade->InstrumentID);
 
-    if (m_Handlers->on_trade)
-        m_Handlers->on_trade(m_zsTdCtx, &zTrade);
+    if (m_Handlers->on_rtn_trade)
+        m_Handlers->on_rtn_trade(m_zsTdCtx, &zTrade);
 }
 
 void ZSCtpTradeSpi::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo)

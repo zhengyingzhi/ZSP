@@ -9,6 +9,12 @@
 #include "zs_ctp_common.h"
 
 
+#ifdef ZS_HAVE_SE
+#pragma comment(lib, "thostmduserapi_se.lib")
+#else
+#pragma comment(lib, "thostmduserapi.lib")
+#endif//ZS_HAVE_SE
+
 
 class ZSCtpMdSpi : public CThostFtdcMdSpi
 {
@@ -59,10 +65,10 @@ void* md_create(const char* str, int reserve)
     return mdspi;
 }
 
-void md_release(void* apiInstance)
+void md_release(void* instance)
 {
     ZSCtpMdSpi* mdspi;
-    mdspi = (ZSCtpMdSpi*)apiInstance;
+    mdspi = (ZSCtpMdSpi*)instance;
 
     if (mdspi->m_pMdApi)
     {
@@ -74,47 +80,47 @@ void md_release(void* apiInstance)
     delete mdspi;
 }
 
-void md_regist(void* apiInstance, zs_md_api_handlers_t* handlers,
-    void* mdCtx, const zs_broker_conf_t* apiConf)
+void md_regist(void* instance, zs_md_api_handlers_t* handlers,
+    void* mdctx, const zs_conf_broker_t* conf)
 {
     ZSCtpMdSpi* mdspi;
-    mdspi = (ZSCtpMdSpi*)apiInstance;
+    mdspi = (ZSCtpMdSpi*)instance;
 
     mdspi->m_Handlers = handlers;
-    mdspi->m_zsMdCtx = mdCtx;
+    mdspi->m_zsMdCtx = mdctx;
 }
 
-void md_connect(void* apiInstance, void* addr)
+void md_connect(void* instance, void* addr)
 {
     ZSCtpMdSpi* mdspi;
-    mdspi = (ZSCtpMdSpi*)apiInstance;
+    mdspi = (ZSCtpMdSpi*)instance;
 
     mdspi->m_pMdApi->RegisterFront(0);
 
     mdspi->m_pMdApi->Init();
 }
 
-int md_login(void* apiInstance)
+int md_login(void* instance)
 {
     ZSCtpMdSpi* mdspi;
-    mdspi = (ZSCtpMdSpi*)apiInstance;
+    mdspi = (ZSCtpMdSpi*)instance;
 
     CThostFtdcReqUserLoginField lLogin = { 0 };
     return mdspi->m_pMdApi->ReqUserLogin(&lLogin, ++mdspi->m_RequestID);
 }
 
-int md_subscribe(void* apiInstance, char* ppInstruments[], int count)
+int md_subscribe(void* instance, char* ppInstruments[], int count)
 {
     ZSCtpMdSpi* mdspi;
-    mdspi = (ZSCtpMdSpi*)apiInstance;
+    mdspi = (ZSCtpMdSpi*)instance;
 
     return mdspi->m_pMdApi->SubscribeMarketData(ppInstruments, count);
 }
 
-int md_unsubscribe(void* apiInstance, char* ppInstruments[], int count)
+int md_unsubscribe(void* instance, char* ppInstruments[], int count)
 {
     ZSCtpMdSpi* mdspi;
-    mdspi = (ZSCtpMdSpi*)apiInstance;
+    mdspi = (ZSCtpMdSpi*)instance;
 
     return mdspi->m_pMdApi->UnSubscribeMarketData(ppInstruments, count);
 }
@@ -135,13 +141,13 @@ void ZSCtpMdSpi::OnFrontConnected()
 {
     // todo: request login
     if (m_Handlers->on_connect)
-        m_Handlers->on_connect(m_zsMdCtx, 0);
+        m_Handlers->on_connect(m_zsMdCtx);
 }
 
 void ZSCtpMdSpi::OnFrontDisconnected(int nReason)
 {
-    if (m_Handlers->on_connect)
-        m_Handlers->on_connect(m_zsMdCtx, nReason);
+    if (m_Handlers->on_disconnect)
+        m_Handlers->on_disconnect(m_zsMdCtx, nReason);
 }
 
 void ZSCtpMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, 
@@ -152,7 +158,7 @@ void ZSCtpMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
     strcpy(loginRsp.AccountID, pRspUserLogin->UserID);
 
     if (m_Handlers->on_login)
-        m_Handlers->on_login(m_zsMdCtx, &loginRsp);
+        m_Handlers->on_login(m_zsMdCtx, &loginRsp, NULL);
 }
 
 void ZSCtpMdSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, 
@@ -175,6 +181,6 @@ void ZSCtpMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pMD)
     zs_tick_t zTick = { 0 };
     strcpy(zTick.Symbol, pMD->InstrumentID);
 
-    if (m_Handlers->on_marketdata)
-        m_Handlers->on_marketdata(m_zsMdCtx, &zTick);
+    if (m_Handlers->on_rtn_mktdata)
+        m_Handlers->on_rtn_mktdata(m_zsMdCtx, &zTick);
 }

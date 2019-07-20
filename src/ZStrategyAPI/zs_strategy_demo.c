@@ -33,9 +33,9 @@ void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
     my_strategy_demo_t* instance;
     instance = (my_strategy_demo_t*)calloc(1, sizeof(my_strategy_demo_t));
 
-    strcpy(instance->symbol, "000001.SZSE");
+    strcpy(instance->symbol, "000001");
     instance->exchangeid = ZS_EI_SZSE;
-    instance->sid = context->lookup_symbol(context, instance->exchangeid, instance->symbol);
+    instance->sid = context->lookup_sid(context, instance->exchangeid, instance->symbol, 6);
 
     // we could assign our user data to UserData field
     context->UserData = NULL;

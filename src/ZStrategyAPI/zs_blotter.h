@@ -43,6 +43,8 @@ struct zs_blotter_s
     zs_algorithm_t*     Algorithm;
     ztl_pool_t*         Pool;
 
+    int32_t             TradingDay;
+
     // 订单管理
     ztl_dict_t*         OrderDict;
     zs_orderlist_t*     WorkOrderList;
@@ -70,10 +72,15 @@ struct zs_blotter_s
     zs_trade_api_t*     TradeApi;
     zs_md_api_t*        MdApi;
 
+    // 交易的策略
+    ztl_array_t*        TradingStrategy;
+
+    // 请求接口
     int (*order)(zs_blotter_t* blotter, zs_order_req_t* order_req);
     int (*quote_order)(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
     int (*cancel)(zs_blotter_t* blotter, zs_cancel_req_t* cancel_req);
 
+    // 回报事件接口
     int (*handle_order_submit)(zs_blotter_t* blotter, zs_order_req_t* order_req);
     int (*handle_order_returned)(zs_blotter_t* blotter, zs_order_t* order);
     int (*handle_order_trade)(zs_blotter_t* blotter, zs_trade_t* trade);
@@ -85,6 +92,9 @@ struct zs_blotter_s
 zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid);
 
 void zs_blotter_release(zs_blotter_t* blotter);
+
+void zs_blotter_stop(zs_blotter_t* blotter);
+
 
 // 下单
 int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req);
@@ -102,7 +112,7 @@ zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid
 
 // 查询回报事件
 // int zs_blotter_handle_invetor(zs_blotter_t* blotter, zs_investor_t* investor);
-int zs_blotter_handle_account(zs_blotter_t* blotter, zs_account_t* account);
+int zs_blotter_handle_account(zs_blotter_t* blotter, zs_fund_account_t* fund_account);
 int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos);
 int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_t* pos_detail);
 int zs_blotter_handle_qry_order(zs_blotter_t* blotter, zs_order_t* order);

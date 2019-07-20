@@ -14,47 +14,6 @@
 #include "zs_slippage.h"
 
 
-/* the backtest trader apis */
-zs_trade_api_t bt_tdapi = {
-    "bt_tdapi",
-    NULL,                   // dso handle
-    NULL,                   // api user data
-    NULL,                   // api instance
-    0,                      // api flag
-    NULL,                   // get api version
-    zs_bt_trade_create,
-    zs_bt_trade_release,
-    zs_bt_trade_regist,
-    zs_bt_trade_connect,
-    NULL,
-    NULL,                   // login
-    NULL,                   // logout
-    zs_bt_order,
-    zs_bt_quote_order,
-    zs_bt_cancel,
-    zs_bt_query,
-    NULL                    // request other
-};
-
-/* the backtest md apis */
-zs_md_api_t bt_mdapi = {
-    "bt_mdapi",
-    NULL,                   // dso handle
-    NULL,                   // api user data
-    NULL,                   // api instance
-    0,                      // api flag
-    NULL,                   // get api version
-    zs_bt_md_create,
-    zs_bt_md_release,
-    zs_bt_md_regist,
-    zs_bt_md_connect,
-    NULL,                   // login
-    NULL,                   // logout
-    zs_bt_md_subscribe,
-    zs_bt_md_unsubscribe,
-    NULL                    // request other
-};
-
 
 /* backtest trade api */
 struct zs_bt_trade_impl_s
@@ -81,75 +40,70 @@ typedef struct zs_bt_md_impl_s zs_bt_md_impl_t;
 // create backtest trade api instance
 void* zs_bt_trade_create(const char* str, int reserve)
 {
-    zs_bt_trade_impl_t* td_instance;
+    zs_bt_trade_impl_t* instance;
 
-    td_instance = (zs_bt_trade_impl_t*)calloc(1, sizeof(zs_bt_trade_impl_t));
+    instance = (zs_bt_trade_impl_t*)calloc(1, sizeof(zs_bt_trade_impl_t));
 
-    td_instance->Slippage = NULL;
+    instance->Slippage = NULL;
 
-    return td_instance;
+    return instance;
 }
 
 // release api instance
-void zs_bt_trade_release(void* api_instance)
+void zs_bt_trade_release(zs_bt_trade_impl_t* instance)
 {
-    zs_bt_trade_impl_t* td_instance;
-    td_instance = (zs_bt_trade_impl_t*)api_instance;
-    if (td_instance)
+    if (instance)
     {
-        free(td_instance);
+        free(instance);
     }
 }
 
-int zs_bt_trade_regist(void* api_instance, zs_trade_api_handlers_t* td_handlers,
+int zs_bt_trade_regist(zs_bt_trade_impl_t* instance, zs_trade_api_handlers_t* td_handlers,
     void* tdctx, const zs_conf_account_t* conf)
 {
-    zs_bt_trade_impl_t* td_instance;
-    td_instance = (zs_bt_trade_impl_t*)api_instance;
-
-    td_instance->TdHandlers = td_handlers;
-    td_instance->ApiConf = *conf;
-    td_instance->TdCtx = tdctx;
+    instance->TdHandlers = td_handlers;
+    instance->ApiConf = *conf;
+    instance->TdCtx = tdctx;
 
     return 0;
 }
 
-int zs_bt_trade_connect(void* api_instance, void* addr)
+int zs_bt_trade_connect(zs_bt_trade_impl_t* instance, void* addr)
 {
-    zs_bt_trade_impl_t* td_instance;
-    td_instance = (zs_bt_trade_impl_t*)api_instance;
-
     // how??
-    td_instance->Slippage = addr;
+    instance->Slippage = (zs_slippage_t*)addr;
 
     return 0;
 }
 
-int zs_bt_order(void* api_instance, zs_order_req_t* order_req)
+int zs_bt_order(zs_bt_trade_impl_t* instance, zs_order_req_t* order_req)
 {
-    zs_bt_trade_impl_t* td_instance;
-    td_instance = (zs_bt_trade_impl_t*)api_instance;
+    fprintf(stderr, "zs_bt_order symbol:%s,qty:%d,px:%2.lf,dir:%d,offset:%d\n",
+        order_req->Symbol, order_req->OrderQty, order_req->OrderPrice, order_req->Direction, order_req->OffsetFlag);
 
-    return zs_slippage_order(td_instance->Slippage, order_req);
+    if (instance->Slippage) {
+        return zs_slippage_order(instance->Slippage, order_req);
+    }
+    return 0;
 }
 
-int zs_bt_quote_order(void* api_instance, zs_quote_order_req_t* order_req)
+int zs_bt_quote_order(zs_bt_trade_impl_t* instance, zs_quote_order_req_t* order_req)
 {
-    zs_bt_trade_impl_t* td_instance;
-    td_instance = (zs_bt_trade_impl_t*)api_instance;
-
-    return zs_slippage_quote_order(td_instance->Slippage, order_req);
+    if (instance->Slippage) {
+        return zs_slippage_quote_order(instance->Slippage, order_req);
+    }
+    return 0;
 }
 
-int zs_bt_cancel(void* api_instance, zs_cancel_req_t* cancel_req)
+int zs_bt_cancel(zs_bt_trade_impl_t* instance, zs_cancel_req_t* cancel_req)
 {
-    zs_bt_trade_impl_t* td_instance;
-    td_instance = (zs_bt_trade_impl_t*)api_instance;
-
-    return zs_slippage_cancel(td_instance->Slippage, cancel_req);
+    if (instance->Slippage) {
+        return zs_slippage_cancel(instance->Slippage, cancel_req);
+    }
+    return 0;
 }
 
-int zs_bt_query(void* api_instance, ZSApiQueryCategory category, void* data, int size)
+int zs_bt_query(zs_bt_trade_impl_t* instance, ZSApiQueryCategory category, void* data, int size)
 {
     // no need support when backtest
     return -1;
@@ -165,23 +119,17 @@ void* zs_bt_md_create(const char* str, int reserve)
 }
 
 // release api instance
-void zs_bt_md_release(void* api_instance)
+void zs_bt_md_release(zs_bt_md_impl_t* md_instrance)
 {
-    zs_bt_md_impl_t* md_instrance;
-    md_instrance = (zs_bt_md_impl_t*)api_instance;
-
     if (md_instrance)
     {
         free(md_instrance);
     }
 }
 
-int zs_bt_md_regist(void* api_instance, zs_md_api_handlers_t* md_handlers,
+int zs_bt_md_regist(zs_bt_md_impl_t* md_instrance, zs_md_api_handlers_t* md_handlers,
     void* mdctx, const zs_conf_account_t* conf)
 {
-    zs_bt_md_impl_t* md_instrance;
-    md_instrance = (zs_bt_md_impl_t*)api_instance;
-
     md_instrance->MdHandlers = md_handlers;
     md_instrance->ApiConf = *conf;
     md_instrance->MdCtx = mdctx;
@@ -189,33 +137,29 @@ int zs_bt_md_regist(void* api_instance, zs_md_api_handlers_t* md_handlers,
     return 0;
 }
 
-int zs_bt_md_connect(void* api_instance, void* addr)
+int zs_bt_md_connect(zs_bt_md_impl_t* md_instrance, void* addr)
 {
-    zs_bt_md_impl_t* md_instrance;
-    md_instrance = (zs_bt_md_impl_t*)api_instance;
-
     // do nothing
     (void)md_instrance;
 
     return 0;
 }
 
-int zs_bt_md_login(void* api_instance)
+int zs_bt_md_login(zs_bt_md_impl_t* md_instrance)
 {
     return -1;
 }
 
-int zs_bt_md_subscribe(void* api_instance, zs_subscribe_t* sub_reqs[], int count)
+int zs_bt_md_subscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* sub_reqs[], int count)
 {
-    zs_bt_md_impl_t* md_instrance;
-    md_instrance = (zs_bt_md_impl_t*)api_instance;
-
     // record what instruments subscribe
     char* instr;
     zs_sid_t sid;
+    ZSExchangeID exchangeid;
+
     for (int i = 0; i < count; ++i)
     {
-        int exchangeid = zs_convert_exchange_name(sub_reqs[i]->Exchange);
+        exchangeid = zs_convert_exchange_name(sub_reqs[i]->Exchange);
         instr = sub_reqs[i]->Symbol;
         sid = zs_asset_lookup(md_instrance->Algorithm->AssetFinder, 
             exchangeid, instr, (int)strlen(instr));
@@ -225,17 +169,16 @@ int zs_bt_md_subscribe(void* api_instance, zs_subscribe_t* sub_reqs[], int count
     return 0;
 }
 
-int zs_bt_md_unsubscribe(void* api_instance, zs_subscribe_t* unsub_reqs[], int count)
+int zs_bt_md_unsubscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* unsub_reqs[], int count)
 {
-    zs_bt_md_impl_t* md_instrance;
-    md_instrance = (zs_bt_md_impl_t*)api_instance;
-
     // record what instruments subscribe
     char* instr;
     zs_sid_t sid;
+    ZSExchangeID exchangeid;
+
     for (int i = 0; i < count; ++i)
     {
-        int exchangeid = zs_convert_exchange_name(unsub_reqs[i]->Exchange);
+        exchangeid = zs_convert_exchange_name(unsub_reqs[i]->Exchange);
         instr = unsub_reqs[i]->Symbol;
         sid = zs_asset_lookup(md_instrance->Algorithm->AssetFinder,
             exchangeid, instr, (int)strlen(instr));
@@ -245,4 +188,59 @@ int zs_bt_md_unsubscribe(void* api_instance, zs_subscribe_t* unsub_reqs[], int c
     return 0;
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+/* the backtest trader apis */
+zs_trade_api_t bt_tdapi = {
+    "backtest",
+    NULL,                   // dso handle
+    NULL,                   // api user data
+    NULL,                   // api instance
+    0,                      // api flag
+    NULL,                   // get api version
+    zs_bt_trade_create,
+    zs_bt_trade_release,
+    zs_bt_trade_regist,
+    zs_bt_trade_connect,
+    NULL,
+    NULL,                   // login
+    NULL,                   // logout
+    zs_bt_order,
+    zs_bt_quote_order,
+    zs_bt_cancel,
+    zs_bt_query,
+    NULL                    // request other
+};
+
+/* the backtest md apis */
+zs_md_api_t bt_mdapi = {
+    "backtest",
+    NULL,                   // dso handle
+    NULL,                   // api user data
+    NULL,                   // api instance
+    0,                      // api flag
+    NULL,                   // get api version
+    zs_bt_md_create,
+    zs_bt_md_release,
+    zs_bt_md_regist,
+    zs_bt_md_connect,
+    NULL,                   // login
+    NULL,                   // logout
+    zs_bt_md_subscribe,
+    zs_bt_md_unsubscribe,
+    NULL                    // request other
+};
+
+
+int zs_bt_trade_api_entry(zs_trade_api_t* tdapi)
+{
+    *tdapi = bt_tdapi;
+    return 0;
+}
+
+int zs_bt_md_api_entry(zs_md_api_t* mdapi)
+{
+    *mdapi = bt_mdapi;
+    return 0;
+}
 

@@ -24,25 +24,11 @@ extern "C" {
 extern zs_trade_api_t   bt_tdapi;
 extern zs_md_api_t      bt_mdapi;
 
-void* zs_bt_trade_create(const char* str, int reserve);
-void zs_bt_trade_release(void* api_instance);
-int zs_bt_trade_regist(void* api_instance, zs_trade_api_handlers_t* td_handlers,
-    void* tdctx, const zs_conf_account_t* conf);
-int zs_bt_trade_connect(void* api_instance, void* addr);
-int zs_bt_order(void* api_instance, zs_order_req_t* order_req);
-int zs_bt_quote_order(void* api_instance, zs_quote_order_req_t* quote_req);
-int zs_bt_cancel(void* api_instance, zs_cancel_req_t* cancel_req);
-int zs_bt_query(void* api_instance, ZSApiQueryCategory category, void* data, int size);
 
-// create backtest md api instance
-void* zs_bt_md_create(const char* str, int reserve);
-void zs_bt_md_release(void* api_instance);
-int zs_bt_md_regist(void* api_instance, zs_md_api_handlers_t* md_handlers,
-    void* mdctx, const zs_conf_account_t* conf);
-int zs_bt_md_connect(void* api_instance, void* addr);
-int zs_bt_md_login(void* api_instance);
-int zs_bt_md_subscribe(void* api_instance, zs_subscribe_t* sub_reqs[], int count);
-int zs_bt_md_unsubscribe(void* api_instance, zs_subscribe_t* unsub_reqs[], int count);
+// simulate the dso entry func
+int zs_bt_trade_api_entry(zs_trade_api_t* tdapi);
+
+int zs_bt_md_api_entry(zs_md_api_t* mdapi);
 
 
 #ifdef __cplusplus

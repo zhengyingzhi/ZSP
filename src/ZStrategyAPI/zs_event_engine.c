@@ -69,7 +69,7 @@ int zs_ee_register(zs_event_engine_t* ee, void* userdata, uint32_t evtype, zs_ee
     if (!arr)
     {
         arr = (ztl_array_t*)ztl_pcalloc(ee->Pool, sizeof(ztl_array_t));
-        ztl_array_init(arr, ee->Pool, 8, sizeof(zs_evobject_t));
+        ztl_array_init(arr, NULL, 8, sizeof(zs_evobject_t));
         ee->EvObjectTable[evtype] = arr;
     }
 
@@ -97,17 +97,17 @@ int zs_ee_post(zs_event_engine_t* ee, uint32_t evtype, void* evdata)
 
 int zs_ee_do_callback(zs_event_engine_t* ee, uint32_t evtype, void* evdata)
 {
-    ztl_array_t* evobjArr;
-    evobjArr = ee->EvObjectTable[evtype];
-    if (!evobjArr)
+    ztl_array_t* evobj_arr;
+    evobj_arr = ee->EvObjectTable[evtype];
+    if (!evobj_arr)
     {
         // not regist before
         return -1;
     }
 
-    for (uint32_t i = 0; i < ztl_array_size(evobjArr); ++i)
+    for (uint32_t i = 0; i < ztl_array_size(evobj_arr); ++i)
     {
-        zs_evobject_t* evobj = (zs_evobject_t*)ztl_array_at(evobjArr, i);
+        zs_evobject_t* evobj = (zs_evobject_t*)ztl_array_at(evobj_arr, i);
         if (evobj->EvHandler)
             evobj->EvHandler(ee, evobj->EvUserData, evtype, evdata);
     }
@@ -127,10 +127,9 @@ static bool _zs_pc_handler(ztl_producer_consumer_t* zpc, int64_t type, void* dat
     evtype = (uint32_t)type;
 
     /* 根据事件类型，回调事件处理函数 */
-    // 回调数据是否是 zdh 还是 zd_data_body(zdh) ?
-    //zs_ee_do_callback(ee, evtype, zd_data_body(zdh));
     zs_ee_do_callback(ee, evtype, zdh);
 
+    /* auto try do release once */
     zs_data_decre_release(zdh);
 
     return true;

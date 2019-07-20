@@ -47,12 +47,15 @@ int main(int argc, char* argv[])
     pool = ztl_create_pool(ZTL_DEFAULT_POOL_SIZE);
 
     // read config
-    const char* conf_file = "zs_config.json";
     zs_algo_param_t params;
     memset(&params, 0, sizeof(params));
     rv = zs_configs_load(&params, pool);
-    assert(rv == 0);
+    // assert(rv == 0);
 
+    zs_data_portal_t* data_portal;
+    data_portal = NULL;
+
+#if 0
     // load ohlc,benchmark data
     ztl_array_t ohlc_datas;
     ztl_array_init(&ohlc_datas, pool, 32, sizeof(zs_bar_t*));
@@ -63,10 +66,10 @@ int main(int argc, char* argv[])
     //zs_data_load_csv("000300SH.csv", &benchmark_datas);
     //assert(rv == 0);
 
-    zs_data_portal_t* data_portal;
     data_portal = zs_data_portal_create();
     zs_data_portal_wrapper(data_portal, &ohlc_datas);
     //zs_data_portal_wrapper(data_portal, &benchmark_datas);
+#endif
 
     // run algo
     zs_algorithm_t* algo;
@@ -79,7 +82,7 @@ int main(int argc, char* argv[])
 
     // get run result from algo
     ztl_array_t result;
-    ztl_array_init(&result, algo->Pool, 1024, sizeof(void*));
+    ztl_array_init(&result, NULL, 1024, sizeof(void*));
     zs_algorithm_result(algo, &result);
 
 

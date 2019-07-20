@@ -136,7 +136,7 @@ zs_trading_calendar_t* zs_tc_create(const char start_date[], const char end_date
     tc->IncludeWeekend = include_weekend;
     tc->Pool = pool;
     tc->Holidays = ztl_set_create(512);
-    ztl_array_init(&tc->AllDays, pool, 4096, sizeof(time_t));
+    ztl_array_init(&tc->AllDays, NULL, 4096, sizeof(time_t));
 
     for (uint32_t i = 0; i < ztl_array_size(holidays); ++i)
     {

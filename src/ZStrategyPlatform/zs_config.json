@@ -1,27 +1,4 @@
-[
-    {
-        "AccountID": "038313",
-        "Password": "qwert",
-        "TradeAPI": "ctp",
-        "TradeAddr": "tcp://180.168.146.187:10000",
-        "BrokerID": "9999",
-        "MdAPI": "ctp",
-        "MdAddr": "tcp://180.168.146.187:10010",
-        "Strategy" : [
-            {"name": "double ma", "path": "EMAStrategy.dll", "symbol": "rb1809,ni1811"},
-            {"name": "boll ex", "path": "BollStrategy.dll", "symbol": "rb1809,au1901"}
-        ]
-    },
-
-    {
-        "AccountID": "000100000001",
-        "Password": "123",
-        "TradeAPI": "xspeed",
-        "TradeAddr": "tcp://203.187.171.250:10910",
-        "MdAPI": "xspeed",
-        "MdAddr": "tcp://203.187.171.250:10915",
-        "Strategy" : [
-            {"name": "double ma", "path": "EMAStrategy.dll", "symbol": "m1809"}
-        ]
-    }
-]
+{
+    "LogName": "zs_api.log",
+    "LogLevel": "info"
+}

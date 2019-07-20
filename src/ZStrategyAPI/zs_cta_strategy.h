@@ -41,12 +41,14 @@ struct zs_cta_strategy_s
     zs_asset_finder_t*      AssetFinder;
 
     // 提供给策略访问的接口
-    zs_sid_t (*lookup_symbol)(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol);
+    zs_sid_t (*lookup_sid)(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol, int len);
+    const char* (*lookup_symbol)(zs_cta_strategy_t* context, zs_sid_t sid);
     int (*order)(zs_cta_strategy_t* context, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset);
     int (*place_order)(zs_cta_strategy_t* context, zs_order_req_t* order_req);
     int (*cancel_order)(zs_cta_strategy_t* context, zs_cancel_req_t* cancel_req);
     int (*cancel_all)(zs_cta_strategy_t* context);
     int (*get_account_position)(zs_cta_strategy_t* context, zs_position_engine_t** pposengine, zs_sid_t sid);
+    int (*get_strategy_position)(zs_cta_strategy_t* context, zs_position_engine_t** pposengine, zs_sid_t sid);
     int (*get_trading_account)(zs_cta_strategy_t* context, zs_account_t** paccount);
     int (*get_open_orders)(zs_cta_strategy_t* context, zs_order_t* open_orders[], int size);
     int (*get_orders)(zs_cta_strategy_t* context, zs_order_t* orders[], int size);

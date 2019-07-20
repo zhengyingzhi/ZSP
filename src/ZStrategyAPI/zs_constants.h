@@ -103,6 +103,7 @@ typedef enum
     ZS_FT_LowerLimit,
     ZS_FT_TWAP,
     ZS_FT_VWAP,
+    ZS_FT_Time,
     ZS_FT_Name
 }ZSFieldType;
 
