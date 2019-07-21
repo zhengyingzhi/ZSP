@@ -352,7 +352,7 @@ static void zs_td_on_rtn_order(zs_trade_api_t* tdctx, zs_order_t* order)
     set_zd_head_symbol(zdh, dst_order);
 
     dst_order->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_order->ExchangeID, dst_order->Symbol, (int)strlen(dst_order->Symbol));
+        dst_order->ExchangeID, dst_order->Symbol, zdh->SymbolLength);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Order, zdh);
     if (rv != 0)
@@ -375,7 +375,7 @@ static void zs_td_on_rtn_trade(zs_trade_api_t* tdctx, zs_trade_t* trade)
     set_zd_head_symbol(zdh, dst_trade);
 
     dst_trade->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_trade->ExchangeID, dst_trade->Symbol, (int)strlen(dst_trade->Symbol));
+        dst_trade->ExchangeID, dst_trade->Symbol, zdh->SymbolLength);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Trade, zdh);
     if (rv != 0)
@@ -424,7 +424,7 @@ static void zs_td_on_qry_order(zs_trade_api_t* tdctx, zs_order_t* order)
     dst_order = (zs_order_t*)zd_data_body(zdh);
 
     dst_order->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_order->ExchangeID, dst_order->Symbol, (int)strlen(dst_order->Symbol));
+        dst_order->ExchangeID, dst_order->Symbol, zdh->SymbolLength);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryOrder, zdh);
     if (rv != 0)
@@ -447,7 +447,7 @@ static void zs_td_on_qry_position(zs_trade_api_t* tdctx, zs_position_t* position
     set_zd_head_symbol(zdh, dst_pos);
 
     dst_pos->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_pos->ExchangeID, dst_pos->Symbol, (int)strlen(dst_pos->Symbol));
+        dst_pos->ExchangeID, dst_pos->Symbol, zdh->SymbolLength);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPosition, zdh);
     if (rv != 0)
@@ -469,7 +469,7 @@ static void zs_td_on_qry_position_detail(zs_trade_api_t* tdctx, zs_position_deta
     set_zd_head_symbol(zdh, dst_pos_detail);
 
     dst_pos_detail->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_pos_detail->ExchangeID, dst_pos_detail->Symbol, (int)strlen(dst_pos_detail->Symbol));
+        dst_pos_detail->ExchangeID, dst_pos_detail->Symbol, zdh->SymbolLength);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPositionDetail, zdh);
     if (rv != 0)
@@ -492,7 +492,7 @@ static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract
     set_zd_head_symbol(zdh, dst_contract);
 
     // dst_contract->Sid = zs_asset_lookup(algo->AssetFinder,
-    //     dst_contract->ExchangeID, dst_contract->Symbol, (int)strlen(dst_contract->Symbol));
+    //     dst_contract->ExchangeID, dst_contract->Symbol, zdh->SymbolLength);
 
     // post to ee
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryContract, zdh);
@@ -597,8 +597,10 @@ static void zs_md_on_rtn_mktdata(zs_md_api_t* mdctx, zs_tick_t* tick)
     algo = (zs_algorithm_t*)mdctx->UserData;
     zdh = _zs_data_create(algo, tick, sizeof(zs_tick_t));
     dst_tick = (zs_tick_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_tick);
 
-    dst_tick->Sid = zs_asset_lookup(algo->AssetFinder, dst_tick->ExchangeID, dst_tick->Symbol, (int)strlen(dst_tick->Symbol));
+    dst_tick->Sid = zs_asset_lookup(algo->AssetFinder, dst_tick->ExchangeID,
+        dst_tick->Symbol, zdh->SymbolLength);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_Tick, zdh);
     if (rv != 0)

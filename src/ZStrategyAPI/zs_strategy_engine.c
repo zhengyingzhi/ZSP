@@ -84,6 +84,7 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, zs_strategy_engine_
         return;
     }
 
+    // no need make a copy of trade here
     ZStrKey* key;
     key = zs_str_keydup2(zs_tradeid, len, ztl_palloc, zse->Pool);
     dictAdd(zse->TradeDict, key, trade);
@@ -211,6 +212,8 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
     zse->BarGenDict         = dictCreate(&uintHashDictType, zse);
     zse->OrderStrategyDict  = zs_orderdict_create(zse->Pool);
     zse->AccountStrategyDict= dictCreate(&strHashDictType, zse);
+
+    zse->TradeDict          = dictCreate(&strHashDictType, zse);
 
     // FIXME:
     zs_strategy_engine_load(zse, NULL);

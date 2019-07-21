@@ -101,14 +101,15 @@ zs_order_t* zs_order_find_by_sysid(zs_orderlist_t* orderlist, ZSExchangeID excha
     iter = ztl_dlist_iter_new(orderlist, ZTL_DLSTART_HEAD);
     while (iter)
     {
-        zs_order_t* temp;
-        temp = (zs_order_t*)iter->nodelink;    // TODO: we should get iter's data
-        if (temp->ExchangeID == exchangeid && strcmp(temp->OrderSysID, order_sysid) == 0) {
-            order = temp;
+        order = (zs_order_t*)ztl_dlist_next(orderlist, iter);
+        if (!order) {
             break;
         }
 
-        iter = ztl_dlist_next(orderlist, iter);
+        if (order->ExchangeID == exchangeid && strcmp(order->OrderSysID, order_sysid) == 0) {
+            break;
+        }
+
     }
 
     ztl_dlist_iter_del(orderlist, iter);
@@ -128,8 +129,10 @@ static void* _zs_order_keydup(void* priv, const void* key) {
     ZSOrderKey* skey = (ZSOrderKey*)key;
     ZSOrderKey* dup_key = (ZSOrderKey*)ztl_palloc(pool, ztl_align(sizeof(ZSOrderKey) + skey->Length + 1, 4));
     dup_key->SessionID = skey->SessionID;
+    dup_key->FrontID = skey->FrontID;
     dup_key->Length = skey->Length;
     dup_key->pOrderID = (char*)(dup_key + 1);
+    dup_key->pOrderID[skey->Length] = '\0';
     ztl_memcpy(dup_key->pOrderID, skey->pOrderID, skey->Length);  // could be use a faster copy
     return dup_key;
 }
@@ -179,6 +182,7 @@ int zs_orderdict_add_order(zs_orderdict_t* orderdict, zs_order_t* order)
     key.SessionID = order->SessionID;
     key.FrontID = order->FrontID;
     key.Length = (int)strlen(order->OrderID);
+    key.pOrderID = order->OrderID;
 
     return dictAdd(orderdict, &key, order);
 }
@@ -191,6 +195,7 @@ int zs_orderdict_add(zs_orderdict_t* orderdict, int32_t frontid, int32_t session
     key.SessionID = sessionid;
     key.FrontID = frontid;
     key.Length = (int)strlen(orderid);
+    key.pOrderID = (char*)orderid;
 
     return dictAdd(orderdict, &key, value);
 }

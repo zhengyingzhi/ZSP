@@ -169,7 +169,8 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
     algo->Simulator = NULL;
     zs_blotter_manager_init(&algo->BlotterMgr, algo);
     algo->AssetFinder = zs_asset_create(algo, algo->Pool, 0);
-    algo->StrategyEngine = zs_strategy_engine_create(algo);
+    // algo->StrategyEngine = zs_strategy_engine_create(algo);
+    algo->StrategyEngine = NULL;
     algo->Broker = zs_broker_create(algo);
     algo->RiskControl = NULL;
 
@@ -276,6 +277,9 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
      // 加载API
     _zs_load_brokers(algo);
 
+    // 注册交易核心所关心的事件
+    zs_algorithm_register(algo);
+
     // 交易核心管理(当前只有一个)
     zs_blotter_t* blotter;
     blotter = zs_blotter_create(algo, "00100002");
@@ -283,9 +287,6 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）
     _zs_load_strategies(algo);
-
-    // 注册交易核心所关心的事件
-    zs_algorithm_register(algo);
 
     // 启动事件引擎
     zs_ee_start(algo->EventEngine);

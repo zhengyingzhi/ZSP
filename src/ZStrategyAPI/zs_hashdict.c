@@ -35,9 +35,10 @@ void* zs_str_keydup(const ZStrKey* key, void*(alloc_pt)(void*, size_t), void* al
 
 void* zs_str_keydup2(const char* str, int length, void*(alloc_pt)(void*, size_t), void* alloc_ctx)
 {
-    ZStrKey* dup_key = (ZStrKey*)alloc_pt(alloc_ctx, ztl_align(sizeof(ZStrKey) + length, sizeof(void*)));
+    ZStrKey* dup_key = (ZStrKey*)alloc_pt(alloc_ctx, ztl_align(sizeof(ZStrKey) + length + 1, sizeof(void*)));
     dup_key->len = length;
     dup_key->ptr = (char*)(dup_key + 1);
+    dup_key->ptr[length] = '\0';
     ztl_memcpy(dup_key->ptr, str, length);
     return dup_key;
 }

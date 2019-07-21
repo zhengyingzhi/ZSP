@@ -90,7 +90,7 @@ void stg_demo_handle_order(my_strategy_demo_t* instance, zs_cta_strategy_t* cont
 
 void stg_demo_handle_trade(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_trade_t* trade)
 {
-    printf("stg demo handle trade: id:%s, symbol:%s,dir:%d,qty:%d,price:%.2f,offset:%d\n",
+    fprintf(stderr, "stg demo handle trade: id:%s, symbol:%s,dir:%d,qty:%d,price:%.2f,offset:%d\n",
         trade->OrderID, trade->Symbol, trade->Direction, trade->Volume, trade->Price, trade->OffsetFlag);
 }
 
@@ -109,7 +109,7 @@ void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* conte
     if (instance->index == 2)
     {
         // try send an order
-        int rv = context->order(context, instance->sid, 100, tick->LastPrice, ZS_D_Long, ZS_OF_Open);
+        int rv = context->order(context, instance->sid, 10, tick->LastPrice, ZS_D_Long, ZS_OF_Open);
         fprintf(stderr, "std demo send order rv:%d\n", rv);
     }
 }

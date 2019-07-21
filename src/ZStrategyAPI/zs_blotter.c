@@ -12,7 +12,8 @@
 #include "zs_risk_control.h"
 
 
-static void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req);
+// convert order req as order object
+void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req);
 
 
 zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
@@ -338,6 +339,9 @@ int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
     zs_contract_t*  contract;
     ZSOrderStatus   order_status;
 
+    fprintf(stderr, "blotter handle_order symbol:%s, vol:%d, price:%.2lf, dir:%d, offset:%d, oid:%s\n",
+        order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID);
+
     contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
 
     // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
@@ -404,6 +408,9 @@ int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
 
     // 过滤重复成交
     char zs_tradeid[32];
+
+    fprintf(stderr, "blotter handle_trade symbol:%s, tid:%s, qty:%d, px:%.2lf\n",
+        trade->Symbol, trade->TradeID, trade->Volume, trade->Price);
 
     int len = zs_make_id(zs_tradeid, trade->ExchangeID, trade->TradeID);
     dictEntry* entry = zs_strdict_find(blotter->TradeDict, zs_tradeid, len);
@@ -518,22 +525,23 @@ int zs_blotter_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
     return 0;
 }
 
-static void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req)
+void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req)
 {
     strcpy(order->AccountID, order_req->AccountID);
     strcpy(order->BrokerID, order_req->BrokerID);
     strcpy(order->Symbol, order_req->Symbol);
     strcpy(order->UserID, order_req->UserID);
-    order->ExchangeID = order_req->ExchangeID;
-    order->Sid = order_req->Sid;
-    order->OrderQty = order_req->OrderQty;
-    order->OrderPrice = order_req->OrderPrice;
-    order->Direction = order_req->Direction;
-    order->OffsetFlag = order_req->OffsetFlag;
-    order->OrderType = order_req->OrderType;
+    strcpy(order->OrderID, order_req->OrderID);
+    order->ExchangeID   = order_req->ExchangeID;
+    order->Sid          = order_req->Sid;
+    order->OrderQty     = order_req->OrderQty;
+    order->OrderPrice   = order_req->OrderPrice;
+    order->Direction    = order_req->Direction;
+    order->OffsetFlag   = order_req->OffsetFlag;
+    order->OrderType    = order_req->OrderType;
     // order->TradingDay = blotter->TradingDay;
-    order->OrderStatus = ZS_OS_Rejected;
+    order->OrderStatus  = ZS_OS_Rejected;
 
-    order->FrontID = order_req->FrontID;
-    order->SessionID = order_req->SessionID;
+    order->FrontID      = order_req->FrontID;
+    order->SessionID    = order_req->SessionID;
 }

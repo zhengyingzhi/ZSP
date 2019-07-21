@@ -94,6 +94,45 @@ int zs_bt_order(zs_bt_trade_impl_t* instance, zs_order_req_t* order_req)
     if (instance->Slippage) {
         return zs_slippage_order(instance->Slippage, order_req);
     }
+    else
+    {
+        static uint32_t order_id = 1;
+
+        // 
+        extern void zs_convert_order_req(zs_order_t*, const zs_order_req_t*);
+        sprintf(order_req->OrderID, "%d", order_id++);
+
+        zs_order_t order = { 0 };
+        zs_convert_order_req(&order, order_req);
+        order.OrderStatus = ZS_OS_Accepted;
+        strcpy(order.OrderSysID, order_req->OrderID);       // fake
+
+        instance->TdHandlers->on_rtn_order(instance->TdCtx, &order);
+
+        // 
+        order.OrderStatus = ZS_OS_PartFilled;
+        order.FilledQty = 1;
+        if (instance->TdHandlers->on_rtn_order)
+            instance->TdHandlers->on_rtn_order(instance->TdCtx, &order);
+
+        zs_trade_t trade = { 0 };
+        strcpy(trade.Symbol, order.Symbol);
+        strcpy(trade.AccountID, order.AccountID);
+        strcpy(trade.UserID, order.UserID);
+        strcpy(trade.OrderID, order.OrderID);
+        strcpy(trade.OrderSysID, order.OrderID);       // fake
+        strcpy(trade.TradeID, order.OrderID);
+        trade.FrontID = order.FrontID;
+        trade.SessionID = order.SessionID;
+        trade.ExchangeID = order.ExchangeID;
+        trade.Sid = order.Sid;
+        trade.Direction = order.Direction;
+        trade.OffsetFlag = order.OffsetFlag;
+        trade.Volume = 1;
+        trade.Price = order.OrderPrice;
+        if (instance->TdHandlers->on_rtn_trade)
+            instance->TdHandlers->on_rtn_trade(instance->TdCtx, &trade);
+    }
     return 0;
 }
 
