@@ -47,7 +47,7 @@ typedef enum
 }ZSExchangeID;
 
 
-/* 数据类型 */
+/* 数据事件类型 */
 typedef enum 
 {
     ZS_DT_Unkown,
@@ -213,10 +213,20 @@ typedef enum
     ZS_RS_NotInit,
     ZS_RS_Inited,
     ZS_RS_Running,
+    ZS_RS_Paused,
     ZS_RS_Stopping,
     ZS_RS_Stopped,
     ZS_RS_Expired
 }ZSRunStatus;
+
+/* 策略交易标志 */
+typedef enum
+{
+    ZS_TF_Normal,           // 正常
+    ZS_TF_Paused,           // 暂停交易
+    ZS_TF_PauseOpen         // 暂停开仓
+}ZSTradingFlag;
+
 
 /* 价格类型 */
 typedef enum 
@@ -254,5 +264,19 @@ typedef enum
     ZS_PD_Yesterday
 }ZSPosDateType;
 
+
+
+/* C数据类型 */
+typedef enum
+{
+    ZS_CT_Char,
+    ZS_CT_String,
+    ZS_CT_Short,
+    ZS_CT_Int32,
+    ZS_CT_Int64,
+    ZS_CT_Float,
+    ZS_CT_Double,
+    ZS_CT_Pointer
+}ZSCType;
 
 #endif//_ZS_CONSTANTS_H_INCLUDED_

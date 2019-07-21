@@ -13,6 +13,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zs_ctp", "..\..\src\ZSBroke
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZStrategyAPI.Test", "..\..\src\ZStrategyAPI.Test\ZStrategyAPI.Test.vcxproj", "{A8FDC400-CD06-42D4-A1C7-E173B72EFD6D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ZStrategy", "ZStrategy", "{24DA3C4A-2B67-4DFB-97AD-6CF15927F2C5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DoubleMA", "..\..\src\ZStrategy\DoubleMA\DoubleMA.vcxproj", "{B1CD7258-6457-4EBB-9FA1-B94B02780895}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -89,11 +93,28 @@ Global
 		{A8FDC400-CD06-42D4-A1C7-E173B72EFD6D}.ReleaseDLL|x64.Build.0 = Release|x64
 		{A8FDC400-CD06-42D4-A1C7-E173B72EFD6D}.ReleaseDLL|x86.ActiveCfg = Release|Win32
 		{A8FDC400-CD06-42D4-A1C7-E173B72EFD6D}.ReleaseDLL|x86.Build.0 = Release|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Debug|x64.ActiveCfg = Debug|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Debug|x64.Build.0 = Debug|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Debug|x86.ActiveCfg = Debug|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Debug|x86.Build.0 = Debug|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.DebugDLL|x64.ActiveCfg = Debug|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.DebugDLL|x64.Build.0 = Debug|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.DebugDLL|x86.ActiveCfg = Debug|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.DebugDLL|x86.Build.0 = Debug|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Release|x64.ActiveCfg = Release|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Release|x64.Build.0 = Release|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Release|x86.ActiveCfg = Release|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.Release|x86.Build.0 = Release|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.ReleaseDLL|x64.ActiveCfg = Release|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.ReleaseDLL|x64.Build.0 = Release|x64
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.ReleaseDLL|x86.ActiveCfg = Release|Win32
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895}.ReleaseDLL|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D80F7270-F364-4D54-8F4B-FEF7FEFD5BCF} = {9B59499E-C68F-4156-A908-779FF0C008CA}
+		{B1CD7258-6457-4EBB-9FA1-B94B02780895} = {24DA3C4A-2B67-4DFB-97AD-6CF15927F2C5}
 	EndGlobalSection
 EndGlobal

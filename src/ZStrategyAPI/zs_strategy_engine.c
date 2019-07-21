@@ -2,19 +2,12 @@
 #include <ZToolLib/ztl_dyso.h>
 
 #include "zs_algorithm.h"
-
 #include "zs_assets.h"
-
 #include "zs_constants_helper.h"
-
 #include "zs_data_portal.h"
-
 #include "zs_hashdict.h"
-
 #include "zs_event_engine.h"
-
 #include "zs_strategy_entry.h"
-
 #include "zs_strategy_engine.h"
 
 // demo use
@@ -530,6 +523,12 @@ int zs_strategy_stop(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
     return 0;
 }
 
+int zs_strategy_pause(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, int trading_flag)
+{
+    zs_cta_strategy_set_trading_flag(strategy, trading_flag);
+    return 0;
+}
+
 int zs_strategy_update(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, const char* new_setting)
 {
     if (strategy->Entry->on_update) {
@@ -538,6 +537,95 @@ int zs_strategy_update(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, c
 
     return 0;
 }
+
+int zs_strategy_init_all(zs_strategy_engine_t* zse, const char* accountid)
+{
+    zs_cta_strategy_t*  strategy;
+    ztl_array_t*        strategy_array;
+
+    if (!accountid || !accountid[0])
+        strategy_array = zse->AllStrategy;
+    else
+        strategy_array = zs_strategy_find_by_account(zse, accountid);
+
+    for (uint32_t i = 0; i < ztl_array_size(strategy_array); ++i)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, i);
+        if (!strategy) {
+            continue;
+        }
+
+        zs_strategy_init(zse, strategy);
+    }
+
+    return 0;
+}
+
+int zs_strategy_start_all(zs_strategy_engine_t* zse, const char* accountid)
+{
+    zs_cta_strategy_t*  strategy;
+    ztl_array_t*        strategy_array;
+
+    if (!accountid || !accountid[0])
+        strategy_array = zse->AllStrategy;
+    else
+        strategy_array = zs_strategy_find_by_account(zse, accountid);
+
+    for (uint32_t i = 0; i < ztl_array_size(strategy_array); ++i)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, i);
+        if (!strategy) {
+            continue;
+        }
+
+        zs_strategy_start(zse, strategy);
+    }
+
+    return 0;
+}
+
+int zs_strategy_stop_all(zs_strategy_engine_t* zse, const char* accountid)
+{
+    zs_cta_strategy_t*  strategy;
+    ztl_array_t*        strategy_array;
+
+    if (!accountid || !accountid[0])
+        strategy_array = zse->AllStrategy;
+    else
+        strategy_array = zs_strategy_find_by_account(zse, accountid);
+
+    for (uint32_t i = 0; i < ztl_array_size(strategy_array); ++i)
+    {
+        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, i);
+        if (!strategy) {
+            continue;
+        }
+
+        zs_strategy_stop(zse, strategy);
+    }
+
+    return 0;
+}
+
+int zs_strategy_del_all(zs_strategy_engine_t* zse, const char* accountid)
+{
+    // ERRORID: not support currently
+    return -1;
+}
+
+int zs_strategy_put_event(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
+{
+    const char* strategy_info;
+    strategy_info = strategy->get_info(strategy);
+    if (!strategy_info) {
+        // ERRORID: 
+    }
+
+    // TODO: 
+
+    return 0;
+}
+
 
 ztl_array_t* zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid)
 {
@@ -551,7 +639,8 @@ ztl_array_t* zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid)
     return NULL;
 }
 
-int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, zs_cta_strategy_t* strategy_array[], int size)
+int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, 
+    zs_cta_strategy_t* strategy_array[], int size)
 {
     int index;
     zs_cta_strategy_t* strategy;
@@ -577,10 +666,17 @@ ztl_array_t* zs_strategy_find_by_account(zs_strategy_engine_t* zse, const char* 
     return NULL;
 }
 
-zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id)
+zs_cta_strategy_t* zs_strategy_find_byid(zs_strategy_engine_t* zse, uint32_t strategy_id)
 {
     zs_cta_strategy_t* strategy;
     strategy = ztl_map_find(zse->StrategyMap, strategy_id);
+    return strategy;
+}
+
+zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, int frontid, int sessionid, const char* orderid)
+{
+    zs_cta_strategy_t* strategy;
+    strategy = zs_orderdict_find(zse->OrderStrategyDict, frontid, sessionid, orderid);
     return strategy;
 }
 

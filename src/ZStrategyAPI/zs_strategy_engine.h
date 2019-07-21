@@ -59,6 +59,9 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* libpaths);
 int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath);
 int zs_strategy_unload(zs_strategy_engine_t* zse, zs_strategy_entry_t* entry);
 
+// FIXME: get strategy entries
+int zs_strategy_get_entries(zs_strategy_engine_t* zse);
+
 
 /* 策略的添加、删除、启动、停止、更新等操作
  */
@@ -69,19 +72,33 @@ int zs_strategy_init(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 int zs_strategy_del(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 int zs_strategy_start(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 int zs_strategy_stop(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
+int zs_strategy_pause(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, int trading_flag);
 int zs_strategy_update(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, const char* new_setting);
+
+int zs_strategy_init_all(zs_strategy_engine_t* zse, const char* accountid);
+int zs_strategy_start_all(zs_strategy_engine_t* zse, const char* accountid);
+int zs_strategy_stop_all(zs_strategy_engine_t* zse, const char* accountid);
+int zs_strategy_del_all(zs_strategy_engine_t* zse, const char* accountid);
+
+// 产生策略更新事件
+int zs_strategy_put_event(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy);
 
 // 根据代码ID查找策略
 ztl_array_t* zs_strategy_find_by_sid(zs_strategy_engine_t* zse, zs_sid_t sid);
 
 // 根据策略名查找策略
-int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name, zs_cta_strategy_t* strategy_array[], int size);
+int zs_strategy_find_by_name(zs_strategy_engine_t* zse, const char* strategy_name,
+    zs_cta_strategy_t* strategy_array[], int size);
 
 // 根据账号查找策略
 ztl_array_t* zs_strategy_find_by_account(zs_strategy_engine_t* zse, const char* accountid);
 
 // 根据策略ID查找策略
-zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, uint32_t strategy_id);
+zs_cta_strategy_t* zs_strategy_find_byid(zs_strategy_engine_t* zse, uint32_t strategy_id);
+
+// 根据策略Key查找策略
+zs_cta_strategy_t* zs_strategy_find(zs_strategy_engine_t* zse, int frontid, int sessionid, const char* orderid);
+
 
 /* operations for cta strategy
  */

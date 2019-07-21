@@ -522,6 +522,14 @@ void zs_json_release(zs_json_t* zjson)
     }
 }
 
+int zs_json_have_object(zs_json_t* zjson, const char* key)
+{
+    if (zjson) {
+        return cJSON_HasObjectItem(zjson->cjson, key);
+    }
+    return 0;
+}
+
 int zs_json_get_object(zs_json_t* zjson, const char* key, zs_json_t** pvalue)
 {
     return -1;
