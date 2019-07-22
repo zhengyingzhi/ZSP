@@ -1,8 +1,13 @@
 #pragma once
 
+#include <map>
+
 #include <ThostFtdcMdApi.h>
 
 #include <ZStrategyAPI/zs_broker_api.h>
+
+
+typedef std::map<uint32_t, ZSExchangeID> VarietyMap;
 
 
 class ZSCtpMdSpi : public CThostFtdcMdSpi
@@ -10,6 +15,9 @@ class ZSCtpMdSpi : public CThostFtdcMdSpi
 public:
     ZSCtpMdSpi(CThostFtdcMdApi* apMdApi);
     virtual ~ZSCtpMdSpi();
+
+public:
+    int ReqLogin();
 
 public:
     virtual void OnFrontConnected();
@@ -37,6 +45,8 @@ public:
     CThostFtdcMdApi*        m_pMdApi;
     zs_md_api_handlers_t*   m_Handlers;
     void*                   m_zsMdCtx;
+    VarietyMap              m_varietyMap;
+    zs_conf_account_t       m_Conf;
     int m_RequestID;
 };
 
@@ -47,16 +57,16 @@ void* md_create(const char* str, int reserve);
 
 void md_release(void* instance);
 
-void md_regist(void* instance, zs_md_api_handlers_t* handlers,
-    void* mdctx, const zs_conf_broker_t* conf);
+int md_regist(void* instance, zs_md_api_handlers_t* handlers,
+    void* mdctx, const zs_conf_account_t* conf);
 
-void md_connect(void* instance, void* addr);
+int md_connect(void* instance, void* addr);
 
 int md_login(void* instance);
 
-int md_subscribe(void* instance, char* ppInstruments[], int count);
+int md_subscribe(void* instance, zs_subscribe_t* sub_reqs[], int count);
 
-int md_unsubscribe(void* instance, char* ppInstruments[], int count);
+int md_unsubscribe(void* instance, zs_subscribe_t* sub_reqs[], int count);
 
 
 /* the exported dso entry

@@ -14,9 +14,100 @@
 #endif//ZS_HAVE_SE
 
 
+#define my_max(x, y)  ((x) > (y) ? (x) : (y))
+
+static inline char zs2ctp_direction(ZSDirection zdirection)
+{
+    switch (zdirection)
+    {
+    case ZS_D_Long:     return THOST_FTDC_D_Buy;
+    case ZS_D_Short:    return THOST_FTDC_D_Sell;
+    default:            return ' ';
+    }
+}
+
+static inline char zs2ctp_offset(ZSOffsetFlag zoffset)
+{
+    switch (zoffset)
+    {
+    case ZS_OF_Open:        return THOST_FTDC_OF_Open;
+    case ZS_OF_Close:       return THOST_FTDC_OF_Close;
+    case ZS_OF_CloseToday:  return THOST_FTDC_OF_CloseToday;
+    case ZS_OF_CloseYd:     return THOST_FTDC_OF_CloseYesterday;
+    default:                return ' ';
+    }
+}
+
+static inline char zs2ctp_pricetype(ZSOrderType zot)
+{
+    switch (zot)
+    {
+    case ZS_OT_Limit:       return THOST_FTDC_OPT_LimitPrice;
+    case ZS_OT_Market:      return THOST_FTDC_OPT_AnyPrice;
+    default:                return THOST_FTDC_OPT_LimitPrice;
+    }
+}
+
+static inline ZSDirection ctp2zs_direction(char cdirection)
+{
+    switch (cdirection)
+    {
+    case THOST_FTDC_D_Buy:  return ZS_D_Long;
+    case THOST_FTDC_D_Sell: return ZS_D_Short;
+    default:                return ZS_D_Unknown;
+    }
+}
+
+static inline ZSOffsetFlag ctp2zs_offset(char coffset)
+{
+    switch (coffset)
+    {
+    case THOST_FTDC_OF_Open:        return ZS_OF_Open;
+    case THOST_FTDC_OF_Close:       return ZS_OF_Close;
+    case THOST_FTDC_OF_CloseToday:  return ZS_OF_CloseToday;
+    case THOST_FTDC_OF_CloseYesterday:     return ZS_OF_CloseYd;
+    default:                return ZS_OF_Unkonwn;
+    }
+}
+
+static inline ZSOrderType ctp2zs_pricetype(char cpt)
+{
+    switch (cpt)
+    {
+    case THOST_FTDC_OPT_LimitPrice: return ZS_OT_Limit;
+    case THOST_FTDC_OPT_AnyPrice:   return ZS_OT_Market;
+    default:                        return ZS_OT_Limit;
+    }
+}
+
+static inline ZSOrderStatus ctp2zs_order_status(char order_status)
+{
+    switch (order_status)
+    {
+    case THOST_FTDC_OST_AllTraded: return ZS_OS_Filled;
+    case THOST_FTDC_OST_PartTradedQueueing:   return ZS_OS_PartFilled;
+    case THOST_FTDC_OST_PartTradedNotQueueing: return ZS_OS_PartCancled;
+    case THOST_FTDC_OST_NoTradeQueueing:    return ZS_OS_Accepted;
+    case THOST_FTDC_OST_Canceled: return ZS_OS_Canceld;
+    case THOST_FTDC_OST_Unknown: return ZS_OS_NotSubmit;
+    default:                        return ZS_OS_Rejected;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 extern void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
 extern int32_t conv_ctp_time(const char* stime);
 
+
+const char* trade_version(void* instance, int* pver)
+{
+    (void)pver;
+    ZSCtpTradeSpi* tdspi;
+    tdspi = (ZSCtpTradeSpi*)instance;
+
+    return tdspi->m_pTradeApi->GetApiVersion();
+}
 
 void* trade_create(const char* str, int reserve)
 {
@@ -46,47 +137,108 @@ void trade_release(void* instance)
     delete tdspi;
 }
 
-void trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
-    void* tdctx, const zs_conf_broker_t* conf)
+int trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
+    void* tdctx, const zs_conf_account_t* conf)
 {
     ZSCtpTradeSpi* tdspi;
     tdspi = (ZSCtpTradeSpi*)instance;
 
     tdspi->m_Handlers = handlers;
     tdspi->m_zsTdCtx = tdctx;
+
+    return 0;
 }
 
-void trade_connect(void* instance, void* addr)
+int trade_connect(void* instance, void* addr)
 {
     ZSCtpTradeSpi* tdspi;
     tdspi = (ZSCtpTradeSpi*)instance;
 
-    tdspi->m_pTradeApi->RegisterFront(0);
+    tdspi->m_pTradeApi->RegisterFront(tdspi->m_Conf.TradeAddr);
 
     tdspi->m_pTradeApi->Init();
+
+    return 0;
 }
 
-int trade_order(void* instance, const zs_order_t* order_req)
+int trade_auth(void* instance)
 {
-    CThostFtdcInputOrderField input_order = { 0 };
-    strcpy(input_order.InstrumentID, order_req->Symbol);
-
     ZSCtpTradeSpi* tdspi;
     tdspi = (ZSCtpTradeSpi*)instance;
 
+    return tdspi->ReqAuthenticate();
+}
+
+int trade_login(void* instance)
+{
+    ZSCtpTradeSpi* tdspi;
+    tdspi = (ZSCtpTradeSpi*)instance;
+
+    return tdspi->ReqLogin();
+}
+
+int trade_logout(void* instance)
+{
+    (void)instance;
+    return -1;
+}
+
+int trade_order(void* instance, zs_order_req_t* order_req)
+{
+    ZSCtpTradeSpi* tdspi;
+    tdspi = (ZSCtpTradeSpi*)instance;
+
+    CThostFtdcInputOrderField input_order = { 0 };
+    strcpy(input_order.BrokerID, order_req->BrokerID);
+    strcpy(input_order.InvestorID, order_req->AccountID);
+    strcpy(input_order.UserID, order_req->UserID);
+    strcpy(input_order.InstrumentID, order_req->Symbol);
+    // order_ref
+    input_order.OrderPriceType = zs2ctp_pricetype(order_req->OrderType);
+    input_order.Direction = zs2ctp_direction(order_req->Direction);
+    input_order.CombOffsetFlag[0] = zs2ctp_offset(order_req->OffsetFlag);
+    input_order.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
+    input_order.LimitPrice = order_req->OrderPrice;
+    input_order.VolumeTotalOriginal = order_req->OrderQty;
+    input_order.TimeCondition = THOST_FTDC_TC_GFD;
+    // input_order.GTDDate =  // trading day ? 
+    input_order.VolumeCondition = THOST_FTDC_VC_AV;
+    input_order.MinVolume = 1;
+    input_order.ContingentCondition = THOST_FTDC_CC_Immediately;
+    input_order.IsAutoSuspend = 0;
+    input_order.RequestID = tdspi->NextReqID();
+    input_order.UserForceClose = 0;
+    input_order.IsSwapOrder = 0;
+    strcpy(input_order.ExchangeID, get_exchange_name(order_req->ExchangeID));
+
     int rv;
-    rv = tdspi->m_pTradeApi->ReqOrderInsert(&input_order, tdspi->NextReqID());
+    rv = tdspi->ReqOrderInsert(&input_order);
+    if (rv == 0)
+    {
+        strcpy(order_req->OrderID, input_order.OrderRef);
+        order_req->FrontID = tdspi->m_FrontID;
+        order_req->SessionID = tdspi->m_SessionID;
+    }
 
     return rv;
 }
 
-int trade_cancel(void* instance, const zs_cancel_req_t* cancelReq)
+int trade_cancel(void* instance, zs_cancel_req_t* cancel_req)
 {
-    CThostFtdcInputOrderActionField lAction= { 0 };
-    strcpy(lAction.InstrumentID, cancelReq->Symbol);
-
     ZSCtpTradeSpi* tdspi;
     tdspi = (ZSCtpTradeSpi*)instance;
+
+    CThostFtdcInputOrderActionField lAction= { 0 };
+    strcpy(lAction.InstrumentID, cancel_req->Symbol);
+    strcpy(lAction.BrokerID, cancel_req->BrokerID);
+    strcpy(lAction.InvestorID, cancel_req->AccountID);
+
+    strcpy(lAction.ExchangeID, get_exchange_name(cancel_req->ExchangeID));
+    strcpy(lAction.OrderSysID, cancel_req->OrderSysID);
+
+    strcpy(lAction.OrderRef, cancel_req->OrderID);
+    lAction.FrontID = cancel_req->FrontID;
+    lAction.SessionID = cancel_req->SessionID;
 
     int rv;
     rv = tdspi->m_pTradeApi->ReqOrderAction(&lAction, tdspi->NextReqID());
@@ -94,13 +246,31 @@ int trade_cancel(void* instance, const zs_cancel_req_t* cancelReq)
     return rv;
 }
 
+int trade_query(void* instance, ZSApiQueryCategory category, void* data, int size)
+{
+    return -1;
+}
 
+// the api entry func
 int trade_api_entry(zs_trade_api_t* tdapi)
 {
-    tdapi->create = trade_create;
-    tdapi->release = trade_release;
-    // tdapi->regist = trade_regist;
-    // tdapi->connect = trade_connect;
+    tdapi->ApiName = "CTP";
+    tdapi->HLib = NULL;
+    tdapi->UserData = NULL;
+    tdapi->ApiInstance = NULL;
+    tdapi->ApiFlag = 0;
+
+    tdapi->api_version  = trade_version;
+    tdapi->create       = trade_create;
+    tdapi->release      = trade_release;
+    tdapi->regist       = trade_regist;
+    tdapi->connect      = trade_connect;
+    tdapi->authenticate = trade_auth;
+    tdapi->login        = trade_login;
+    tdapi->logout       = trade_logout;
+    tdapi->order        = trade_order;
+    tdapi->cancel       = trade_cancel;
+    tdapi->query        = trade_query;
     return 0;
 }
 
@@ -109,7 +279,12 @@ int trade_api_entry(zs_trade_api_t* tdapi)
 ZSCtpTradeSpi::ZSCtpTradeSpi(CThostFtdcTraderApi* apTradeApi)
     : m_pTradeApi(apTradeApi)
     , m_Handlers()
+    , m_Conf()
     , m_zsTdCtx()
+    , m_OrderRef(1)
+    , m_FrontID()
+    , m_SessionID()
+    , m_TradingDay()
     , m_RequestID(1)
 {
     //
@@ -118,6 +293,38 @@ ZSCtpTradeSpi::ZSCtpTradeSpi(CThostFtdcTraderApi* apTradeApi)
 ZSCtpTradeSpi::~ZSCtpTradeSpi()
 {}
 
+
+int ZSCtpTradeSpi::ReqAuthenticate()
+{
+    CThostFtdcReqAuthenticateField lAuth = { 0 };
+    strcpy(lAuth.BrokerID, m_Conf.BrokerID);
+    strcpy(lAuth.UserID, m_Conf.AccountID);
+    strcpy(lAuth.AppID, m_Conf.AppID);
+    strcpy(lAuth.AuthCode, m_Conf.AuthCode);
+    return m_pTradeApi->ReqAuthenticate(&lAuth, NextReqID());
+}
+
+int ZSCtpTradeSpi::ReqLogin()
+{
+    CThostFtdcReqUserLoginField lLogin = { 0 };
+    strcpy(lLogin.BrokerID, m_Conf.BrokerID);
+    strcpy(lLogin.UserID, m_Conf.AccountID);
+    strcpy(lLogin.Password, m_Conf.Password);
+    return m_pTradeApi->ReqUserLogin(&lLogin, NextReqID());
+}
+
+int ZSCtpTradeSpi::ReqOrderInsert(CThostFtdcInputOrderField* input_order)
+{
+    int rv;
+
+    NextOrderRef(input_order->OrderRef);
+
+    rv = m_pTradeApi->ReqOrderInsert(input_order, input_order->RequestID);
+    return rv;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 void ZSCtpTradeSpi::OnFrontConnected()
 {
     // auto request login ?
@@ -168,10 +375,14 @@ void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, C
         zlogin.CFFEXTime = conv_ctp_time(pRspUserLogin->FFEXTime);
         zlogin.INETime = conv_ctp_time(pRspUserLogin->INETime);
 
-        zlogin.MaxOrderRef = atoi(pRspUserLogin->MaxOrderRef);
+        zlogin.MaxOrderRef = my_max(m_OrderRef, atoi(pRspUserLogin->MaxOrderRef));
 
         zlogin.FrontID = pRspUserLogin->FrontID;
         zlogin.SessionID = pRspUserLogin->SessionID;
+
+        m_FrontID = pRspUserLogin->FrontID;
+        m_SessionID = pRspUserLogin->SessionID;
+        m_TradingDay = zlogin.TradingDay;
     }
 
     conv_rsp_info(&error, pRspInfo);
@@ -184,10 +395,14 @@ void ZSCtpTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CTho
 {}
 
 void ZSCtpTradeSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    // 报单错误通知
+}
 
 void ZSCtpTradeSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    // 撤单错误通知
+}
 
 void ZSCtpTradeSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {}
@@ -202,7 +417,9 @@ void ZSCtpTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pI
 {}
 
 void ZSCtpTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    // 资金账户查询应答
+}
 
 void ZSCtpTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {}
@@ -265,16 +482,22 @@ void ZSCtpTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
     strcpy(zOrder.OrderSysID, pOrder->OrderSysID);
     strcpy(zOrder.BranchID, pOrder->BranchID);
 
-    // zOrder.ExchangeID = zs_convert_exchange_name(pOrder->ExchangeID);
+    zOrder.ExchangeID = get_exchange_id(pOrder->ExchangeID);
     zOrder.OrderPrice = pOrder->LimitPrice;
     zOrder.OrderQty = pOrder->VolumeTotal;
     zOrder.FilledQty = pOrder->VolumeTraded;
     zOrder.FrontID = pOrder->FrontID;
     zOrder.SessionID = pOrder->SessionID;
 
-    // TODO: convert
-    // zOrder.Direction = pOrder->Direction;
-    // zOrder.OffsetFlag = pOrder->CombOffsetFlag[0];
+    zOrder.TradingDay = atoi(pOrder->TradingDay);
+    zOrder.OrderDate = atoi(pOrder->InsertDate);
+    zOrder.OrderTime = conv_ctp_time(pOrder->InsertTime);
+    zOrder.CancelTime = conv_ctp_time(pOrder->CancelTime);
+
+    // convert
+    zOrder.Direction = ctp2zs_direction(pOrder->Direction);
+    zOrder.OffsetFlag = ctp2zs_offset(pOrder->CombOffsetFlag[0]);
+    zOrder.OrderStatus = ctp2zs_order_status(pOrder->OrderStatus);
 
     if (m_Handlers->on_rtn_order)
         m_Handlers->on_rtn_order(m_zsTdCtx, &zOrder);
@@ -291,12 +514,21 @@ void ZSCtpTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
     strcpy(zTrade.OrderSysID, pTrade->OrderSysID);
     strcpy(zTrade.TradeID, pTrade->TradeID);
 
+    zTrade.ExchangeID = get_exchange_id(pTrade->ExchangeID);
     zTrade.Volume = pTrade->Volume;
     zTrade.Price = pTrade->Price;
 
-    // TODO: convert
-    // zTrade.Direction = pTrade->Direction;
-    // zTrade.OffsetFlag = pTrade->CombOffsetFlag[0];
+    zTrade.TradingDay = atoi(pTrade->TradingDay);
+    zTrade.TradeDate = atoi(pTrade->TradeDate);
+    zTrade.TradeTime = conv_ctp_time(pTrade->TradeTime);
+
+    // convert
+    zTrade.Direction = ctp2zs_direction(pTrade->Direction);
+    zTrade.OffsetFlag = ctp2zs_offset(pTrade->OffsetFlag);
+
+    // ctp without below fields
+    zTrade.FrontID = 0;
+    zTrade.SessionID = 0;
 
     if (m_Handlers->on_rtn_trade)
         m_Handlers->on_rtn_trade(m_zsTdCtx, &zTrade);

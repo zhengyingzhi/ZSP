@@ -1,15 +1,24 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <float.h>
+#include <ctype.h>
+#include <time.h>
 
 #include <ThostFtdcMdApi.h>
 
 #include <ZStrategyAPI/zs_broker_api.h>
+#include <ZStrategyAPI/zs_constants_helper.h>
 
 #include "zs_ctp_common.h"
 
 #include "zs_ctp_md.h"
 
+#ifdef __linux__
+#define LOCALTIME_S(x,y) localtime_r(y,x)
+#else
+#define LOCALTIME_S(x,y) localtime_s(x,y)
+#endif
 
 #ifdef ZS_HAVE_SE
 #pragma comment(lib, "thostmduserapi_se.lib")
@@ -18,9 +27,43 @@
 #endif//ZS_HAVE_SE
 
 
+static const char* _CFFEXProducts[] = { "IC", "IF", "IH", "T", "TF", "TS", "TT", nullptr };
+static const char* _SHFEProducts[]  = { "ag", "al", "au", "cu", "bu", "fu", "hc", "ni", "pb", "rb", "ru", "sn", "sp", "wr", "zn", nullptr };
+static const char* _DCEProducts[]   = { "a",  "b",  "bb", "c",  "cs", "eg", "fb", "i",  "j",  "jd", "jm", "l",  "m",  "p",  "pp", "v", "y", "msr", nullptr };
+static const char* _CZCEProducts[]  = { "AP", "CF", "CJ", "CY", "FG", "JR", "LR", "MA", "ME", "OI", "PM", "RI", "RM", "RS", "SF", "SM", "SR", "TA", "TC", "WH", "ZC", nullptr };
+static const char* _INEProducts[]   = { "sc", "nr", nullptr };
+
+
+extern const char* get_exchange_name(ZSExchangeID exchangeid);
 extern void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
 extern int32_t conv_ctp_time(const char* stime);
 
+static inline double check_double(double d) {
+    return (d == DBL_MAX) ? 0 : d;
+}
+
+static inline uint32_t check_int(uint32_t ln) {
+    return (ln == INT_MAX || ln == UINT_MAX) ? 0 : ln;
+}
+
+static inline int64_t check_int64(int64_t ln) {
+    return (ln == INT_MAX || ln == UINT_MAX || ln > 9999999999999999 || ln < -9999999999999999) ? 0 : ln;
+}
+
+static inline uint32_t get_variety_int(const char* variety)
+{
+    uint32_t var_int = 0;
+    var_int = uint32_t(variety[0] - '0');
+
+    while (*variety && isalpha(*variety)) {
+        var_int = var_int * 10 + uint32_t(*variety - '0');
+        variety++;
+    }
+
+    return var_int;
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 void* md_create(const char* str, int reserve)
 {
@@ -50,24 +93,32 @@ void md_release(void* instance)
     delete mdspi;
 }
 
-void md_regist(void* instance, zs_md_api_handlers_t* handlers,
-    void* mdctx, const zs_conf_broker_t* conf)
+int md_regist(void* instance, zs_md_api_handlers_t* handlers,
+    void* mdctx, const zs_conf_account_t* conf)
 {
     ZSCtpMdSpi* mdspi;
     mdspi = (ZSCtpMdSpi*)instance;
 
     mdspi->m_Handlers = handlers;
     mdspi->m_zsMdCtx = mdctx;
+
+    if (conf) {
+        mdspi->m_Conf = *conf;
+    }
+
+    return 0;
 }
 
-void md_connect(void* instance, void* addr)
+int md_connect(void* instance, void* addr)
 {
     ZSCtpMdSpi* mdspi;
     mdspi = (ZSCtpMdSpi*)instance;
 
-    mdspi->m_pMdApi->RegisterFront(0);
+    mdspi->m_pMdApi->RegisterFront(mdspi->m_Conf.MDAddr);
 
     mdspi->m_pMdApi->Init();
+
+    return 0;
 }
 
 int md_login(void* instance)
@@ -75,33 +126,59 @@ int md_login(void* instance)
     ZSCtpMdSpi* mdspi;
     mdspi = (ZSCtpMdSpi*)instance;
 
-    CThostFtdcReqUserLoginField lLogin = { 0 };
-    return mdspi->m_pMdApi->ReqUserLogin(&lLogin, ++mdspi->m_RequestID);
+    return mdspi->ReqLogin();
 }
 
-int md_subscribe(void* instance, char* ppInstruments[], int count)
+int md_logout(void* instance)
+{
+    (void)instance;
+    return -1;
+}
+
+int md_subscribe(void* instance, zs_subscribe_t* sub_reqs[], int count)
 {
     ZSCtpMdSpi* mdspi;
     mdspi = (ZSCtpMdSpi*)instance;
 
-    return mdspi->m_pMdApi->SubscribeMarketData(ppInstruments, count);
+    char* ppinstruments[1024] = { 0 };
+    for (int i = 0; i < count && i < 1024; ++i)
+    {
+        ppinstruments[i] = sub_reqs[i]->Symbol;
+    }
+
+    return mdspi->m_pMdApi->SubscribeMarketData(ppinstruments, count);
 }
 
-int md_unsubscribe(void* instance, char* ppInstruments[], int count)
+int md_unsubscribe(void* instance, zs_subscribe_t* unsub_reqs[], int count)
 {
     ZSCtpMdSpi* mdspi;
     mdspi = (ZSCtpMdSpi*)instance;
 
-    return mdspi->m_pMdApi->UnSubscribeMarketData(ppInstruments, count);
+    char* ppinstruments[1024] = { 0 };
+    for (int i = 0; i < count && i < 1024; ++i)
+    {
+        ppinstruments[i] = unsub_reqs[i]->Symbol;
+    }
+
+    return mdspi->m_pMdApi->UnSubscribeMarketData(ppinstruments, count);
 }
 
 
 int md_api_entry(zs_md_api_t* mdapi)
 {
-    mdapi->create = md_create;
-    mdapi->release = md_release;
-    // tdapi->regist = trade_regist;
-    // tdapi->connect = trade_connect;
+    mdapi->ApiName = "CTP";
+    mdapi->HLib = NULL;
+    mdapi->UserData = NULL;
+    mdapi->ApiInstance = NULL;
+
+    mdapi->create   = md_create;
+    mdapi->release  = md_release;
+    mdapi->regist   = md_regist;
+    mdapi->connect  = md_connect;
+    mdapi->login    = md_login;
+    mdapi->logout   = md_logout;
+    mdapi->subscribe= md_subscribe;
+    mdapi->unsubscribe = md_unsubscribe;
     return 0;
 }
 
@@ -110,11 +187,44 @@ ZSCtpMdSpi::ZSCtpMdSpi(CThostFtdcMdApi* apMdApi)
     : m_pMdApi(apMdApi)
     , m_Handlers()
     , m_zsMdCtx()
+    , m_Conf()
     , m_RequestID()
-{}
+{
+    uint32_t var_int;
+    uint32_t i;
+    for (i = 0; _CFFEXProducts[i]; ++i) {
+        var_int = get_variety_int(_CFFEXProducts[i]);
+        m_varietyMap[var_int] = ZS_EI_CFFEX;
+    }
+    for (i = 0; _SHFEProducts[i]; ++i) {
+        var_int = get_variety_int(_SHFEProducts[i]);
+        m_varietyMap[var_int] = ZS_EI_SHFE;
+    }
+    for (i = 0; _DCEProducts[i]; ++i) {
+        var_int = get_variety_int(_DCEProducts[i]);
+        m_varietyMap[var_int] = ZS_EI_DCE;
+    }
+    for (i = 0; _CZCEProducts[i]; ++i) {
+        var_int = get_variety_int(_CZCEProducts[i]);
+        m_varietyMap[var_int] = ZS_EI_CZCE;
+    }
+    for (i = 0; _INEProducts[i]; ++i) {
+        var_int = get_variety_int(_INEProducts[i]);
+        m_varietyMap[var_int] = ZS_EI_INE;
+    }
+}
 
 ZSCtpMdSpi::~ZSCtpMdSpi()
 {}
+
+int ZSCtpMdSpi::ReqLogin()
+{
+    CThostFtdcReqUserLoginField lLogin = { 0 };
+    strcpy(lLogin.BrokerID, m_Conf.BrokerID);
+    strcpy(lLogin.UserID, m_Conf.AccountID);
+    strcpy(lLogin.Password, m_Conf.Password);
+    return m_pMdApi->ReqUserLogin(&lLogin, ++m_RequestID);
+}
 
 void ZSCtpMdSpi::OnFrontConnected()
 {
@@ -133,20 +243,39 @@ void ZSCtpMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
     CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
     // auto re-subscribe?
-    zs_login_t loginRsp = { 0 };
-    if (pRspUserLogin) {
-        strcpy(loginRsp.BrokerID, pRspUserLogin->BrokerID);
-        strcpy(loginRsp.AccountID, pRspUserLogin->UserID);
-        loginRsp.TradingDay = atoi(pRspUserLogin->TradingDay);
+    zs_error_data_t error;
+    zs_login_t zlogin = { 0 };
+
+    if (pRspUserLogin)
+    {
+        strcpy(zlogin.BrokerID, pRspUserLogin->BrokerID);
+        strcpy(zlogin.AccountID, pRspUserLogin->UserID);
+        zlogin.TradingDay = atoi(pRspUserLogin->TradingDay);
     }
 
+    conv_rsp_info(&error, pRspInfo);
+
     if (m_Handlers->on_login)
-        m_Handlers->on_login(m_zsMdCtx, &loginRsp, NULL);
+        m_Handlers->on_login(m_zsMdCtx, &zlogin, &error);
 }
 
 void ZSCtpMdSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, 
     CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    zs_logout_t zlogout = { 0 };
+
+    if (pUserLogout)
+    {
+        strcpy(zlogout.BrokerID, pUserLogout->BrokerID);
+        strcpy(zlogout.AccountID, pUserLogout->UserID);
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_logout)
+        m_Handlers->on_logout(m_zsMdCtx, &zlogout, &error);
+}
 
 void ZSCtpMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
@@ -158,47 +287,103 @@ void ZSCtpMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
 
 void ZSCtpMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, 
     CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    zs_subscribe_t sub;
+
+    if (pSpecificInstrument)
+    {
+        strcpy(sub.Symbol, pSpecificInstrument->InstrumentID);
+
+        ZSExchangeID exchangeid;
+        uint32_t var_int = get_variety_int(pSpecificInstrument->InstrumentID);
+        if (m_varietyMap.count(var_int))
+        {
+            exchangeid = m_varietyMap[var_int];
+            strcpy(sub.Exchange, get_exchange_name(exchangeid));
+        }
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_subscribe)
+        m_Handlers->on_subscribe(m_zsMdCtx, &sub, bIsLast);
+}
 
 void ZSCtpMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, 
     CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    zs_subscribe_t sub;
+
+    if (pSpecificInstrument)
+    {
+        strcpy(sub.Symbol, pSpecificInstrument->InstrumentID);
+
+        ZSExchangeID exchangeid;
+        uint32_t var_int = get_variety_int(pSpecificInstrument->InstrumentID);
+        if (m_varietyMap.count(var_int))
+        {
+            exchangeid = m_varietyMap[var_int];
+            strcpy(sub.Exchange, get_exchange_name(exchangeid));
+        }
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_unsubscribe)
+        m_Handlers->on_unsubscribe(m_zsMdCtx, &sub, bIsLast);
+}
 
 void ZSCtpMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pMD)
 {
+    uint32_t var_int = get_variety_int(pMD->InstrumentID);
+
     zs_tick_t ztick = { 0 };
     ztick.TradingDay = atoi(pMD->TradingDay);
     ztick.ActionDay = atoi(pMD->ActionDay);
 
-    // TODO: process error action day
+    if (!m_varietyMap.count(var_int)) {
+        return;
+    }
+    ztick.ExchangeID = m_varietyMap[var_int];
+
+    if (ztick.ExchangeID == ZS_EI_DCE)
+    {
+        struct tm ltm;
+        time_t now = time(NULL);
+        LOCALTIME_S(&ltm, &now);
+
+        ztick.ActionDay = ((ltm.tm_year + 1900) * 10000) + ((ltm.tm_mon + 1) * 100) + ltm.tm_mday;
+    }
+
     // TODO: filter invalid md
 
-    // ztick.ExchangeID = zs_convert_exchange_name(pMD->ExchangeID);
     strcpy(ztick.Symbol, pMD->InstrumentID);
 
-    ztick.LastPrice = pMD->LastPrice;
-    ztick.OpenPrice = pMD->OpenPrice;
-    ztick.HighPrice = pMD->HighestPrice;
-    ztick.LowPrice = pMD->LowestPrice;
-    ztick.Volume = pMD->Volume;
-    ztick.Turnover = pMD->Turnover;
-    ztick.OpenInterest = pMD->OpenInterest;
+    ztick.LastPrice     = check_double(pMD->LastPrice);
+    ztick.OpenPrice     = check_double(pMD->OpenPrice);
+    ztick.HighPrice     = check_double(pMD->HighestPrice);
+    ztick.LowPrice      = check_double(pMD->LowestPrice);
+    ztick.Volume        = check_int(pMD->Volume);
+    ztick.Turnover      = check_double(pMD->Turnover);
+    ztick.OpenInterest  = check_double(pMD->OpenInterest);
 
-    ztick.SettlementPrice = pMD->SettlementPrice;
-    ztick.UpperLimit = pMD->UpperLimitPrice;
-    ztick.LowerLimit = pMD->LowerLimitPrice;
+    ztick.SettlementPrice = check_double(pMD->SettlementPrice);
+    ztick.UpperLimit    = check_double(pMD->UpperLimitPrice);
+    ztick.LowerLimit    = check_double(pMD->LowerLimitPrice);
 
-    ztick.PreClosePrice = pMD->PreClosePrice;
-    ztick.PreOpenInterest = pMD->PreOpenInterest;
-    ztick.PreSettlementPrice = pMD->PreSettlementPrice;
-    ztick.PreDelta = pMD->PreDelta;
-    ztick.CurrDelta = pMD->CurrDelta;
+    ztick.PreClosePrice = check_double(pMD->PreClosePrice);
+    ztick.PreOpenInterest = check_double(pMD->PreOpenInterest);
+    ztick.PreSettlementPrice = check_double(pMD->PreSettlementPrice);
+    ztick.PreDelta      = check_double(pMD->PreDelta);
+    ztick.CurrDelta     = check_double(pMD->CurrDelta);
 
-    ztick.UpdateTime = conv_ctp_time(pMD->UpdateTime) * 1000 + pMD->UpdateMillisec;
-    ztick.BidPrice[0] = pMD->BidPrice1;
-    ztick.BidVolume[0] = pMD->BidVolume1;
-    ztick.AskPrice[0] = pMD->AskPrice1;
-    ztick.AskVolume[0] = pMD->AskVolume1;
+    ztick.UpdateTime    = conv_ctp_time(pMD->UpdateTime) * 1000 + pMD->UpdateMillisec;
+    ztick.BidPrice[0]   = check_double(pMD->BidPrice1);
+    ztick.BidVolume[0]  = check_int(pMD->BidVolume1);
+    ztick.AskPrice[0]   = check_double(pMD->AskPrice1);
+    ztick.AskVolume[0]  = check_int(pMD->AskVolume1);
 
     if (m_Handlers->on_rtn_mktdata)
         m_Handlers->on_rtn_mktdata(m_zsMdCtx, &ztick);

@@ -25,6 +25,11 @@ extern "C" {
 #endif
 
 
+const char* get_exchange_name(ZSExchangeID exchangeid);
+
+ZSExchangeID get_exchange_id(const char* exchange_name);
+
+
 void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
 
 int32_t conv_ctp_time(const char* stime);

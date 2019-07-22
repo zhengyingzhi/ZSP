@@ -83,7 +83,7 @@ struct zs_trade_api_s
     uint32_t        ApiFlag;
 
     // get api version
-    const char* (*api_version)(int* pver);
+    const char* (*api_version)(void* api_instance, int* pver);
 
     // create api instance
     void* (*create)(const char* str, int reserve);

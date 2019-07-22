@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdio.h>
+#include <string.h>
+
 #include <ThostFtdcTraderApi.h>
 
 #include <ZStrategyAPI/zs_broker_api.h>
@@ -16,6 +19,16 @@ public:
     int NextReqID() {
         return m_RequestID++;
     }
+
+    int NextOrderRef(char order_req[]) {
+        return sprintf(order_req, "%d", m_OrderRef++);
+    }
+
+public:
+    int ReqAuthenticate();
+    int ReqLogin();
+
+    int ReqOrderInsert(CThostFtdcInputOrderField* input_order);
 
 public:
     virtual void OnFrontConnected();
@@ -100,7 +113,12 @@ public:
 public:
     CThostFtdcTraderApi*        m_pTradeApi;
     zs_trade_api_handlers_t*    m_Handlers;
+    zs_conf_account_t           m_Conf;
     void*   m_zsTdCtx;
+    int     m_OrderRef;
+    int     m_FrontID;
+    int     m_SessionID;
+    int     m_TradingDay;
     int     m_RequestID;
 };
 
@@ -110,16 +128,18 @@ void* trade_create(const char* str, int reserve);
 
 void trade_release(void* instance);
 
-void trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
-    void* tdctx, const zs_conf_broker_t* conf);
+int trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
+    void* tdctx, const zs_conf_account_t* conf);
 
-void trade_connect(void* instance, void* addr);
+int trade_connect(void* instance, void* addr);
 
-int trade_login(void* instance, const zs_login_t* login_req);
+int trade_auth(void* instance);
 
-int trade_order(void* instance, const zs_order_t* order_req);
+int trade_login(void* instance);
 
-int trade_cancel(void* instance, const zs_cancel_req_t* cancel_req);
+int trade_order(void* instance, zs_order_req_t* order_req);
+
+int trade_cancel(void* instance, zs_cancel_req_t* cancel_req);
 
 
 /* the exported dso entry

@@ -234,6 +234,7 @@ struct zs_trade_s
     ZSDirection     Direction;
     ZSOffsetFlag    OffsetFlag;
     int32_t         TradingDay;
+    int32_t         TradeDate;
     int32_t         TradeTime;
     int32_t         IsLast;
 
