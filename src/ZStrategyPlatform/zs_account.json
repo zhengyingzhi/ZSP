@@ -7,5 +7,14 @@
         "MDAPIName": "backtest",
         "AppID": "0000000000000000",
         "AuthCode": "1234567890"
+    },
+    {
+        "AccountID": "00028039",
+        "Password": "",
+        "BrokerID": "2318",
+        "TradeAPIName": "CTP",
+        "MDAPIName": "CTP",
+        "AppID": "JK1JC9ARZGYILRJB",
+        "AuthCode": "client_bigtrader_1.3.0"
     }
 ]

@@ -143,6 +143,15 @@ int trade_cancel(void* instance, zs_cancel_req_t* cancel_req);
 
 
 /* the exported dso entry
-*/
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ZS_CTP_API int trade_api_entry(zs_trade_api_t* tdapi);
+
+
+#ifdef __cplusplus
+}
+#endif
 

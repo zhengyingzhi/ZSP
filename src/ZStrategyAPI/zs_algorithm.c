@@ -16,7 +16,7 @@
 #include "zs_simulator.h"
 #include "zs_strategy_engine.h"
 
-
+#include <Windows.h>
 
 /* algo event handlers */
 static void _zs_algo_handle_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
@@ -118,12 +118,12 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         tdapi = (zs_trade_api_t*)ztl_pcalloc(algo->Pool, sizeof(zs_trade_api_t));
         mdapi = (zs_md_api_t*)ztl_pcalloc(algo->Pool, sizeof(zs_md_api_t));
 
-#if 0
+#if 1
         // example code
         const char* tdlibpath;
         const char* mdlibpath;
-        tdlibpath = "zs_ctp_trade.so";
-        mdlibpath = "zs_ctp_md.so";
+        tdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_trade.dll";
+        mdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_md.dll";
 
         tdapi->UserData = algo;
         mdapi->UserData = algo;
@@ -282,7 +282,8 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
     // 交易核心管理(当前只有一个)
     zs_blotter_t* blotter;
-    blotter = zs_blotter_create(algo, "00100002");
+    // blotter = zs_blotter_create(algo, "00100002");
+    blotter = zs_blotter_create(algo, "00028039");
     zs_blotter_manager_add(&algo->BlotterMgr, blotter);
 
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）
@@ -344,8 +345,10 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
         zs_trade_api_t* tdapi;
         zs_md_api_t* mdapi;
 
-        tdapi = zs_broker_get_tradeapi(algo->Broker, "backtest");
-        mdapi = zs_broker_get_mdapi(algo->Broker, "backtest");
+        // tdapi = zs_broker_get_tradeapi(algo->Broker, "backtest");
+        // mdapi = zs_broker_get_mdapi(algo->Broker, "backtest");
+        tdapi = zs_broker_get_tradeapi(algo->Broker, "CTP");
+        mdapi = zs_broker_get_mdapi(algo->Broker, "CTP");
 
         tdapi->UserData = algo;
         mdapi->UserData = algo;
@@ -355,12 +358,12 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
         if (tdapi) {
             tdapi->ApiInstance = tdapi->create("", 0);
-            tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, NULL);
+            tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, blotter->account_conf);
             tdapi->connect(blotter->TradeApi->ApiInstance, NULL);
         }
         if (mdapi) {
             mdapi->ApiInstance = mdapi->create("", 0);
-            mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, NULL);
+            mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, blotter->account_conf);
             mdapi->connect(mdapi->ApiInstance, NULL);
         }
 #endif//0

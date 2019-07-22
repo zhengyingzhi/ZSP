@@ -6,6 +6,8 @@
 
 #include <ZStrategyAPI/zs_broker_api.h>
 
+#include "zs_ctp_common.h"
+
 
 typedef std::map<uint32_t, ZSExchangeID> VarietyMap;
 
@@ -70,6 +72,14 @@ int md_unsubscribe(void* instance, zs_subscribe_t* sub_reqs[], int count);
 
 
 /* the exported dso entry
-*/
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ZS_CTP_API int md_api_entry(zs_md_api_t* mdapi);
 
+
+#ifdef __cplusplus
+}
+#endif

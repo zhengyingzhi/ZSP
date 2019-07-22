@@ -75,6 +75,9 @@ struct zs_blotter_s
     // 交易的策略
     ztl_array_t*        TradingStrategy;
 
+    // 账户配置
+    zs_conf_account_t*  account_conf;
+
     // 请求接口
     int (*order)(zs_blotter_t* blotter, zs_order_req_t* order_req);
     int (*quote_order)(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);

@@ -1,0 +1,9 @@
+[
+    {
+        "APIName": "CTP",
+        "BrokerID": "2318",
+        "BrokerName": "华泰仿真",
+        "TradeAddr": "tcp://59.36.3.115:61206",
+        "MDAddr": "tcp://59.36.3.115:41214"
+    }
+]

@@ -218,6 +218,16 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
     strcpy(broker_conf->ApiName, "backtest");
     ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
 
+#if 0
+    broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
+    strcpy(broker_conf->BrokerID, "2318");
+    strcpy(broker_conf->BrokerName, "»ªÌ©·ÂÕæ");
+    strcpy(broker_conf->ApiName, "CTP");
+    strcpy(broker_conf->TradeAddr, "tcp://59.36.3.115:61206");
+    strcpy(broker_conf->MDAddr, "tcp://59.36.3.115:41214");
+    ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
+#endif
+
     buffer = _zs_read_file_content(conf_file, &length);
     if (!buffer)
     {

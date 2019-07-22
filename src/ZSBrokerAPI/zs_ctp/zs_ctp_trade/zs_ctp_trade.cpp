@@ -119,7 +119,7 @@ void* trade_create(const char* str, int reserve)
 
     printf("ctp trade api %s\n", tdspi->m_pTradeApi->GetApiVersion());
     tdspi->m_pTradeApi->RegisterSpi(tdspi);
-    return NULL;
+    return tdspi;
 }
 
 void trade_release(void* instance)
@@ -145,6 +145,9 @@ int trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
 
     tdspi->m_Handlers = handlers;
     tdspi->m_zsTdCtx = tdctx;
+    if (conf) {
+        tdspi->m_Conf = *conf;
+    }
 
     return 0;
 }
@@ -328,18 +331,28 @@ int ZSCtpTradeSpi::ReqOrderInsert(CThostFtdcInputOrderField* input_order)
 void ZSCtpTradeSpi::OnFrontConnected()
 {
     // auto request login ?
+    fprintf(stderr, "td connected\n");
     if (m_Handlers->on_connect)
         m_Handlers->on_connect(m_zsTdCtx);
+
+    if (m_Conf.AuthCode[0]) {
+        ReqAuthenticate();
+    }
+    else {
+        ReqLogin();
+    }
 }
 
 void ZSCtpTradeSpi::OnFrontDisconnected(int nReason)
 {
+    fprintf(stderr, "td disconnected:%d\n", nReason);
     if (m_Handlers->on_disconnect)
         m_Handlers->on_disconnect(m_zsTdCtx, nReason);
 }
 
 void ZSCtpTradeSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticateField, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
+    fprintf(stderr, "onrsp auth\n");
     zs_error_data_t error;
     zs_authenticate_t auth = { 0 };
 
@@ -354,10 +367,16 @@ void ZSCtpTradeSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthen
 
     if (m_Handlers->on_authenticate)
         m_Handlers->on_authenticate(m_zsTdCtx, &auth, &error);
+
+    if (pRspAuthenticateField) {
+        ReqLogin();
+    }
 }
 
 void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
+    fprintf(stderr, "onrsp login\n");
+
     // login rsp
     zs_error_data_t error;
     zs_login_t zlogin = { 0 };
@@ -389,6 +408,8 @@ void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, C
 
     if (m_Handlers->on_login)
         m_Handlers->on_login(m_zsTdCtx, &zlogin, &error);
+
+    // TODO: auto request settlement confirm
 }
 
 void ZSCtpTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)

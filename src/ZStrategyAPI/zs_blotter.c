@@ -33,6 +33,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter = (zs_blotter_t*)ztl_pcalloc(pool, sizeof(zs_blotter_t));
     blotter->Pool = pool;
 
+    blotter->account_conf = account_conf;
     blotter->Algorithm = algo;
 
     blotter->OrderDict = zs_orderdict_create(blotter->Pool);
