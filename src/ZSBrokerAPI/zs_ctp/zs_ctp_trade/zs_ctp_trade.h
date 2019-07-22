@@ -4,6 +4,8 @@
 
 #include <ZStrategyAPI/zs_broker_api.h>
 
+#include "zs_ctp_common.h"
+
 
 class ZSCtpTradeSpi : public CThostFtdcTraderSpi
 {
@@ -101,4 +103,26 @@ public:
     void*   m_zsTdCtx;
     int     m_RequestID;
 };
+
+
+/* trader apis */
+void* trade_create(const char* str, int reserve);
+
+void trade_release(void* instance);
+
+void trade_regist(void* instance, zs_trade_api_handlers_t* handlers,
+    void* tdctx, const zs_conf_broker_t* conf);
+
+void trade_connect(void* instance, void* addr);
+
+int trade_login(void* instance, const zs_login_t* login_req);
+
+int trade_order(void* instance, const zs_order_t* order_req);
+
+int trade_cancel(void* instance, const zs_cancel_req_t* cancel_req);
+
+
+/* the exported dso entry
+*/
+ZS_CTP_API int trade_api_entry(zs_trade_api_t* tdapi);
 

@@ -18,21 +18,15 @@
     <ClCompile Include="zs_ctp_trade.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="zs_ctp_md.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="zs_ctp_common.cpp">
+    <ClCompile Include="..\zs_ctp_common.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="zs_ctp_common.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="zs_ctp_trade.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="zs_ctp_md.h">
+    <ClInclude Include="..\zs_ctp_common.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

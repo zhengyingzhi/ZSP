@@ -96,6 +96,15 @@ int md_unsubscribe(void* instance, char* ppInstruments[], int count)
 }
 
 
+int md_api_entry(zs_md_api_t* mdapi)
+{
+    mdapi->create = md_create;
+    mdapi->release = md_release;
+    // tdapi->regist = trade_regist;
+    // tdapi->connect = trade_connect;
+    return 0;
+}
+
 //////////////////////////////////////////////////////////////////////////
 ZSCtpMdSpi::ZSCtpMdSpi(CThostFtdcMdApi* apMdApi)
     : m_pMdApi(apMdApi)

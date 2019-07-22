@@ -39,3 +39,27 @@ public:
     void*                   m_zsMdCtx;
     int m_RequestID;
 };
+
+
+//////////////////////////////////////////////////////////////////////////
+/* md apis */
+void* md_create(const char* str, int reserve);
+
+void md_release(void* instance);
+
+void md_regist(void* instance, zs_md_api_handlers_t* handlers,
+    void* mdctx, const zs_conf_broker_t* conf);
+
+void md_connect(void* instance, void* addr);
+
+int md_login(void* instance);
+
+int md_subscribe(void* instance, char* ppInstruments[], int count);
+
+int md_unsubscribe(void* instance, char* ppInstruments[], int count);
+
+
+/* the exported dso entry
+*/
+ZS_CTP_API int md_api_entry(zs_md_api_t* mdapi);
+

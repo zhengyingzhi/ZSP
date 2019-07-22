@@ -1,7 +1,6 @@
 #include "zs_ctp_common.h"
 
-#include <ThostFtdcMdApi.h>
-#include <ThostFtdcTraderApi.h>
+
 
 void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo)
 {
