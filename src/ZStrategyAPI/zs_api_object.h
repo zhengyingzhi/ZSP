@@ -76,7 +76,7 @@ struct zs_error_data_s
 };
 typedef struct zs_error_data_s zs_error_data_t;
 
-/* login */
+/* authenticate data */
 struct zs_authenticate_s
 {
     char            BrokerID[BROKER_ID_LEN];
@@ -155,7 +155,7 @@ struct zs_tick_s
 };
 typedef struct zs_tick_s zs_tick_t;
 
-
+/* level2 market data */
 struct zs_tickl2_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -193,6 +193,7 @@ struct zs_tickl2_s
 };
 typedef struct zs_tickl2_s zs_tickl2_t;
 
+/* bar */
 struct zs_bar_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -201,20 +202,22 @@ struct zs_bar_s
     zs_dt_t         BarDt;
     uint64_t        Sid;
 
+    double          OpenPrice;
+    double          HighPrice;
+    double          LowPrice;
+    double          ClosePrice;
+
     int64_t         Volume;
     double          Amount;
     double          OpenInterest;       // for Future
     double          SettlePrice;        // for Future
     double          AdjustFactor;       // for Equity
-
-    double          OpenPrice;
-    double          HighPrice;
-    double          LowPrice;
-    double          ClosePrice;
+    char            Period[8];          // bar period
 };
 typedef struct zs_bar_s zs_bar_t;
 
 
+/* trade data */
 struct zs_trade_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -249,6 +252,8 @@ struct zs_trade_s
 };
 typedef struct zs_trade_s zs_trade_t;
 
+
+/* order data */
 struct zs_order_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -284,12 +289,26 @@ struct zs_order_s
     int32_t         SessionID;
     char            Padding[12];
 };
-
 typedef struct zs_order_s zs_order_t;
 
+
 // todo
+struct zs_quote_order_s
+{
+    char            Symbol[ZS_SYMBOL_LEN];
+    ZSExchangeID    ExchangeID;
+    char            BrokerID[BROKER_ID_LEN];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            UserID[ACCOUNT_ID_LEN];
+    char            BranchID[BRANCH_ID_LEN];
+
+    char            OrderID[ORDER_ID_LEN];
+    char            OrderSysID[ORDER_SYSID_LEN];
+};
 typedef struct zs_quote_order_s zs_quote_order_t;
 
+
+/* position data */
 struct zs_position_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -320,6 +339,7 @@ struct zs_position_s
 };
 typedef struct zs_position_s zs_position_t;
 
+/* position detail data */
 struct zs_position_detail_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -331,7 +351,7 @@ struct zs_position_detail_s
 
     uint64_t        Sid;
     ZSDirection     Direction;
-    int32_t         Position;
+    int32_t         Volume;
     ZSPosDateType   PositionDate;
 
     int32_t         TradingDay;
@@ -349,6 +369,8 @@ struct zs_position_detail_s
 };
 typedef struct zs_position_detail_s zs_position_detail_t;
 
+
+/* trading account data */
 struct zs_fund_account_s
 {
     char            BrokerID[BROKER_ID_LEN];
@@ -372,6 +394,7 @@ struct zs_fund_account_s
 typedef struct zs_fund_account_s zs_fund_account_t;
 
 
+/* instrument info data */
 struct zs_contract_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -407,6 +430,39 @@ struct zs_contract_s
 typedef struct zs_contract_s zs_contract_t;
 
 
+/* margin rate data */
+struct zs_margin_rate_s
+{
+    char            Symbol[ZS_SYMBOL_LEN];
+    ZSExchangeID    ExchangeID;
+    uint64_t        Sid;
+    ZSRatioType     MarginRateType;
+
+    double          LongMarginRateByMoney;
+    double          LongMarginRateByVolume;
+    double          ShortMarginRateByMoney;
+    double          ShortMarginRateByVolume;
+};
+typedef struct zs_margin_rate_s zs_margin_rate_t;
+
+struct zs_commission_rate_s
+{
+    char            Symbol[ZS_SYMBOL_LEN];
+    ZSExchangeID    ExchangeID;
+    uint64_t        Sid;
+    ZSRatioType     CommRateType;
+
+    double          OpenRatioByMoney;
+    double          OpenRatioByVolume;
+    double          CloseRatioByMoney;
+    double          CloseRatioByVolume;
+    double          CloseTodayRatioByMoney;
+    double          CloseTodayRatioByVolume;
+};
+typedef struct zs_commission_rate_s zs_commission_rate_t;
+
+
+/* order request data */
 struct zs_order_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -436,6 +492,8 @@ struct zs_order_req_s
 };
 typedef struct zs_order_req_s zs_order_req_t;
 
+
+/* order cancel data */
 struct zs_cancel_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -453,6 +511,7 @@ struct zs_cancel_req_s
 typedef struct zs_cancel_req_s zs_cancel_req_t;
 
 
+/* quote order request data */
 struct zs_quote_order_req_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
@@ -471,13 +530,53 @@ struct zs_quote_order_req_s
 };
 typedef struct zs_quote_order_req_s zs_quote_order_req_t;
 
+
+/* subscribe request */
 struct zs_subscribe_s
 {
     char            Symbol[ZS_SYMBOL_LEN];
     char            Exchange[8];
+    // ZSExchangeID    ExchangeID;
     uint64_t        Sid;
 };
 typedef struct zs_subscribe_s zs_subscribe_t;
+
+
+/* instrument confirm data */
+struct zs_settle_confirm_s
+{
+    char            BrokerID[BROKER_ID_LEN];
+    char            AccountID[ACCOUNT_ID_LEN];
+    int32_t         ConfirmDate;
+    int32_t         ConfirmTime;
+    int32_t         SettlementID;
+    char        	CurrencyID[4];
+};
+typedef struct zs_settle_confirm_s zs_settle_confirm_t;
+
+
+/* investor info data */
+struct zs_investor_s
+{
+    char            BrokerID[BROKER_ID_LEN];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            AccountName[24];
+    int32_t         OpenDate;
+};
+typedef struct zs_investor_s zs_investor_t;
+
+
+/* instrument status data */
+struct zs_instrument_status_s
+{
+    ZSExchangeID        ExchangeID;
+    char                Symbol[ZS_SYMBOL_LEN];
+    ZSInstrumentStatus  InstrumentStatus;
+    int32_t         	TradingSegmentSN;
+    int32_t         	EnterTime;
+    int32_t         	EnterReason;
+};
+typedef struct zs_instrument_status_s zs_instrument_status_t;
 
 
 #pragma  pack(pop)

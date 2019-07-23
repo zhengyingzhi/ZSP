@@ -102,6 +102,10 @@ static inline ZSOrderStatus ctp2zs_order_status(char order_status)
     }
 }
 
+static void zs_strip(char str[], int len);
+static void zs_strip_ex(char dst[], const char* src, int len);
+
+
 //////////////////////////////////////////////////////////////////////////
 
 extern void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
@@ -448,7 +452,8 @@ void ZSCtpTradeSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
     strcpy(lReq.BrokerID, m_Conf.BrokerID);
     strcpy(lReq.AccountID, m_Conf.AccountID);
     strcpy(lReq.InvestorID, m_Conf.AccountID);
-    m_pTradeApi->ReqQryTradingAccount(&lReq, NextReqID());
+    int rv = m_pTradeApi->ReqQryTradingAccount(&lReq, NextReqID());
+    fprintf(stderr, "ReqQryTradingAccount rv:%d\n", rv);
 }
 
 void ZSCtpTradeSpi::OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -458,7 +463,80 @@ void ZSCtpTradeSpi::OnRspQryTrade(CThostFtdcTradeField *pTrade, CThostFtdcRspInf
 {}
 
 void ZSCtpTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    // 持仓查询应答
+    zs_error_data_t error;
+    zs_position_t pos = { 0 };
+
+    if (pInvestorPosition)
+    {
+        strcpy(pos.AccountID, pInvestorPosition->InvestorID);
+        strcpy(pos.BrokerID, pInvestorPosition->BrokerID);
+        strcpy(pos.Symbol, pInvestorPosition->InstrumentID);
+        pos.ExchangeID = get_exchange_id(pInvestorPosition->ExchangeID);
+
+        if (pInvestorPosition->PositionDate == THOST_FTDC_PSD_Today)
+            pos.PositionDate = ZS_PD_Today;
+        else
+            pos.PositionDate = ZS_PD_Yesterday;
+
+        if (pInvestorPosition->PosiDirection == THOST_FTDC_PD_Long)
+            pos.Direction = ZS_D_Long;
+        else
+            pos.Direction = ZS_D_Short;
+        pos.YdPosition = pInvestorPosition->YdPosition;
+        pos.Position = pInvestorPosition->Position;
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_qry_position)
+    {
+        m_Handlers->on_qry_position(m_zsTdCtx, &pos, &error, bIsLast);
+    }
+
+    sleepms(1001);
+    CThostFtdcQryInvestorPositionDetailField lReq = { 0 };
+    strcpy(lReq.BrokerID, m_Conf.BrokerID);
+    strcpy(lReq.InvestorID, m_Conf.AccountID);
+    int rv = m_pTradeApi->ReqQryInvestorPositionDetail(&lReq, NextReqID());
+    fprintf(stderr, "ReqQryInvestorPositionDetail rv:%d\n", rv);
+}
+
+void ZSCtpTradeSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField *pInvestorPositionDetail, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+    // 持仓明细查询应答
+    zs_error_data_t error;
+    zs_position_detail_t pos_detail = { 0 };
+
+    if (pInvestorPositionDetail)
+    {
+        strcpy(pos_detail.AccountID, pInvestorPositionDetail->InvestorID);
+        strcpy(pos_detail.BrokerID, pInvestorPositionDetail->BrokerID);
+        strcpy(pos_detail.Symbol, pInvestorPositionDetail->InstrumentID);
+        // strcpy(pos_detail.TradeID, pInvestorPositionDetail->TradeID);
+        zs_strip_ex(pos_detail.TradeID, pInvestorPositionDetail->TradeID, (int)strlen(pInvestorPositionDetail->TradeID));
+        // ctp without userid here
+
+        pos_detail.ExchangeID = get_exchange_id(pInvestorPositionDetail->ExchangeID);
+        pos_detail.Direction = ctp2zs_direction(pInvestorPositionDetail->Direction);
+        pos_detail.OpenDate = atoi(pInvestorPositionDetail->OpenDate);
+        pos_detail.TradingDay = atoi(pInvestorPositionDetail->TradingDay);
+        pos_detail.Volume = pInvestorPositionDetail->Volume;
+        pos_detail.OpenPrice = pInvestorPositionDetail->OpenPrice;
+        pos_detail.PositionPrice = pInvestorPositionDetail->LastSettlementPrice;
+        pos_detail.PreSettlementPrice = pInvestorPositionDetail->LastSettlementPrice;
+        pos_detail.UseMargin = pInvestorPositionDetail->Margin;
+        pos_detail.CloseVolume = pInvestorPositionDetail->CloseVolume;
+        pos_detail.CloseAmount = pInvestorPositionDetail->CloseAmount;
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_qry_position_detail) {
+        m_Handlers->on_qry_position_detail(m_zsTdCtx, &pos_detail, &error, bIsLast);
+    }
+}
 
 void ZSCtpTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
@@ -481,15 +559,15 @@ void ZSCtpTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradi
 
     conv_rsp_info(&error, pRspInfo);
 
-    if (m_Handlers->on_rsp_data)
+    if (m_Handlers->on_qry_trading_account)
     {
-        m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryAccount, 
-            &fund_account, sizeof(fund_account), &error, bIsLast);
+        m_Handlers->on_qry_trading_account(m_zsTdCtx, &fund_account, &error, bIsLast);
     }
 
     sleepms(1001);
     CThostFtdcQryInstrumentField lReq = { 0 };
-    m_pTradeApi->ReqQryInstrument(&lReq, NextReqID());
+    int rv = m_pTradeApi->ReqQryInstrument(&lReq, NextReqID());
+    fprintf(stderr, "ReqQryInstrument rv:%d\n", rv);
 }
 
 void ZSCtpTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -500,37 +578,75 @@ void ZSCtpTradeSpi::OnRspQryTradingCode(CThostFtdcTradingCodeField *pTradingCode
 
 void ZSCtpTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pInstrumentMarginRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-#if 0
     zs_error_data_t error;
     zs_margin_rate_t margin_rate = { 0 };
     if (pInstrumentMarginRate)
     {
-        contract.ExchangeID = get_exchange_id(pInstrument->ExchangeID);
-        strcpy(contract.Symbol, pInstrument->InstrumentID);
-        contract.PriceTick = pInstrument->PriceTick;
-        contract.Multiplier = pInstrument->VolumeMultiple;
-        contract.LongMarginRateByMoney = pInstrument->LongMarginRatio;
-        contract.ShortMarginRateByMoney = pInstrument->ShortMarginRatio;
-        contract.ProductClass = ZS_PC_Future;
+        margin_rate.ExchangeID = get_exchange_id(pInstrumentMarginRate->ExchangeID);
+        strcpy(margin_rate.Symbol, pInstrumentMarginRate->InstrumentID);
+        margin_rate.LongMarginRateByMoney = pInstrumentMarginRate->LongMarginRatioByMoney;
+        margin_rate.LongMarginRateByVolume = pInstrumentMarginRate->LongMarginRatioByVolume;
+        margin_rate.ShortMarginRateByMoney = pInstrumentMarginRate->LongMarginRatioByMoney;
+        margin_rate.ShortMarginRateByVolume = pInstrumentMarginRate->ShortMarginRatioByVolume;
+
+        if (margin_rate.LongMarginRateByMoney > 0.001)
+            margin_rate.MarginRateType = ZS_R_ByMoney;
+        else
+            margin_rate.MarginRateType = ZS_R_ByVolume;
     }
 
     conv_rsp_info(&error, pRspInfo);
 
-    if (m_Handlers->on_rsp_data)
-        m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryMarginRate, &margin_rate, sizeof(margin_rate), &error, bIsLast);
-
+    if (m_Handlers->on_qry_margin_rate)
+    {
+        m_Handlers->on_qry_margin_rate(m_zsTdCtx, &margin_rate, &error, bIsLast);
+    }
 
     sleepms(1001);
     CThostFtdcQryInstrumentCommissionRateField lReq = { 0 };
     strcpy(lReq.BrokerID, m_Conf.BrokerID);
     strcpy(lReq.InvestorID, m_Conf.AccountID);
     // lReq.HedgeFlag = THOST_FTDC_HF_Speculation;
-    m_pTradeApi->ReqQryInstrumentCommissionRate(&lReq, NextReqID());
-#endif
+    int rv = m_pTradeApi->ReqQryInstrumentCommissionRate(&lReq, NextReqID());
+    fprintf(stderr, "ReqQryInstrumentCommissionRate rv:%d\n", rv);
 }
 
 void ZSCtpTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    zs_error_data_t error;
+    zs_commission_rate_t comm_rate = { 0 };
+    if (pInstrumentCommissionRate)
+    {
+        comm_rate.ExchangeID = get_exchange_id(pInstrumentCommissionRate->ExchangeID);
+        strcpy(comm_rate.Symbol, pInstrumentCommissionRate->InstrumentID);
+
+        comm_rate.OpenRatioByMoney = pInstrumentCommissionRate->OpenRatioByMoney;
+        comm_rate.OpenRatioByVolume = pInstrumentCommissionRate->OpenRatioByVolume;
+        comm_rate.CloseRatioByMoney = pInstrumentCommissionRate->CloseRatioByMoney;
+        comm_rate.CloseRatioByVolume = pInstrumentCommissionRate->CloseRatioByVolume;
+        comm_rate.CloseTodayRatioByMoney = pInstrumentCommissionRate->CloseTodayRatioByMoney;
+        comm_rate.CloseTodayRatioByVolume = pInstrumentCommissionRate->CloseTodayRatioByVolume;
+
+        if (comm_rate.OpenRatioByMoney > 0.001)
+            comm_rate.CommRateType = ZS_R_ByMoney;
+        else
+            comm_rate.CommRateType = ZS_R_ByVolume;
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_qry_commission_rate)
+    {
+        m_Handlers->on_qry_commission_rate(m_zsTdCtx, &comm_rate, &error, bIsLast);
+    }
+
+    sleepms(1001);
+    CThostFtdcQryInvestorPositionField lReq = { 0 };
+    strcpy(lReq.BrokerID, m_Conf.BrokerID);
+    strcpy(lReq.InvestorID, m_Conf.AccountID);
+    int rv = m_pTradeApi->ReqQryInvestorPosition(&lReq, NextReqID());
+    fprintf(stderr, "ReqQryInvestorPosition rv:%d\n", rv);
+}
 
 void ZSCtpTradeSpi::OnRspQryExchange(CThostFtdcExchangeField *pExchange, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {}
@@ -555,8 +671,10 @@ void ZSCtpTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, C
 
     conv_rsp_info(&error, pRspInfo);
 
-    if (m_Handlers->on_rsp_data)
-        m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryContract, &contract, sizeof(contract), &error, bIsLast);
+    if (m_Handlers->on_qry_contract)
+    {
+        m_Handlers->on_qry_contract(m_zsTdCtx, &contract, &error, bIsLast);
+    }
 
     sleepms(1001);
     CThostFtdcQryInstrumentMarginRateField lReq = { 0 };
@@ -573,6 +691,12 @@ void ZSCtpTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID,
 {
     zs_error_data_t error;
     conv_rsp_info(&error, pRspInfo);
+
+    if (pRspInfo && pRspInfo->ErrorID == 90)
+    {
+        fprintf(stderr, "OnRspError errorid:%d, errormsg:%s\n", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
+    }
+
     if (m_Handlers->on_rsp_error)
         m_Handlers->on_rsp_error(m_zsTdCtx, &error);
 }
@@ -618,7 +742,8 @@ void ZSCtpTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
     strcpy(zTrade.Symbol, pTrade->InstrumentID);
     strcpy(zTrade.OrderID, pTrade->OrderRef);
     strcpy(zTrade.OrderSysID, pTrade->OrderSysID);
-    strcpy(zTrade.TradeID, pTrade->TradeID);
+    // strcpy(zTrade.TradeID, pTrade->TradeID);
+    zs_strip_ex(zTrade.TradeID, pTrade->TradeID, (int)strlen(pTrade->TradeID));
 
     zTrade.ExchangeID = get_exchange_id(pTrade->ExchangeID);
     zTrade.Volume = pTrade->Volume;
@@ -648,3 +773,48 @@ void ZSCtpTradeSpi::OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction
 
 void ZSCtpTradeSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus)
 {}
+
+
+static void zs_strip(char str[], int len)
+{
+    char* beg = str;
+    char* end = str + len - 1;
+
+    while (*beg == ' ' || *beg == '\t')
+        ++beg;
+    while (*end == ' ' || *end == '\t')
+        --end;
+
+    if (beg > end) {
+        *str = '\0';
+        return;
+    }
+
+    while (beg != end) {
+        *str++ = *beg++;
+    }
+
+    *str++ = *end;
+    *str = '\0';
+}
+
+
+static void zs_strip_ex(char dst[], const char* src, int len)
+{
+    int index = 0;
+    const char* end = src + len - 1;
+    while (end > src && (*end == ' ' || *end == '\t'))
+        --end;
+
+    while (src <= end)
+    {
+        if (!*src)
+            break;
+
+        if (*src == ' ' || *src == '\t') {
+            src++;
+            continue;
+        }
+        dst[index++] = *src++;
+    }
+}

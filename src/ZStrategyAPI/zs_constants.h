@@ -265,6 +265,14 @@ typedef enum
 }ZSPosDateType;
 
 
+/* 费率类型 */
+typedef enum
+{
+    ZS_R_ByMoney,
+    ZS_R_ByVolume
+}ZSRatioType;
+
+
 
 /* C数据类型 */
 typedef enum

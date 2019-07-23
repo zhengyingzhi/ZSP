@@ -130,10 +130,19 @@ struct zs_trade_api_handlers_s
     void (*on_authenticate)(void* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata);
     void (*on_login)(void* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata);
     void (*on_logout)(void* tdctx, zs_logout_t* login_out, zs_error_data_t* errdata);
-    void (*on_settlement_confirm)(void* tdctx, void* settlement, zs_error_data_t* errdata);
+    void (*on_settlement_confirm)(void* tdctx, zs_settle_confirm_t* settlement, zs_error_data_t* errdata);
     void (*on_rtn_order)(void* tdctx, zs_order_t* order);
     void (*on_rtn_trade)(void* tdctx, zs_trade_t* trade);
+    void (*on_rtn_instrument_status)(void* tdctx, zs_instrument_status_t* instrument_status);
     void (*on_rtn_data)(void* tdctx, int dtype, void* data, int size);
+    void (*on_qry_contract)(void* tdctx, zs_contract_t* contract, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_trading_account)(void* tdctx, zs_fund_account_t* fund_account, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_order)(void* tdctx, zs_order_t* order, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_trade)(void* tdctx, zs_trade_t* trade, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_position)(void* tdctx, zs_position_t* pos, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_position_detail)(void* tdctx, zs_position_detail_t* pos_detail, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_margin_rate)(void* tdctx, zs_margin_rate_t* margin_rate, zs_error_data_t* errdata, uint32_t flag);
+    void (*on_qry_commission_rate)(void* tdctx, zs_commission_rate_t* comm_rate, zs_error_data_t* errdata, uint32_t flag);
     void (*on_rsp_data)(void* tdctx, int dtype, void* data, int size, zs_error_data_t* errdata, uint32_t flag);
 };
 
@@ -189,7 +198,7 @@ struct zs_md_api_handlers_s
     void (*on_unsubscribe)(void* mdctx, zs_subscribe_t* unsub_rsp, int flag);
     void (*on_rtn_mktdata)(void* mdctx, zs_tick_t* tick);
     void (*on_rtn_mktdata_l2)(void* mdctx, zs_tickl2_t* tickl2);
-    void (*on_rtn_forquote)(void* mdctx, void* forQuote);
+    void (*on_rtn_forquote)(void* mdctx, void* for_quote);
 };
 
 

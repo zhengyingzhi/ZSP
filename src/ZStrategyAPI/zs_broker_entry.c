@@ -18,25 +18,45 @@
  */
 static void zs_td_on_connect(zs_trade_api_t* tdctx);
 static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason);
+static void zs_td_on_error(zs_trade_api_t* tdctx, zs_error_data_t* errdata);
 static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata);
 static void zs_td_on_login(zs_trade_api_t* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata);
 static void zs_td_on_logout(zs_trade_api_t* tdctx, zs_logout_t* logout_rsp, zs_error_data_t* errdata);
 static void zs_td_on_rtn_order(zs_trade_api_t* tdctx, zs_order_t* order);
 static void zs_td_on_rtn_trade(zs_trade_api_t* tdctx, zs_trade_t* trade);
+static void zs_td_on_rtn_instrument_status(zs_trade_api_t* tdctx, zs_instrument_status_t* instrument_status);
 static void zs_td_on_rtn_data(zs_trade_api_t* tdctx, int dtype, void* data, int size);
+static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_trading_account(zs_trade_api_t* tdctx, zs_fund_account_t* fund_account, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_order(zs_trade_api_t* tdctx, zs_order_t* order, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_trade(zs_trade_api_t* tdctx, zs_trade_t* trade, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_position(zs_trade_api_t* tdctx, zs_position_t* pos, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_position_detail(zs_trade_api_t* tdctx, zs_position_detail_t* pos_detail, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_margin_rate(zs_trade_api_t* tdctx, zs_margin_rate_t* margin_rate, zs_error_data_t* errdata, uint32_t flag);
+static void zs_td_on_qry_commission_rate(zs_trade_api_t* tdctx, zs_commission_rate_t* comm_rate, zs_error_data_t* errdata, uint32_t flag);
 static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int size, zs_error_data_t* errdata, uint32_t flag);
 
 
 zs_trade_api_handlers_t td_handlers = {
     zs_td_on_connect,
     zs_td_on_disconnect,
-    NULL,
+    zs_td_on_error,
     zs_td_on_authenticate,
     zs_td_on_login,
     zs_td_on_logout,
+    NULL,               // settlement confirm
     zs_td_on_rtn_order,
     zs_td_on_rtn_trade,
+    zs_td_on_rtn_instrument_status,
     zs_td_on_rtn_data,
+    zs_td_on_qry_contract,
+    zs_td_on_qry_trading_account,
+    zs_td_on_qry_order,
+    zs_td_on_qry_trade,
+    zs_td_on_qry_position,
+    zs_td_on_qry_position_detail,
+    zs_td_on_qry_margin_rate,
+    zs_td_on_qry_commission_rate,
     zs_td_on_rsp_data
 };
 
@@ -286,6 +306,11 @@ static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason)
     }
 }
 
+static void zs_td_on_error(zs_trade_api_t* tdctx, zs_error_data_t* errdata)
+{
+    //
+}
+
 static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata)
 {
     int rv;
@@ -384,111 +409,14 @@ static void zs_td_on_rtn_trade(zs_trade_api_t* tdctx, zs_trade_t* trade)
     }
 }
 
+static void zs_td_on_rtn_instrument_status(zs_trade_api_t* tdctx, zs_instrument_status_t* instrument_status)
+{
+}
+
 static void zs_td_on_rtn_data(zs_trade_api_t* tdctx, int dtype, void* data, int size)
 {}
 
-static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int size, zs_error_data_t* errdata, uint32_t flag)
-{
-    switch (dtype)
-    {
-    case ZS_DT_QryAccount:
-    case ZS_DT_QryContract:
-    case ZS_DT_QryMarginRate:
-    case ZS_DT_QryCommRate:
-    default:
-        break;
-    }
-}
-
-
-static void zs_td_on_qry_account(zs_trade_api_t* tdctx, zs_fund_account_t* fund_account)
-{
-    // 资金账户
-
-    int rv;
-    zs_data_head_t* zdh;
-    zs_algorithm_t* algo;
-
-    algo = (zs_algorithm_t*)tdctx->UserData;
-
-    zdh = _zs_data_create(algo, fund_account, sizeof(zs_fund_account_t));
-
-    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryAccount, zdh);
-    if (rv != 0)
-    {
-        // log error
-    }
-}
-
-static void zs_td_on_qry_order(zs_trade_api_t* tdctx, zs_order_t* order)
-{
-    //
-    int rv;
-    zs_data_head_t* zdh;
-    zs_algorithm_t* algo;
-    zs_order_t*     dst_order;
-
-    algo = (zs_algorithm_t*)tdctx->UserData;
-
-    zdh = _zs_data_create(algo, order, sizeof(zs_order_t));
-    dst_order = (zs_order_t*)zd_data_body(zdh);
-
-    dst_order->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_order->ExchangeID, dst_order->Symbol, zdh->SymbolLength);
-
-    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryOrder, zdh);
-    if (rv != 0)
-    {
-        // log error
-    }
-}
-
-static void zs_td_on_qry_position(zs_trade_api_t* tdctx, zs_position_t* position)
-{
-    //
-    int rv;
-    zs_data_head_t* zdh;
-    zs_algorithm_t* algo;
-    zs_position_t*  dst_pos;
-
-    algo = (zs_algorithm_t*)tdctx->UserData;
-    zdh = _zs_data_create(algo, position, sizeof(zs_position_t));
-    dst_pos = (zs_position_t*)zd_data_body(zdh);
-    set_zd_head_symbol(zdh, dst_pos);
-
-    dst_pos->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_pos->ExchangeID, dst_pos->Symbol, zdh->SymbolLength);
-
-    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPosition, zdh);
-    if (rv != 0)
-    {
-        // log error
-    }
-}
-
-static void zs_td_on_qry_position_detail(zs_trade_api_t* tdctx, zs_position_detail_t* pos_detail)
-{
-    int rv;
-    zs_data_head_t* zdh;
-    zs_algorithm_t* algo;
-    zs_position_detail_t* dst_pos_detail;
-
-    algo = (zs_algorithm_t*)tdctx->UserData;
-    zdh = _zs_data_create(algo, pos_detail, sizeof(zs_position_detail_t));
-    dst_pos_detail = (zs_position_detail_t*)zd_data_body(zdh);
-    set_zd_head_symbol(zdh, dst_pos_detail);
-
-    dst_pos_detail->Sid = zs_asset_lookup(algo->AssetFinder,
-        dst_pos_detail->ExchangeID, dst_pos_detail->Symbol, zdh->SymbolLength);
-
-    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPositionDetail, zdh);
-    if (rv != 0)
-    {
-        // log error
-    }
-}
-
-static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract)
+static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract, zs_error_data_t* errdata, uint32_t flag)
 {
     // 合约通知
     int rv;
@@ -512,13 +440,166 @@ static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract
     }
 }
 
-static void zs_td_on_exchange_state(zs_trade_api_t* tdctx, const char* exchange,
-        const char* symbol, int state)
+static void zs_td_on_qry_trading_account(zs_trade_api_t* tdctx, zs_fund_account_t* fund_account, zs_error_data_t* errdata, uint32_t flag)
 {
-    ZSExchangeID exchangeid;
-    exchangeid = zs_convert_exchange_name(exchange);
+    // 资金账户
+
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, fund_account, sizeof(zs_fund_account_t));
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryAccount, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
 }
 
+static void zs_td_on_qry_order(zs_trade_api_t* tdctx, zs_order_t* order, zs_error_data_t* errdata, uint32_t flag)
+{
+    // 报单查询应答
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_order_t*     dst_order;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, order, sizeof(zs_order_t));
+    dst_order = (zs_order_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_order);
+
+    dst_order->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_order->ExchangeID, dst_order->Symbol, zdh->SymbolLength);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryOrder, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
+static void zs_td_on_qry_trade(zs_trade_api_t* tdctx, zs_trade_t* trade, zs_error_data_t* errdata, uint32_t flag)
+{
+    // 成交查询应答
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_trade_t*     dst_trade;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, trade, sizeof(zs_trade_t));
+    dst_trade = (zs_trade_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_trade);
+
+    dst_trade->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_trade->ExchangeID, dst_trade->Symbol, zdh->SymbolLength);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryTrade, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
+static void zs_td_on_qry_position(zs_trade_api_t* tdctx, zs_position_t* pos, zs_error_data_t* errdata, uint32_t flag)
+{
+    // 持仓查询应答
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_position_t*  dst_pos;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+    zdh = _zs_data_create(algo, pos, sizeof(zs_position_t));
+    dst_pos = (zs_position_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_pos);
+
+    dst_pos->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_pos->ExchangeID, dst_pos->Symbol, zdh->SymbolLength);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPosition, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
+static void zs_td_on_qry_position_detail(zs_trade_api_t* tdctx, zs_position_detail_t* pos_detail, zs_error_data_t* errdata, uint32_t flag)
+{
+    // 持仓明细查询应答
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_position_detail_t* dst_pos_detail;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+    zdh = _zs_data_create(algo, pos_detail, sizeof(zs_position_detail_t));
+    dst_pos_detail = (zs_position_detail_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_pos_detail);
+
+    dst_pos_detail->Sid = zs_asset_lookup(algo->AssetFinder,
+        dst_pos_detail->ExchangeID, dst_pos_detail->Symbol, zdh->SymbolLength);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryPositionDetail, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
+static void zs_td_on_qry_margin_rate(zs_trade_api_t* tdctx, zs_margin_rate_t* margin_rate, zs_error_data_t* errdata, uint32_t flag)
+{
+    // 保证金率查询应答
+
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_margin_rate_t* dst_margin_rate;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, margin_rate, sizeof(zs_margin_rate_t));
+    dst_margin_rate = (zs_margin_rate_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_margin_rate);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryMarginRate, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
+static void zs_td_on_qry_commission_rate(zs_trade_api_t* tdctx, zs_commission_rate_t* comm_rate, zs_error_data_t* errdata, uint32_t flag)
+{
+    // 手续费率查询应答
+
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_commission_rate_t* dst_comm_rate;
+
+    algo = (zs_algorithm_t*)tdctx->UserData;
+
+    zdh = _zs_data_create(algo, comm_rate, sizeof(zs_commission_rate_t));
+    dst_comm_rate = (zs_commission_rate_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_comm_rate);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_QryCommRate, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
+static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int size, zs_error_data_t* errdata, uint32_t flag)
+{
+}
 
 //////////////////////////////////////////////////////////////////////////
 
