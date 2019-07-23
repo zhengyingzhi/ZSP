@@ -7,6 +7,14 @@
 
 #include "zs_ctp_trade.h"
 
+
+#ifdef _MSC_VER
+#include <Windows.h>
+#define sleepms(x)  Sleep(x)
+#else
+#define sleepms(x)  usleep((x) * 1000)
+#endif
+
 #ifdef ZS_HAVE_SE
 #pragma comment(lib, "thosttraderapi_se.lib")
 #else
@@ -304,6 +312,8 @@ int ZSCtpTradeSpi::ReqAuthenticate()
     strcpy(lAuth.UserID, m_Conf.AccountID);
     strcpy(lAuth.AppID, m_Conf.AppID);
     strcpy(lAuth.AuthCode, m_Conf.AuthCode);
+    fprintf(stderr, "req auth ->> broker:%s,account:%s,appid:%s,code:%s\n", lAuth.BrokerID,
+        lAuth.AuthCode, lAuth.AppID, lAuth.AuthCode);
     return m_pTradeApi->ReqAuthenticate(&lAuth, NextReqID());
 }
 
@@ -409,7 +419,12 @@ void ZSCtpTradeSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, C
     if (m_Handlers->on_login)
         m_Handlers->on_login(m_zsTdCtx, &zlogin, &error);
 
-    // TODO: auto request settlement confirm
+    // auto request settlement confirm
+    CThostFtdcSettlementInfoConfirmField lReq = { 0 };
+    strcpy(lReq.BrokerID, m_Conf.BrokerID);
+    strcpy(lReq.AccountID, m_Conf.AccountID);
+    strcpy(lReq.InvestorID, m_Conf.AccountID);
+    m_pTradeApi->ReqSettlementInfoConfirm(&lReq, NextReqID());
 }
 
 void ZSCtpTradeSpi::OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -426,7 +441,15 @@ void ZSCtpTradeSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrde
 }
 
 void ZSCtpTradeSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+    fprintf(stderr, "ctp settlement confirm\n");
+
+    CThostFtdcQryTradingAccountField lReq = { 0 };
+    strcpy(lReq.BrokerID, m_Conf.BrokerID);
+    strcpy(lReq.AccountID, m_Conf.AccountID);
+    strcpy(lReq.InvestorID, m_Conf.AccountID);
+    m_pTradeApi->ReqQryTradingAccount(&lReq, NextReqID());
+}
 
 void ZSCtpTradeSpi::OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {}
@@ -440,6 +463,33 @@ void ZSCtpTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pI
 void ZSCtpTradeSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
     // 资金账户查询应答
+    zs_error_data_t error;
+    zs_fund_account_t fund_account = { 0 };
+
+    if (pTradingAccount)
+    {
+        strcpy(fund_account.BrokerID, pTradingAccount->BrokerID);
+        strcpy(fund_account.AccountID, pTradingAccount->AccountID);
+        fund_account.PreBalance = pTradingAccount->PreBalance;
+        fund_account.FrozenCash = pTradingAccount->FrozenCash;
+        fund_account.Margin = pTradingAccount->CurrMargin;
+        fund_account.Commission = pTradingAccount->Commission;
+        fund_account.Balance = pTradingAccount->Balance;
+        fund_account.Available = pTradingAccount->Available;
+        fund_account.TradingDay = atoi(pTradingAccount->TradingDay);
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_rsp_data)
+    {
+        m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryAccount, 
+            &fund_account, sizeof(fund_account), &error, bIsLast);
+    }
+
+    sleepms(1001);
+    CThostFtdcQryInstrumentField lReq = { 0 };
+    m_pTradeApi->ReqQryInstrument(&lReq, NextReqID());
 }
 
 void ZSCtpTradeSpi::OnRspQryInvestor(CThostFtdcInvestorField *pInvestor, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -449,7 +499,35 @@ void ZSCtpTradeSpi::OnRspQryTradingCode(CThostFtdcTradingCodeField *pTradingCode
 {}
 
 void ZSCtpTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pInstrumentMarginRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{}
+{
+#if 0
+    zs_error_data_t error;
+    zs_margin_rate_t margin_rate = { 0 };
+    if (pInstrumentMarginRate)
+    {
+        contract.ExchangeID = get_exchange_id(pInstrument->ExchangeID);
+        strcpy(contract.Symbol, pInstrument->InstrumentID);
+        contract.PriceTick = pInstrument->PriceTick;
+        contract.Multiplier = pInstrument->VolumeMultiple;
+        contract.LongMarginRateByMoney = pInstrument->LongMarginRatio;
+        contract.ShortMarginRateByMoney = pInstrument->ShortMarginRatio;
+        contract.ProductClass = ZS_PC_Future;
+    }
+
+    conv_rsp_info(&error, pRspInfo);
+
+    if (m_Handlers->on_rsp_data)
+        m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryMarginRate, &margin_rate, sizeof(margin_rate), &error, bIsLast);
+
+
+    sleepms(1001);
+    CThostFtdcQryInstrumentCommissionRateField lReq = { 0 };
+    strcpy(lReq.BrokerID, m_Conf.BrokerID);
+    strcpy(lReq.InvestorID, m_Conf.AccountID);
+    // lReq.HedgeFlag = THOST_FTDC_HF_Speculation;
+    m_pTradeApi->ReqQryInstrumentCommissionRate(&lReq, NextReqID());
+#endif
+}
 
 void ZSCtpTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {}
@@ -466,7 +544,7 @@ void ZSCtpTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, C
     zs_contract_t contract = { 0 };
     if (pInstrument)
     {
-        // contract.ExchangeID = zs_convert_exchange_name(pInstrument->ExchangeID);
+        contract.ExchangeID = get_exchange_id(pInstrument->ExchangeID);
         strcpy(contract.Symbol, pInstrument->InstrumentID);
         contract.PriceTick = pInstrument->PriceTick;
         contract.Multiplier = pInstrument->VolumeMultiple;
@@ -479,6 +557,13 @@ void ZSCtpTradeSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, C
 
     if (m_Handlers->on_rsp_data)
         m_Handlers->on_rsp_data(m_zsTdCtx, ZS_DT_QryContract, &contract, sizeof(contract), &error, bIsLast);
+
+    sleepms(1001);
+    CThostFtdcQryInstrumentMarginRateField lReq = { 0 };
+    strcpy(lReq.BrokerID, m_Conf.BrokerID);
+    strcpy(lReq.InvestorID, m_Conf.AccountID);
+    // lReq.HedgeFlag = THOST_FTDC_HF_Speculation;
+    m_pTradeApi->ReqQryInstrumentMarginRate(&lReq, NextReqID());
 }
 
 void ZSCtpTradeSpi::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)

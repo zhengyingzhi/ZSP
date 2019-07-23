@@ -14,7 +14,7 @@
         "BrokerID": "2318",
         "TradeAPIName": "CTP",
         "MDAPIName": "CTP",
-        "AppID": "JK1JC9ARZGYILRJB",
-        "AuthCode": "client_bigtrader_1.3.0"
+        "AppID": "client_bigtrader_1.3.0",
+        "AuthCode": "JK1JC9ARZGYILRJB"
     }
 ]

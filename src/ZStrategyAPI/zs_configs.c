@@ -272,6 +272,8 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
 
     cJSON_Delete(json);
 
+    rv = 0;
+
 PARSE_END:
     if (buffer) {
         free(buffer);

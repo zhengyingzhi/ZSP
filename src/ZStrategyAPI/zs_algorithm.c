@@ -122,8 +122,9 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         // example code
         const char* tdlibpath;
         const char* mdlibpath;
-        tdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_trade.dll";
-        mdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_md.dll";
+        // tdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_trade.dll";
+        tdlibpath = "zs_ctp_trade.dll";
+        mdlibpath = "zs_ctp_md.dll";
 
         tdapi->UserData = algo;
         mdapi->UserData = algo;
@@ -136,8 +137,10 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         zs_bt_md_api_entry(mdapi);
 #endif
 
-        zs_broker_add_tradeapi(algo->Broker, tdapi);
-        zs_broker_add_mdapi(algo->Broker, mdapi);
+        if (tdapi->ApiName) {
+            zs_broker_add_tradeapi(algo->Broker, tdapi);
+            zs_broker_add_mdapi(algo->Broker, mdapi);
+        }
     }
     return 0;
 }

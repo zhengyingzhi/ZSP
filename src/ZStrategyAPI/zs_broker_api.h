@@ -130,6 +130,7 @@ struct zs_trade_api_handlers_s
     void (*on_authenticate)(void* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata);
     void (*on_login)(void* tdctx, zs_login_t* login_rsp, zs_error_data_t* errdata);
     void (*on_logout)(void* tdctx, zs_logout_t* login_out, zs_error_data_t* errdata);
+    void (*on_settlement_confirm)(void* tdctx, void* settlement, zs_error_data_t* errdata);
     void (*on_rtn_order)(void* tdctx, zs_order_t* order);
     void (*on_rtn_trade)(void* tdctx, zs_trade_t* trade);
     void (*on_rtn_data)(void* tdctx, int dtype, void* data, int size);

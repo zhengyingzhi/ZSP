@@ -388,7 +388,17 @@ static void zs_td_on_rtn_data(zs_trade_api_t* tdctx, int dtype, void* data, int 
 {}
 
 static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int size, zs_error_data_t* errdata, uint32_t flag)
-{}
+{
+    switch (dtype)
+    {
+    case ZS_DT_QryAccount:
+    case ZS_DT_QryContract:
+    case ZS_DT_QryMarginRate:
+    case ZS_DT_QryCommRate:
+    default:
+        break;
+    }
+}
 
 
 static void zs_td_on_qry_account(zs_trade_api_t* tdctx, zs_fund_account_t* fund_account)
