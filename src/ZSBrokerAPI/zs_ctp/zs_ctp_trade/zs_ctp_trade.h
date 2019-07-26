@@ -3,12 +3,17 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <string>
+#include <map>
+
 #include <ThostFtdcTraderApi.h>
 
 #include <ZStrategyAPI/zs_broker_api.h>
 
 #include "zs_ctp_common.h"
 
+
+typedef std::map<std::string, zs_position_t>  PositionMap;
 
 class ZSCtpTradeSpi : public CThostFtdcTraderSpi
 {
@@ -117,6 +122,7 @@ public:
     CThostFtdcTraderApi*        m_pTradeApi;
     zs_trade_api_handlers_t*    m_Handlers;
     zs_conf_account_t           m_Conf;
+    PositionMap                 m_PosDict;
     void*   m_zsTdCtx;
     int     m_OrderRef;
     int     m_FrontID;

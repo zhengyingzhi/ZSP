@@ -76,57 +76,62 @@ static int _zs_position_new_order(zs_position_engine_t* pos, ZSDirection directi
 }
 
 
-zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contract)
+zs_position_engine_t* zs_position_create(zs_blotter_t* blotter, ztl_pool_t* pool, zs_contract_t* contract)
 {
-    zs_position_engine_t* pos;
+    zs_position_engine_t* pos_engine;
     if (pool)
-        pos = (zs_position_engine_t*)ztl_pcalloc(pool, sizeof(zs_position_engine_t));
+        pos_engine = (zs_position_engine_t*)ztl_pcalloc(pool, sizeof(zs_position_engine_t));
     else
-        pos = (zs_position_engine_t*)malloc(sizeof(zs_position_engine_t));
-    pos->Pool = pool;
-    pos->Contract = contract;
+        pos_engine = (zs_position_engine_t*)malloc(sizeof(zs_position_engine_t));
+    pos_engine->Pool = pool;
+
+    pos_engine->Blotter = blotter;
+    pos_engine->Contract = contract;
     if (contract)
     {
-        pos->Sid = contract->Sid;
-        pos->Multiplier = contract->Multiplier;
-        pos->PriceTick = contract->PriceTick;
-        pos->LongMarginRatio = contract->LongMarginRateByMoney;
-        pos->ShortMarginRatio = contract->ShortMarginRateByMoney;
+        pos_engine->Sid = contract->Sid;
+        pos_engine->Multiplier = contract->Multiplier;
+        pos_engine->PriceTick = contract->PriceTick;
+        pos_engine->LongMarginRatio = contract->LongMarginRateByMoney;
+        pos_engine->ShortMarginRatio = contract->ShortMarginRateByMoney;
     }
 
-    pos->PositionDetails = ztl_dlist_create(64);
+    pos_engine->PositionDetails = ztl_dlist_create(64);
 
 
-    pos->handle_order_req = zs_position_handle_order_req;
-    pos->handle_order_rtn = zs_position_handle_order_rtn;
-    pos->handle_trade_rtn = zs_position_handle_trade_rtn;
-    pos->sync_last_price = zs_position_sync_last_price;
+    pos_engine->handle_order_req = zs_position_handle_order_req;
+    pos_engine->handle_order_rtn = zs_position_handle_order_rtn;
+    pos_engine->handle_trade_rtn = zs_position_handle_trade_rtn;
+    pos_engine->sync_last_price = zs_position_sync_last_price;
+    pos_engine->handle_position_rsp = zs_position_handle_pos_rsp;
+    pos_engine->handle_pos_detail_rsp = zs_position_handle_pos_detail_rsp;
 
-    return pos;
+    return pos_engine;
 }
 
-void zs_position_release(zs_position_engine_t* pos)
+void zs_position_release(zs_position_engine_t* pos_engine)
 {
-    if (pos->PositionDetails) {
+    if (pos_engine->PositionDetails) {
         // TODO
-        ztl_dlist_release(pos->PositionDetails);
+        ztl_dlist_release(pos_engine->PositionDetails);
     }
 
-    if (!pos->Pool) {
-        free(pos);
+    if (!pos_engine->Pool) {
+        free(pos_engine);
     }
 }
 
-int zs_position_handle_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req)
+int zs_position_handle_order_req(zs_position_engine_t* pos_engine, zs_order_req_t* order_req)
 {
     if (order_req->OffsetFlag == ZS_OF_Open) {
         return 0;
     }
 
-    return _zs_position_new_order(pos, order_req->Direction, order_req->OffsetFlag, order_req->OrderQty);
+    // FIXME: 平仓请求不冻结持仓量，待请求回报确认后再冻结
+    return _zs_position_new_order(pos_engine, order_req->Direction, order_req->OffsetFlag, order_req->OrderQty);
 }
 
-int zs_position_handle_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
+int zs_position_handle_order_rtn(zs_position_engine_t* pos_engine, zs_order_t* order)
 {
     if (order->OffsetFlag == ZS_OF_Open) {
         return 0;
@@ -142,44 +147,44 @@ int zs_position_handle_order_rtn(zs_position_engine_t* pos, zs_order_t* order)
 
     if (order->Direction != ZS_D_Long)
     {
-        pos->ShortFrozen -= residual_qty;
+        pos_engine->ShortFrozen -= residual_qty;
         if (order->OffsetFlag == ZS_OF_Close || order->OffsetFlag == ZS_OF_CloseYd)
         {
-            if (residual_qty > pos->ShortYdFrozen) {
-                pos->ShortTdFrozen -= residual_qty - pos->ShortYdFrozen;
-                pos->ShortYdFrozen = 0;
+            if (residual_qty > pos_engine->ShortYdFrozen) {
+                pos_engine->ShortTdFrozen -= residual_qty - pos_engine->ShortYdFrozen;
+                pos_engine->ShortYdFrozen = 0;
             }
             else {
-                pos->ShortYdFrozen -= residual_qty;
+                pos_engine->ShortYdFrozen -= residual_qty;
             }
         }
         else if (order->OffsetFlag == ZS_OF_CloseToday)
         {
-            pos->ShortTdFrozen -= residual_qty;
+            pos_engine->ShortTdFrozen -= residual_qty;
         }
     }
     else if (order->Direction == ZS_D_Short)
     {
-        pos->LongFrozen -= residual_qty;
+        pos_engine->LongFrozen -= residual_qty;
         if (order->OffsetFlag == ZS_OF_Close || order->OffsetFlag == ZS_OF_CloseYd)
         {
-            if (residual_qty > pos->LongYdFrozen) {
-                pos->LongTdFrozen -= residual_qty - pos->LongYdFrozen;
-                pos->LongYdFrozen = 0;
+            if (residual_qty > pos_engine->LongYdFrozen) {
+                pos_engine->LongTdFrozen -= residual_qty - pos_engine->LongYdFrozen;
+                pos_engine->LongYdFrozen = 0;
             }
             else {
-                pos->LongYdFrozen -= residual_qty;
+                pos_engine->LongYdFrozen -= residual_qty;
             }
         }
         else if (order->OffsetFlag == ZS_OF_CloseToday)
         {
-            pos->LongTdFrozen -= residual_qty;
+            pos_engine->LongTdFrozen -= residual_qty;
         }
     }
     return 0;
 }
 
-double zs_position_handle_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade)
+double zs_position_handle_trade_rtn(zs_position_engine_t* pos_engine, zs_trade_t* trade)
 {
     double margin_ratio, margin, realized_pnl;
     double price;
@@ -195,7 +200,7 @@ double zs_position_handle_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade
     offset = trade->OffsetFlag;
 
     // 保证金
-    margin_ratio = (direction == ZS_D_Long) ? pos->LongMarginRatio : pos->ShortMarginRatio;
+    margin_ratio = (direction == ZS_D_Long) ? pos_engine->LongMarginRatio : pos_engine->ShortMarginRatio;
 
     // 开仓保存一条明细
     if (trade->OffsetFlag == ZS_OF_Open)
@@ -206,102 +211,142 @@ double zs_position_handle_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade
 
     if (direction == ZS_D_Long && offset == ZS_OF_Open)
     {
-        pos->LongPos += volume;
-        pos->LongTdPos += volume;
-        pos->LongMargin += margin;
-        pos->LongCost += price * volume;
+        // 买开仓
+        pos_engine->LongPos += volume;
+        pos_engine->LongTdPos += volume;
+        pos_engine->LongMargin += margin;
+        pos_engine->LongCost += price * volume;
 
-        if (pos->Contract->ProductClass != ZS_PC_Stock) {
-            pos->LongAvail += volume;
+        // A股T+1
+        if (pos_engine->Contract->ProductClass != ZS_PC_Stock) {
+            pos_engine->LongAvail += volume;
         }
 
-        pos->LongPrice = pos->LongCost / pos->LongPos;
-        pos->LongUpdateTime = trade->TradeTime;
+        pos_engine->LongPrice = pos_engine->LongCost / pos_engine->LongPos;
+        pos_engine->LongUpdateTime = trade->TradeTime;
     }
-    else if (direction == ZS_D_Long && offset == ZS_OF_Open)
+    else if (direction == ZS_D_Short && offset == ZS_OF_Open)
     {
-        pos->ShortPos += volume;
-        pos->ShortTdPos += volume;
-        pos->ShortMargin += margin;
-        pos->ShortCost += price * volume;
+        // 卖开仓
+        pos_engine->ShortPos += volume;
+        pos_engine->ShortTdPos += volume;
+        pos_engine->ShortMargin += margin;
+        pos_engine->ShortCost += price * volume;
 
-        if (pos->Contract->ProductClass != ZS_PC_Stock) {
-            pos->ShortAvail += volume;
+        if (pos_engine->Contract->ProductClass != ZS_PC_Stock) {
+            pos_engine->ShortAvail += volume;
         }
 
-        pos->ShortPrice = pos->ShortCost / pos->ShortPos;
-        pos->ShortUpdateTime = trade->TradeTime;
+        pos_engine->ShortPrice = pos_engine->ShortCost / pos_engine->ShortPos;
+        pos_engine->ShortUpdateTime = trade->TradeTime;
     }
     else if (direction == ZS_D_Long)
     {
-        pos->ShortPos -= volume;
-        pos->ShortFrozen -= volume;
+        // 买平仓
+        pos_engine->ShortPos -= volume;
+        pos_engine->ShortFrozen -= volume;
 
         if (offset == ZS_OF_Close || offset == ZS_OF_CloseYd)
         {
-            if (volume > pos->ShortYdPos)
+            if (volume > pos_engine->ShortYdPos)
             {
-                pos->ShortTdPos -= volume - pos->ShortYdPos;
-                pos->ShortTdFrozen -= volume - pos->ShortYdPos;
-                pos->ShortYdPos = 0;
-                pos->ShortYdFrozen = 0;
+                pos_engine->ShortTdPos -= volume - pos_engine->ShortYdPos;
+                pos_engine->ShortTdFrozen -= volume - pos_engine->ShortYdPos;
+                pos_engine->ShortYdPos = 0;
+                pos_engine->ShortYdFrozen = 0;
             }
             else
             {
-                pos->ShortYdPos -= volume;
-                pos->ShortYdFrozen -= volume;
+                pos_engine->ShortYdPos -= volume;
+                pos_engine->ShortYdFrozen -= volume;
             }
         }
         else if (offset == ZS_OF_CloseToday)
         {
-            pos->ShortYdPos -= volume;
-            pos->ShortTdFrozen -= volume;
+            pos_engine->ShortYdPos -= volume;
+            pos_engine->ShortTdFrozen -= volume;
         }
 
         // 持仓明细更新
         // ...
-        pos->ShortUpdateTime = trade->TradeTime;
+        pos_engine->ShortUpdateTime = trade->TradeTime;
     }
     else if (direction == ZS_D_Short)
     {
-        pos->LongPos -= volume;
-        pos->LongFrozen -= volume;
+        // 卖平仓
+        pos_engine->LongPos -= volume;
+        pos_engine->LongFrozen -= volume;
 
         if (offset == ZS_OF_Close || offset == ZS_OF_CloseYd)
         {
-            if (volume > pos->LongYdPos)
+            if (volume > pos_engine->LongYdPos)
             {
-                pos->LongTdPos -= volume - pos->LongYdPos;
-                pos->LongTdFrozen -= volume - pos->LongYdPos;
-                pos->LongYdPos = 0;
-                pos->LongYdFrozen = 0;
+                pos_engine->LongTdPos -= volume - pos_engine->LongYdPos;
+                pos_engine->LongTdFrozen -= volume - pos_engine->LongYdPos;
+                pos_engine->LongYdPos = 0;
+                pos_engine->LongYdFrozen = 0;
             }
             else
             {
-                pos->LongYdPos -= volume;
-                pos->LongYdFrozen -= volume;
+                pos_engine->LongYdPos -= volume;
+                pos_engine->LongYdFrozen -= volume;
             }
         }
         else if (offset == ZS_OF_CloseToday)
         {
-            pos->LongYdPos -= volume;
-            pos->LongTdFrozen -= volume;
+            pos_engine->LongYdPos -= volume;
+            pos_engine->LongTdFrozen -= volume;
         }
 
         // 持仓明细更新
         // ...
-        pos->LongUpdateTime = trade->TradeTime;
+        pos_engine->LongUpdateTime = trade->TradeTime;
     }
     return realized_pnl;
 }
 
-void zs_position_pnl_calc(zs_position_engine_t* pos)
+void zs_position_handle_pos_rsp(zs_position_engine_t* pos_engine, zs_position_t* pos)
 {
-    pos->LongPnl = pos->LongPos * (pos->LastPrice - pos->LongPrice) * pos->Multiplier;
-    pos->ShortPnl = pos->ShortPos * (pos->LastPrice - pos->ShortPrice) * pos->Multiplier;
+    // 更新持仓数据
+    if (pos->Direction == ZS_D_Long)
+    {
+        pos_engine->LongPos     = pos->Position;
+        pos_engine->LongYdPos   = pos->YdPosition;
+        pos_engine->LongTdPos   = pos->Position - pos->YdPosition;
+        pos_engine->LongAvail   = pos->Available;
+        pos_engine->LongFrozen  = pos->Frozen;
+        pos_engine->LongPrice   = pos->PositionPrice;   // TODO
+        pos_engine->LongPnl     = pos->PositionPnl;
+        pos_engine->LongMargin  = pos->UseMargin;
+    }
+    else if (pos->Direction == ZS_D_Short)
+    {
+        pos_engine->ShortPos    = pos->Position;
+        pos_engine->ShortYdPos  = pos->YdPosition;
+        pos_engine->ShortTdPos  = pos->Position - pos->YdPosition;
+        pos_engine->ShortAvail  = pos->Available;
+        pos_engine->ShortFrozen = pos->Frozen;
+        pos_engine->ShortPrice  = pos->PositionPrice;   // TODO
+        pos_engine->ShortPnl    = pos->PositionPnl;
+        pos_engine->ShortMargin = pos->UseMargin;
+    }
 }
 
-double zs_position_price_calc(zs_position_engine_t* pos, ZSDirection direction)
+void zs_position_handle_pos_detail_rsp(zs_position_engine_t* pos_engine, zs_position_detail_t* pos_detail)
+{
+    zs_position_detail_t* pos_detail_dup;
+    pos_detail_dup = (zs_position_detail_t*)malloc(sizeof(zs_position_detail_t));
+    memcpy(pos_detail_dup, pos_detail, sizeof(zs_position_detail_t));
+    ztl_dlist_insert_tail(pos_engine->PositionDetails, pos_detail);
+}
+
+void zs_position_pnl_calc(zs_position_engine_t* pos_engine)
+{
+    pos_engine->LongPnl = pos_engine->LongPos * (pos_engine->LastPrice - pos_engine->LongPrice) * pos_engine->Multiplier;
+    pos_engine->ShortPnl = pos_engine->ShortPos * (pos_engine->LastPrice - pos_engine->ShortPrice) * pos_engine->Multiplier;
+}
+
+double zs_position_price_calc(zs_position_engine_t* pos_engine, ZSDirection direction)
 {
     double  price;
     int32_t volume;
@@ -317,18 +362,18 @@ double zs_position_price_calc(zs_position_engine_t* pos, ZSDirection direction)
     return price;
 }
 
-void zs_position_price_calc_fast(zs_position_engine_t* pos, ZSDirection direction)
+void zs_position_price_calc_fast(zs_position_engine_t* pos_engine, ZSDirection direction)
 {
     if (direction == ZS_D_Long)
-        pos->LongPrice = pos->LongCost / pos->LongPos;
+        pos_engine->LongPrice = pos_engine->LongCost / pos_engine->LongPos;
     else if (direction == ZS_D_Short)
-        pos->ShortPrice = pos->ShortCost / pos->ShortPos;
+        pos_engine->ShortPrice = pos_engine->ShortCost / pos_engine->ShortPos;
 }
 
-void zs_position_sync_last_price(zs_position_engine_t* pos, double lastpx)
+void zs_position_sync_last_price(zs_position_engine_t* pos_engine, double lastpx)
 {
-    pos->LastPrice = lastpx;
-    zs_position_pnl_calc(pos);
+    pos_engine->LastPrice = lastpx;
+    zs_position_pnl_calc(pos_engine);
 
-    pos->TickUpdatedN += 1;
+    pos_engine->TickUpdatedN += 1;
 }

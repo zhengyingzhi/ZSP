@@ -15,6 +15,7 @@
 
 #include "zs_api_object.h"
 #include "zs_assets.h"
+#include "zs_core.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,7 @@ extern "C" {
 typedef struct zs_position_engine_s zs_position_engine_t;
 struct zs_position_engine_s
 {
+    zs_blotter_t*   Blotter;
     zs_contract_t*  Contract;
     zs_sid_t        Sid;
     int32_t         Multiplier;
@@ -70,31 +72,37 @@ struct zs_position_engine_s
     double          ShortCost;
     int64_t         ShortUpdateTime;
 
-    int (*handle_order_req)(zs_position_engine_t* pos, zs_order_req_t* order_req);
-    int (*handle_order_rtn)(zs_position_engine_t* pos, zs_order_t* order);
-    double(*handle_trade_rtn)(zs_position_engine_t* pos, zs_trade_t* trade);
-    void (*sync_last_price)(zs_position_engine_t* pos, double lastpx);
+    int (*handle_order_req)(zs_position_engine_t* pos_engine, zs_order_req_t* order_req);
+    int (*handle_order_rtn)(zs_position_engine_t* pos_engine, zs_order_t* order);
+    double(*handle_trade_rtn)(zs_position_engine_t* pos_engine, zs_trade_t* trade);
+    void (*sync_last_price)(zs_position_engine_t* pos_engine, double lastpx);
+    void (*handle_position_rsp)(zs_position_engine_t* pos_engine, zs_position_t* pos);
+    void (*handle_pos_detail_rsp)(zs_position_engine_t* pos_engine, zs_position_detail_t* pos_detail);
 };
 
 
 
 // 创建持仓管理对象
-zs_position_engine_t* zs_position_create(ztl_pool_t* pool, zs_contract_t* contract);
+zs_position_engine_t* zs_position_create(zs_blotter_t* blotter, ztl_pool_t* pool, zs_contract_t* contract);
 
-void zs_position_release(zs_position_engine_t* pos);
+void zs_position_release(zs_position_engine_t* pos_engine);
 
 // 报单更新
-int zs_position_handle_order_req(zs_position_engine_t* pos, zs_order_req_t* order_req);
+int zs_position_handle_order_req(zs_position_engine_t* pos_engine, zs_order_req_t* order_req);
 
 // 订单更新
-int zs_position_handle_order_rtn(zs_position_engine_t* pos, zs_order_t* order);
+int zs_position_handle_order_rtn(zs_position_engine_t* pos_engine, zs_order_t* order);
 
 // 成交更新
-double zs_position_handle_trade_rtn(zs_position_engine_t* pos, zs_trade_t* trade);
+double zs_position_handle_trade_rtn(zs_position_engine_t* pos_engine, zs_trade_t* trade);
+
+// 持仓更新
+void zs_position_handle_pos_rsp(zs_position_engine_t* pos_engine, zs_position_t* pos);
+void zs_position_handle_pos_detail_rsp(zs_position_engine_t* pos_engine, zs_position_detail_t* pos_detail);
 
 
 // 最新价格更新
-void zs_position_sync_last_price(zs_position_engine_t* pos, double lastpx);
+void zs_position_sync_last_price(zs_position_engine_t* pos_engine, double lastpx);
 
 #ifdef __cplusplus
 }

@@ -321,6 +321,7 @@ struct zs_position_s
     int32_t         Position;
     int32_t         TdPosition;
     int32_t         YdPosition;
+    int32_t         YdFrozen;       // FIXME
     int32_t         Frozen;
     int32_t         Available;
     ZSPosDateType   PositionDate;
@@ -329,10 +330,14 @@ struct zs_position_s
 
     double          MarketValue;
     double          PositionCost;
+    double          OpenCost;
     double          UseMargin;
-    double          AvgPrice;
+    double          PositionPrice;
     double          LastPrice;
     double          PositionPnl;
+
+    double          FrozenMargin;
+    double          FrozenCommission;
 
     int32_t         Multiplier;
     int32_t         IsLast;

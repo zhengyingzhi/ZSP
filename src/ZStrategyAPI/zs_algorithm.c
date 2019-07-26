@@ -43,6 +43,12 @@ static void _zs_algo_handle_account(zs_event_engine_t* ee, zs_algorithm_t* algo,
 static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo,
     uint32_t evtype, zs_data_head_t* evdata);
 
+static void _zs_algo_handle_margin_rate(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
+
+static void _zs_algo_handle_comm_rate(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata);
+
 static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,
     uint32_t evtype, zs_data_head_t* evdata);
 
@@ -532,6 +538,52 @@ static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo
 
     zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID,
         contract->Symbol, (int)strlen(contract->Symbol), dup_contract);
+}
+
+static void _zs_algo_handle_margin_rate(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 保证金事件
+    zs_contract_t*      contract;
+    zs_margin_rate_t*   margin_rate;
+
+    margin_rate = (zs_margin_rate_t*)zd_data_body(evdata);
+
+    contract = (zs_contract_t*)zs_asset_find(algo->AssetFinder, margin_rate->ExchangeID,
+        margin_rate->Symbol, (int)strlen(margin_rate->Symbol));
+    if (!contract) {
+        // ERRORID: not find contract info for this margin rate
+        return;
+    }
+
+    contract->LongMarginRateByMoney = margin_rate->LongMarginRateByMoney;
+    contract->LongMarginRateByVolume = margin_rate->LongMarginRateByVolume;
+    contract->ShortMarginRateByMoney = margin_rate->ShortMarginRateByMoney;
+    contract->ShortMarginRateByVolume = margin_rate->ShortMarginRateByVolume;
+}
+
+static void _zs_algo_handle_comm_rate(zs_event_engine_t* ee, zs_algorithm_t* algo,
+    uint32_t evtype, zs_data_head_t* evdata)
+{
+    // 费率事件
+    zs_contract_t* contract;
+    zs_commission_rate_t* comm_rate;
+
+    comm_rate = (zs_commission_rate_t*)zd_data_body(evdata);
+
+    contract = (zs_contract_t*)zs_asset_find(algo->AssetFinder, comm_rate->ExchangeID,
+        comm_rate->Symbol, (int)strlen(comm_rate->Symbol));
+    if (!contract) {
+        // ERRORID: not find contract info for this commission rate
+        return;
+    }
+
+    contract->OpenRatioByMoney = comm_rate->OpenRatioByMoney;
+    contract->OpenRatioByVolume = comm_rate->OpenRatioByVolume;
+    contract->CloseRatioByMoney = comm_rate->CloseRatioByMoney;
+    contract->CloseRatioByVolume = comm_rate->CloseRatioByVolume;
+    contract->CloseTodayRatioByMoney = comm_rate->CloseTodayRatioByMoney;
+    contract->CloseTodayRatioByVolume = comm_rate->CloseTodayRatioByVolume;
 }
 
 static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,

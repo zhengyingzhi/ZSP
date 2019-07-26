@@ -466,41 +466,101 @@ void ZSCtpTradeSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pI
 {
     // 持仓查询应答
     zs_error_data_t error;
-    zs_position_t pos = { 0 };
+    zs_position_t*  pos;
+    char            buffer[64] = "";
 
     if (pInvestorPosition)
     {
-        strcpy(pos.AccountID, pInvestorPosition->InvestorID);
-        strcpy(pos.BrokerID, pInvestorPosition->BrokerID);
-        strcpy(pos.Symbol, pInvestorPosition->InstrumentID);
-        pos.ExchangeID = get_exchange_id(pInvestorPosition->ExchangeID);
+        // instrument.direction
+        snprintf(buffer, sizeof(buffer) - 1, "%s.%c", pInvestorPosition->InstrumentID, pInvestorPosition->PosiDirection);
+        std::string pos_name(buffer);
+        if (!m_PosDict.count(pos_name))
+        {
+            zs_position_t _pos = { 0 };
 
+            strcpy(_pos.AccountID, pInvestorPosition->InvestorID);
+            strcpy(_pos.BrokerID, pInvestorPosition->BrokerID);
+            strcpy(_pos.Symbol, pInvestorPosition->InstrumentID);
+            _pos.ExchangeID = get_exchange_id(pInvestorPosition->ExchangeID);
+            _pos.TradingDay = atoi(pInvestorPosition->TradingDay);
+
+            // 持仓方向
+            if (pInvestorPosition->PosiDirection == THOST_FTDC_PD_Long)
+                _pos.Direction = ZS_D_Long;
+            else
+                _pos.Direction = ZS_D_Short;
+
+            m_PosDict[pos_name] = _pos;
+        }
+        pos = &m_PosDict[pos_name];
+
+#if 0
+        strcpy(pos->AccountID, pInvestorPosition->InvestorID);
+        strcpy(pos->BrokerID, pInvestorPosition->BrokerID);
+        strcpy(pos->Symbol, pInvestorPosition->InstrumentID);
+        pos->ExchangeID = get_exchange_id(pInvestorPosition->ExchangeID);
+        pos->TradingDay = atoi(pInvestorPosition->TradingDay);
+#endif//0
+
+        // 今昨仓
         if (pInvestorPosition->PositionDate == THOST_FTDC_PSD_Today)
-            pos.PositionDate = ZS_PD_Today;
+            pos->PositionDate = ZS_PD_Today;
         else
-            pos.PositionDate = ZS_PD_Yesterday;
+            pos->PositionDate = ZS_PD_Yesterday;
 
-        if (pInvestorPosition->PosiDirection == THOST_FTDC_PD_Long)
-            pos.Direction = ZS_D_Long;
+        // 上期所分今昨两条记录
+        if (pInvestorPosition->YdPosition && !pInvestorPosition->TodayPosition)
+            pos->YdPosition = pInvestorPosition->YdPosition;
+
+        pos->Position += pInvestorPosition->Position;
+        pos->PositionCost += pInvestorPosition->PositionCost;
+        pos->OpenCost += pInvestorPosition->OpenCost;
+        pos->PositionPrice = 0.0;           // FIXME
+        pos->Available = pos->Position;     // always equal to position in future
+
+        pos->PositionPnl += pInvestorPosition->PositionProfit;
+        pos->UseMargin += pInvestorPosition->UseMargin;
+
+        // 冻结
+        if (pos->Direction == ZS_D_Long)
+            pos->Frozen += pInvestorPosition->LongFrozen;
         else
-            pos.Direction = ZS_D_Short;
-        pos.YdPosition = pInvestorPosition->YdPosition;
-        pos.Position = pInvestorPosition->Position;
+            pos->Frozen += pInvestorPosition->ShortFrozen;
+        pos->FrozenMargin += pInvestorPosition->FrozenMargin;
+        pos->FrozenCommission += pInvestorPosition->FrozenCommission;
     }
 
     conv_rsp_info(&error, pRspInfo);
 
-    if (m_Handlers->on_qry_position)
+    if (bIsLast)
     {
-        m_Handlers->on_qry_position(m_zsTdCtx, &pos, &error, bIsLast);
-    }
+        PositionMap::iterator iter;
+        for (iter = m_PosDict.begin(); iter != m_PosDict.end(); ++iter)
+        {
+            pos = &iter->second;
+            if (m_Handlers->on_qry_position) {
+                m_Handlers->on_qry_position(m_zsTdCtx, pos, &error, bIsLast);
+            }
+        }
+        if (m_PosDict.size() == 0)
+        {
+            // push an empty record ?
+            zs_position_t _pos = { 0 };
+            strcpy(_pos.AccountID, pInvestorPosition->InvestorID);
+            strcpy(_pos.BrokerID, pInvestorPosition->BrokerID);
+            if (m_Handlers->on_qry_position) {
+                m_Handlers->on_qry_position(m_zsTdCtx, &_pos, &error, bIsLast);
+            }
+        }
+        m_PosDict.clear();
 
-    sleepms(1001);
-    CThostFtdcQryInvestorPositionDetailField lReq = { 0 };
-    strcpy(lReq.BrokerID, m_Conf.BrokerID);
-    strcpy(lReq.InvestorID, m_Conf.AccountID);
-    int rv = m_pTradeApi->ReqQryInvestorPositionDetail(&lReq, NextReqID());
-    fprintf(stderr, "ReqQryInvestorPositionDetail rv:%d\n", rv);
+        sleepms(1001);
+        CThostFtdcQryInvestorPositionDetailField lReq = { 0 };
+        strcpy(lReq.BrokerID, m_Conf.BrokerID);
+        strcpy(lReq.InvestorID, m_Conf.AccountID);
+        int rv = m_pTradeApi->ReqQryInvestorPositionDetail(&lReq, NextReqID());
+        fprintf(stderr, "ReqQryInvestorPositionDetail rv:%d\n", rv);
+    }
 }
 
 void ZSCtpTradeSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField *pInvestorPositionDetail, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -529,6 +589,11 @@ void ZSCtpTradeSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDet
         pos_detail.UseMargin = pInvestorPositionDetail->Margin;
         pos_detail.CloseVolume = pInvestorPositionDetail->CloseVolume;
         pos_detail.CloseAmount = pInvestorPositionDetail->CloseAmount;
+
+        if (pos_detail.TradingDay != pos_detail.OpenDate)
+            pos_detail.PositionDate = ZS_PD_Yesterday;
+        else
+            pos_detail.PositionDate = ZS_PD_Today;
     }
 
     conv_rsp_info(&error, pRspInfo);

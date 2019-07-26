@@ -1,8 +1,15 @@
 [
     {
         "APIName": "CTP",
-        "BrokerID": "2318",
+        "BrokerName" : "SimNow",
+        "BrokerID": "9999",
+        "TradeAddr" : "tcp://180.168.146.187:10100",
+        "MDAddr" : "tcp://180.168.146.187:10110"
+    },
+    {
+        "APIName": "CTP",
         "BrokerName": "华泰仿真",
+        "BrokerID": "2318",
         "TradeAddr": "tcp://59.36.3.115:61206",
         "MDAddr": "tcp://59.36.3.115:41214"
     }

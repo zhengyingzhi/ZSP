@@ -288,7 +288,7 @@ int zs_cta_cancel_all(zs_cta_strategy_t* strategy)
 int zs_cta_get_account_position(zs_cta_strategy_t* strategy, zs_position_engine_t** ppos_engine, zs_sid_t sid)
 {
     zs_position_engine_t* pos_engine;
-    pos_engine = ztl_map_find(strategy->Blotter->Positions, sid);
+    pos_engine = zs_position_engine_get(strategy->Blotter, sid);
     if (pos_engine)
     {
         *ppos_engine = pos_engine;

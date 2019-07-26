@@ -13,21 +13,13 @@
 #include <ZToolLib/ztl_map.h>
 
 #include "zs_assets.h"
-
 #include "zs_account.h"
-
 #include "zs_broker_entry.h"
-
 #include "zs_commission.h"
-
 #include "zs_core.h"
-
 #include "zs_hashdict.h"
-
 #include "zs_order_list.h"
-
 #include "zs_position.h"
-
 #include "zs_protocol.h"
 
 
@@ -44,6 +36,7 @@ struct zs_blotter_s
     ztl_pool_t*         Pool;
 
     int32_t             TradingDay;
+    int32_t             IsSelfCalc;
 
     // 订单管理
     ztl_dict_t*         OrderDict;
@@ -53,8 +46,9 @@ struct zs_blotter_s
     ztl_dict_t*         TradeDict;        // 成交ID集合 ExchangeID+TradeID
     ztl_array_t*        TradeArray;
 
-    // 持仓管理 <sid, zs_positions_t>
-    ztl_map_t*          Positions;
+    // 持仓管理 <sid, zs_position_engine_t>
+    ztl_dict_t*         Positions;
+    ztl_array_t*        PositionArray;
 
     // 资金账户
     zs_account_t*       Account;
@@ -113,7 +107,7 @@ int zs_blotter_subscribe(zs_blotter_t* blotter, zs_subscribe_t* sub_req);
 zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid);
 zs_order_t* zs_get_order_by_id(zs_blotter_t* blotter, int32_t frontid, int32_t sessionid, const char* orderid);
 
-zs_position_engine_t* zs_get_position_engine(zs_blotter_t* blotter, zs_sid_t sid);
+zs_position_engine_t* zs_position_engine_get(zs_blotter_t* blotter, zs_sid_t sid);
 
 
 // 查询回报事件
