@@ -19,7 +19,7 @@
     },
     {
         "AccountID": "00028039",
-        "Password": "16872688",
+        "Password": "",
         "BrokerID": "2318",
         "TradeAPIName": "CTP",
         "MDAPIName": "CTP",

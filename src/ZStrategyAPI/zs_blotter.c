@@ -280,6 +280,8 @@ int zs_blotter_handle_account(zs_blotter_t* blotter, zs_fund_account_t* fund_acc
     // 资金查询应答
     blotter->TradingDay = fund_account->TradingDay;
     memcpy(&blotter->Account->FundAccount, fund_account, sizeof(zs_fund_account_t));
+    fprintf(stderr, "fund account bal:%.2lf, avail:%.2lf, frozen:%.2lf, margin:%.2lf\n",
+        fund_account->Balance, fund_account->Available, fund_account->FrozenCash, fund_account->Margin);
     return 0;
 }
 

@@ -102,8 +102,11 @@ void stg_demo_handle_bar(my_strategy_demo_t* instance, zs_cta_strategy_t* contex
 void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_tick_t* tick)
 {
     // visit the tick data
-    fprintf(stderr, "demo handle_tick symbol:%s, lastpx:%.2lf, vol:%lld\n",
-        tick->Symbol, tick->LastPrice, tick->Volume);
+    static int count2 = 0;
+    count2 += 1;
+    if (count2 & 7)
+        fprintf(stderr, "demo handle_tick symbol:%s, lastpx:%.2lf, vol:%lld\n",
+            tick->Symbol, tick->LastPrice, tick->Volume);
 
     instance->index += 1;
     if (instance->index == 2)

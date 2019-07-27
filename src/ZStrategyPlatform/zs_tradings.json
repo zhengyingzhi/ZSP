@@ -6,6 +6,12 @@
         "Period": "1m"
     },
     {
+        "AccountID": "038313",
+        "StrategyName": "strategy_demo",
+        "Symbol": "rb1910",
+        "Period": "1m"
+    },
+    {
         "AccountID": "00028039",
         "StrategyName": "strategy_demo",
         "Symbol": "rb1910",

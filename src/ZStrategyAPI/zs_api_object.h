@@ -339,6 +339,7 @@ struct zs_position_s
     double          FrozenMargin;
     double          FrozenCommission;
 
+    double          PriceTick;
     int32_t         Multiplier;
     int32_t         IsLast;
 };
@@ -569,6 +570,19 @@ struct zs_investor_s
     int32_t         OpenDate;
 };
 typedef struct zs_investor_s zs_investor_t;
+
+
+/* for quote response for mm */
+struct zs_forquote_rsp_s
+{
+    char                Symbol[ZS_SYMBOL_LEN];
+    char                ForQuoteSysID[ORDER_SYSID_LEN]; //询价编号
+    int32_t             ForQuoteTime;   //询价时间
+    int32_t             TradingDay;
+    int32_t             ActionDay;
+    ZSExchangeID        ExchangeID;
+};
+typedef struct zs_forquote_rsp_s zs_forquote_rsp_t;
 
 
 /* instrument status data */

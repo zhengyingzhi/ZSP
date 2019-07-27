@@ -6,7 +6,12 @@
 #include <ZStrategyAPI/zs_core.h>
 #include <ZStrategyAPI/zs_configs.h>
 
-#include <ThostFtdcUserApiStruct.h>
+#undef ZS_HAVE_SE
+#ifdef ZS_HAVE_SE
+#include <ctp_se/ThostFtdcUserApiStruct.h>
+#else
+#include <ctp/ThostFtdcUserApiStruct.h>
+#endif//ZS_HAVE_SE
 
 #ifdef _MSC_VER
 

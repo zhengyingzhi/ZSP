@@ -59,8 +59,12 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* libpaths);
 int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath);
 int zs_strategy_unload(zs_strategy_engine_t* zse, zs_strategy_entry_t* entry);
 
-// FIXME: get strategy entries
-int zs_strategy_get_entries(zs_strategy_engine_t* zse);
+// add strategy entry
+int zs_strategy_entry_add(zs_strategy_engine_t* zse, zs_strategy_entry_t* strategy_entry);
+
+// get strategy entries
+ztl_array_t* zs_strategy_get_entries(zs_strategy_engine_t* zse);
+zs_strategy_entry_t* zs_strategy_get_entry(zs_strategy_engine_t* zse, const char* strategy_name);
 
 
 /* 策略的添加、删除、启动、停止、更新等操作

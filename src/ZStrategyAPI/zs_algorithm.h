@@ -57,6 +57,10 @@ int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results);
 
 zs_blotter_t* zs_get_blotter(zs_algorithm_t* algo, const char* accountid);
 
+// add one strategy entry mannually
+int zs_algorithm_add_strategy_entry(zs_algorithm_t* algo, zs_strategy_entry_t* strategy_entry);
+
+
 // get version
 const char* zs_version(int* pver);
 

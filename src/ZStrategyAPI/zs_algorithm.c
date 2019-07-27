@@ -261,6 +261,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 {
     algo->DataPortal = data_portal;
 
+#if 0
     // fake contract info
     zs_contract_t* contract;
     contract = (zs_contract_t*)ztl_pcalloc(algo->Pool, sizeof(zs_contract_t));
@@ -274,6 +275,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
     zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID, contract->Symbol,
         (int)strlen(contract->Symbol), contract);
     contract->Sid = sid;
+#endif//0
 
     /* 回测：
      * 0. 创建事件引擎
@@ -292,7 +294,8 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
     // 交易核心管理(当前只有一个)
     zs_blotter_t* blotter;
     // blotter = zs_blotter_create(algo, "00100002");
-    blotter = zs_blotter_create(algo, "00028039");
+    // blotter = zs_blotter_create(algo, "00028039");
+    blotter = zs_blotter_create(algo, "038313");
     zs_blotter_manager_add(&algo->BlotterMgr, blotter);
 
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）
@@ -408,6 +411,15 @@ int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results)
 zs_blotter_t* zs_get_blotter(zs_algorithm_t* algo, const char* accountid)
 {
     return zs_blotter_manager_get(&algo->BlotterMgr, accountid);
+}
+
+int zs_algorithm_add_strategy_entry(zs_algorithm_t* algo, zs_strategy_entry_t* strategy_entry)
+{
+    if (!algo->StrategyEngine) {
+        algo->StrategyEngine = zs_strategy_engine_create(algo);
+    }
+
+    return zs_strategy_entry_add(algo->StrategyEngine, strategy_entry);
 }
 
 const char* zs_version(int* pver)
@@ -616,7 +628,10 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     tick = (zs_tick_t*)zd_data_body(evdata);
 
-    fprintf(stderr, "algo_handle_tick %s,%d\n", tick->Symbol, tick->UpdateTime);
+    static int count = 0;
+    count += 1;
+    if (count & 15)
+        fprintf(stderr, "algo_handle_tick %s,%d\n", tick->Symbol, tick->UpdateTime);
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {

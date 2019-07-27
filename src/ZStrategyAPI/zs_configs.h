@@ -61,6 +61,10 @@ struct zs_conf_account_s
     char        AppID[32];
     char*       AuthCode;
     char*       AccountSetting;
+
+    int         SubTopic;
+    int         AutoLogin;
+    int         AutoQuery;
 };
 typedef struct zs_conf_account_s zs_conf_account_t;
 

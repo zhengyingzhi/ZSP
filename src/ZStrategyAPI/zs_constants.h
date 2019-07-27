@@ -56,6 +56,7 @@ typedef enum
     ZS_DT_MD_Bar,
     ZS_DT_MD_Connected,
     ZS_DT_MD_Disconnected,
+    ZS_DT_MD_Login,
     ZS_DT_MD_Tick,
     ZS_DT_MD_Level2,
     ZS_DT_MD_StepOrder,

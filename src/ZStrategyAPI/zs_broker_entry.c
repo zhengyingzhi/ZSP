@@ -77,11 +77,13 @@ static void zs_md_on_for_quote(zs_md_api_t* mdctx, void* forquote);
 zs_md_api_handlers_t md_handlers = {
     zs_md_on_connect,
     zs_md_on_disconnect,
-    NULL,
+    NULL,       // on_rsp_error
     zs_md_on_login,
     zs_md_on_logout,
     zs_md_on_subscribe,
     zs_md_on_unsubscribe,
+    NULL,       // on_sub_forquote
+    NULL,
     zs_md_on_rtn_mktdata,
     zs_md_on_rtn_mktdatal2,
     zs_md_on_for_quote
@@ -605,6 +607,7 @@ static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int 
 
 static void zs_md_on_connect(zs_md_api_t* mdctx)
 {
+    fprintf(stderr, "md_on_connect\n");
     int rv;
     zs_data_head_t* zdh;
     zs_algorithm_t* algo;
@@ -637,6 +640,8 @@ static void zs_md_on_disconnect(zs_md_api_t* mdctx, int reason)
 
 static void zs_md_on_login(zs_md_api_t* mdctx, zs_login_t* login_rsp, zs_error_data_t* errdata)
 {
+    fprintf(stderr, "md_on_login\n");
+
     int rv;
     zs_data_head_t* zdh;
     zs_algorithm_t* algo;
@@ -644,7 +649,7 @@ static void zs_md_on_login(zs_md_api_t* mdctx, zs_login_t* login_rsp, zs_error_d
     algo = (zs_algorithm_t*)mdctx->UserData;
     zdh = _zs_data_create(algo, login_rsp, sizeof(zs_login_t));
 
-    rv = zs_ee_post(algo->EventEngine, ZS_DT_Login, zdh);
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_Login, zdh);
     if (rv != 0)
     {
         // log error

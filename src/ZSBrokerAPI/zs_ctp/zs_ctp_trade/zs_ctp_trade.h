@@ -6,14 +6,30 @@
 #include <string>
 #include <map>
 
-#include <ThostFtdcTraderApi.h>
+#undef ZS_HAVE_SE
+#ifdef ZS_HAVE_SE
+#include <ctp_se/ThostFtdcTraderApi.h>
+#else
+#include <ctp/ThostFtdcTraderApi.h>
+#endif//ZS_HAVE_SE
 
 #include <ZStrategyAPI/zs_broker_api.h>
 
 #include "zs_ctp_common.h"
 
 
-typedef std::map<std::string, zs_position_t>  PositionMap;
+typedef struct 
+{
+    double          PriceTick;
+    int32_t         Multiplier;
+    ZSExchangeID    ExchangeID;
+}zs_instrument_info_t;
+
+typedef std::map<std::string, zs_instrument_info_t> InstrumentInfoMap;
+typedef std::map<std::string, zs_margin_rate_t>     MarginMap;
+typedef std::map<std::string, zs_commission_rate_t> CommissionMap;
+typedef std::map<std::string, zs_position_t>        PositionMap;
+
 
 class ZSCtpTradeSpi : public CThostFtdcTraderSpi
 {
@@ -122,6 +138,9 @@ public:
     CThostFtdcTraderApi*        m_pTradeApi;
     zs_trade_api_handlers_t*    m_Handlers;
     zs_conf_account_t           m_Conf;
+    InstrumentInfoMap           m_InstrumentDict;
+    MarginMap                   m_MarginDict;
+    CommissionMap               m_CommDict;
     PositionMap                 m_PosDict;
     void*   m_zsTdCtx;
     int     m_OrderRef;
@@ -129,6 +148,10 @@ public:
     int     m_SessionID;
     int     m_TradingDay;
     int     m_RequestID;
+
+    int     m_IsQryInstrument;
+    int     m_IsQryPosition;
+    int     m_IsQryPositionDetail;
 };
 
 

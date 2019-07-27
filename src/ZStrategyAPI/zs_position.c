@@ -318,6 +318,9 @@ void zs_position_handle_pos_rsp(zs_position_engine_t* pos_engine, zs_position_t*
         pos_engine->LongPrice   = pos->PositionPrice;   // TODO
         pos_engine->LongPnl     = pos->PositionPnl;
         pos_engine->LongMargin  = pos->UseMargin;
+        fprintf(stderr, "pos_engine long  pos:%d,%d,%d,px:%.2lf,pnl:%.2lf,margin:%.1lf\n",
+            pos->Position, pos->YdPosition, pos_engine->LongTdPos, pos_engine->LongPrice,
+            pos_engine->LongPnl, pos_engine->LongMargin);
     }
     else if (pos->Direction == ZS_D_Short)
     {
@@ -329,6 +332,9 @@ void zs_position_handle_pos_rsp(zs_position_engine_t* pos_engine, zs_position_t*
         pos_engine->ShortPrice  = pos->PositionPrice;   // TODO
         pos_engine->ShortPnl    = pos->PositionPnl;
         pos_engine->ShortMargin = pos->UseMargin;
+        fprintf(stderr, "pos_engine short pos:%d,%d,%d,px:%.2lf,pnl:%.2lf,margin:%.1lf\n",
+            pos->Position, pos->YdPosition, pos_engine->ShortTdPos, pos_engine->ShortPrice,
+            pos_engine->ShortPnl, pos_engine->ShortMargin);
     }
 }
 
