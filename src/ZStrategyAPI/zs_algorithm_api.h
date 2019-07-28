@@ -21,7 +21,6 @@ extern "C" {
  * quanty: >0 is buy, <0 is sell
  * price: ==0 is market order, otherwise limit order
  * stopOrder: is stop order or not
- * apiName: use what broker api to place the orde
  */
 int zs_order(zs_algorithm_t* algo, const char* accountid, 
     zs_sid_t sid, int quanty, double limitpx, int stop_order);

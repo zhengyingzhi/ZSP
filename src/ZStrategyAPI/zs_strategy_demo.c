@@ -126,6 +126,7 @@ static zs_strategy_entry_t stg_demo =
     "1.0.0",            // version
     0,                  // flag
     NULL,               // hlib
+    ZS_ST_AssetSingle,  // 单标的策略
 
     stg_demo_create,
     stg_demo_release,

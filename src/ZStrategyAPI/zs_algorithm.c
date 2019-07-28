@@ -74,19 +74,7 @@ static int _zs_load_strategies(zs_algorithm_t* algo)
         algo->StrategyEngine = zse;
     }
 
-    // 加载策略
-
-    // !example code!
-    const char* setting = "{\"symbol\": \"rb1910\", \"strategy_name\": \"strategy_demo\", \"account_id\": \"00100002\"}";
-    zs_cta_strategy_t* strategy = NULL;
-    zs_strategy_create(zse, &strategy, "strategy_demo", setting);
-    if (setting) {
-        zs_strategy_add(zse, strategy);
-    }
-
-    // init and start strategy
-    zs_strategy_init(zse, strategy);
-    zs_strategy_start(zse, strategy);
+    // 根据配置信息，加载策略
 
     return 0;
 }
@@ -98,8 +86,7 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
     zs_trade_api_t* tdapi;
     zs_md_api_t*    mdapi;
 
-    if (!algo->Broker)
-    {
+    if (!algo->Broker) {
         algo->Broker = zs_broker_create(algo);
     }
 
@@ -125,12 +112,18 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         mdapi = (zs_md_api_t*)ztl_pcalloc(algo->Pool, sizeof(zs_md_api_t));
 
 #if 1
-        // example code
+        // example code, default import ctp interface
         const char* tdlibpath;
         const char* mdlibpath;
         // tdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_trade.dll";
+
+#ifdef ZS_HAVE_SE
+        tdlibpath = "zs_ctp_trade_se.dll";
+        mdlibpath = "zs_ctp_md_se.dll";
+#else
         tdlibpath = "zs_ctp_trade.dll";
         mdlibpath = "zs_ctp_md.dll";
+#endif//ZS_HAVE_SE
 
         tdapi->UserData = algo;
         mdapi->UserData = algo;
@@ -143,14 +136,33 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         zs_bt_md_api_entry(mdapi);
 #endif
 
-        if (tdapi->ApiName) {
+        if (tdapi->APIName) {
+            fprintf(stderr, "zs_broker_add_tradeapi %s\n", tdapi->APIName);
             zs_broker_add_tradeapi(algo->Broker, tdapi);
+        }
+        if (mdapi->APIName) {
+            fprintf(stderr, "zs_broker_add_mdapi %s\n", mdapi->APIName);
             zs_broker_add_mdapi(algo->Broker, mdapi);
         }
     }
     return 0;
 }
 
+static int _zs_blotter_connect(zs_algorithm_t* algo)
+{
+    zs_blotter_t* blotter;
+    for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
+    {
+        blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
+        if (!blotter) {
+            continue;
+        }
+
+        zs_blotter_trade_connect(blotter);
+        zs_blotter_md_connect(blotter);
+    }
+    return 0;
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -173,15 +185,14 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
     algo->Params = algo_param;
 
     // create other objects...
-    algo->EventEngine = zs_ee_create(algo->Pool, algo->Params->RunMode);
-    algo->DataPortal = NULL;
-    algo->Simulator = NULL;
+    algo->EventEngine   = zs_ee_create(algo->Pool, algo->Params->RunMode);
+    algo->DataPortal    = NULL;
+    algo->Simulator     = NULL;
     zs_blotter_manager_init(&algo->BlotterMgr, algo);
-    algo->AssetFinder = zs_asset_create(algo, algo->Pool, 0);
-    // algo->StrategyEngine = zs_strategy_engine_create(algo);
-    algo->StrategyEngine = NULL;
-    algo->Broker = zs_broker_create(algo);
-    algo->RiskControl = NULL;
+    algo->AssetFinder   = zs_asset_create(algo, algo->Pool, 0);
+    algo->StrategyEngine= zs_strategy_engine_create(algo);
+    algo->Broker        = zs_broker_create(algo);
+    algo->RiskControl   = NULL;
 
     return algo;
 }
@@ -238,6 +249,7 @@ void zs_algorithm_release(zs_algorithm_t* algo)
 
 int zs_algorithm_init(zs_algorithm_t* algo)
 {
+    zs_strategy_init_all(algo->StrategyEngine, NULL);
     return 0;
 }
 
@@ -291,15 +303,9 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
     // 注册交易核心所关心的事件
     zs_algorithm_register(algo);
 
-    // 交易核心管理(当前只有一个)
-    zs_blotter_t* blotter;
-    // blotter = zs_blotter_create(algo, "00100002");
-    // blotter = zs_blotter_create(algo, "00028039");
-    blotter = zs_blotter_create(algo, "038313");
-    zs_blotter_manager_add(&algo->BlotterMgr, blotter);
-
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）
     _zs_load_strategies(algo);
+    zs_strategy_start_all(algo->StrategyEngine, NULL);
 
     // 启动事件引擎
     zs_ee_start(algo->EventEngine);
@@ -349,35 +355,12 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
             // 每个账户使用一个交易API和行情API，可直接从配置中获取该账户的账户信息，使用接口信息等
             // 可支持：策略中登录了多个账户（每个账户属于不同的经纪商，如期现同时交易），虽账号不同，但属于同一人
             // 因此，需要支持智能获取接口（如下期货合约，不传入accountID，智能获取ctp，下股票，智能获取tdx接口）
-            zs_trade_api_t* tdapi = zs_broker_get_tradeapi(algo->Broker, trading_conf->TradeConf.ApiName);
+            zs_trade_api_t* tdapi = zs_broker_get_tradeapi(algo->Broker, trading_conf->TradeConf.APIName);
             tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, &trading_conf->TradeConf);
             tdapi->connect(tdapi->ApiInstance, NULL);
         }
 #else
-        zs_trade_api_t* tdapi;
-        zs_md_api_t* mdapi;
-
-        // tdapi = zs_broker_get_tradeapi(algo->Broker, "backtest");
-        // mdapi = zs_broker_get_mdapi(algo->Broker, "backtest");
-        tdapi = zs_broker_get_tradeapi(algo->Broker, "CTP");
-        mdapi = zs_broker_get_mdapi(algo->Broker, "CTP");
-
-        tdapi->UserData = algo;
-        mdapi->UserData = algo;
-
-        blotter->TradeApi = tdapi;
-        blotter->MdApi = mdapi;
-
-        if (tdapi) {
-            tdapi->ApiInstance = tdapi->create("", 0);
-            tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, blotter->account_conf);
-            tdapi->connect(blotter->TradeApi->ApiInstance, NULL);
-        }
-        if (mdapi) {
-            mdapi->ApiInstance = mdapi->create("", 0);
-            mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, blotter->account_conf);
-            mdapi->connect(mdapi->ApiInstance, NULL);
-        }
+        _zs_blotter_connect(algo);
 #endif//0
 }
 
@@ -421,6 +404,109 @@ int zs_algorithm_add_strategy_entry(zs_algorithm_t* algo, zs_strategy_entry_t* s
 
     return zs_strategy_entry_add(algo->StrategyEngine, strategy_entry);
 }
+
+int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting)
+{
+    zs_json_t* zjson;
+    zjson = zs_json_parse(strategy_setting, (int)strlen(strategy_setting));
+    if (!zjson) {
+        // ERRORID: invalid json buffer
+        return -1;
+    }
+
+    char strategy_name[256] = "";
+    zs_json_get_string(zjson, "StrategyName", strategy_name, sizeof(strategy_name));
+
+    // 
+    zs_cta_strategy_t* strategy = NULL;
+    zs_strategy_create(algo->StrategyEngine, &strategy, "strategy_demo", strategy_setting);
+    if (strategy) {
+        zs_strategy_add(algo->StrategyEngine, strategy);
+    }
+
+    zs_json_release(zjson);
+    return 0;
+}
+
+int zs_algorithm_add_account(zs_algorithm_t* algo, const char* account_setting)
+{
+    zs_conf_account_t account_conf = { 0 };
+
+    // parse the setting buffer
+    zs_json_t* zjson;
+    zjson = zs_json_parse(account_setting, (int)strlen(account_setting));
+    if (!zjson) {
+        // ERRORID: invalid json buffer
+        return -1;
+    }
+
+    char authcode[512] = "";
+    zs_json_get_string(zjson, "AccountID", account_conf.AccountID, sizeof(account_conf.AccountID));
+    zs_json_get_string(zjson, "AccountName", account_conf.AccountName, sizeof(account_conf.AccountName));
+    zs_json_get_string(zjson, "Password", account_conf.Password, sizeof(account_conf.Password));
+    zs_json_get_string(zjson, "BrokerID", account_conf.BrokerID, sizeof(account_conf.BrokerID));
+    zs_json_get_string(zjson, "TradeAPIName", account_conf.TradeAPIName, sizeof(account_conf.TradeAPIName));
+    zs_json_get_string(zjson, "MDAPIName", account_conf.MDAPIName, sizeof(account_conf.MDAPIName));
+    zs_json_get_string(zjson, "AppID", account_conf.AppID, sizeof(account_conf.AppID));
+    zs_json_get_string(zjson, "AuthCode", account_conf.AuthCode, sizeof(authcode));
+    if (authcode[0]) {
+        account_conf.AuthCode = _strdup(authcode);
+    }
+
+    zs_json_release(zjson);
+
+    return zs_algorithm_add_account2(algo, &account_conf);
+}
+
+int zs_algorithm_add_account2(zs_algorithm_t* algo, const zs_conf_account_t* account_conf)
+{
+    zs_blotter_t* blotter;
+    blotter = zs_get_blotter(algo, account_conf->AccountID);
+    if (blotter) {
+        // already exists
+        return 1;
+    }
+
+    blotter = zs_blotter_create(algo, account_conf->AccountID);
+    if (!blotter) {
+        return -1;
+    }
+    fprintf(stderr, "zs_algorithm_add_account2 for %s.%s\n", 
+        account_conf->BrokerID, account_conf->AccountID);
+
+    zs_blotter_manager_add(&algo->BlotterMgr, blotter);
+    return 0;
+}
+
+int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_setting)
+{
+    zs_conf_broker_t broker_info = { 0 };
+
+    zs_json_t* zjson;
+    zjson = zs_json_parse(broker_setting, (int)strlen(broker_setting));
+    if (!zjson) {
+        // ERRORID: invalid json buffer
+        return -1;
+    }
+
+    char authcode[512] = "";
+    zs_json_get_string(zjson, "APIName", broker_info.APIName, sizeof(broker_info.APIName));
+    zs_json_get_string(zjson, "BrokerID", broker_info.BrokerID, sizeof(broker_info.BrokerID));
+    zs_json_get_string(zjson, "BrokerName", broker_info.BrokerName, sizeof(broker_info.BrokerName));
+    zs_json_get_string(zjson, "TradeAddr", broker_info.TradeAddr, sizeof(broker_info.TradeAddr));
+    zs_json_get_string(zjson, "MDAddr", broker_info.MDAddr, sizeof(broker_info.MDAddr));
+
+    zs_json_release(zjson);
+
+    return zs_algorithm_add_broker_info2(algo, &broker_info);
+}
+
+int zs_algorithm_add_broker_info2(zs_algorithm_t* algo, const zs_conf_broker_t* broker_conf)
+{
+    // TODO: add into
+    return 0;
+}
+
 
 const char* zs_version(int* pver)
 {

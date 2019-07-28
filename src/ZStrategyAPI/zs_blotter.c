@@ -33,7 +33,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter = (zs_blotter_t*)ztl_pcalloc(pool, sizeof(zs_blotter_t));
     blotter->Pool = pool;
 
-    blotter->account_conf = account_conf;
+    blotter->AccountConf = account_conf;
     blotter->IsSelfCalc = 1;        // currently default is 1
     blotter->Algorithm = algo;
 
@@ -65,10 +65,10 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter->RiskControl = algo->RiskControl;
 
     // FIXME: the api object
-    blotter->TradeApi = zs_broker_get_tradeapi(algo->Broker, account_conf->TradeApiName);
+    blotter->TradeApi = zs_broker_get_tradeapi(algo->Broker, account_conf->TradeAPIName);
     if (blotter->TradeApi->create)
         blotter->TradeApi->ApiInstance = blotter->TradeApi->create("", 0);
-    blotter->MdApi = zs_broker_get_mdapi(algo->Broker, account_conf->MDApiName);
+    blotter->MdApi = zs_broker_get_mdapi(algo->Broker, account_conf->MDAPIName);
     if (blotter->MdApi->create)
         blotter->MdApi->ApiInstance = blotter->MdApi->create("", 0);
 
@@ -132,6 +132,49 @@ void zs_blotter_release(zs_blotter_t* blotter)
 void zs_blotter_stop(zs_blotter_t* blotter)
 {
     // 处理停止时的一些信息
+}
+
+
+int zs_blotter_trade_connect(zs_blotter_t* blotter)
+{
+    zs_trade_api_t* tdapi;
+
+    tdapi = zs_broker_get_tradeapi(blotter->Algorithm->Broker,
+        blotter->AccountConf->TradeAPIName);
+    if (!tdapi) {
+        // no trader api
+        return -1;
+    }
+
+    tdapi->UserData = blotter->Algorithm;
+    blotter->TradeApi = tdapi;
+
+    tdapi->ApiInstance = tdapi->create("", 0);
+    tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, blotter->AccountConf);
+    tdapi->connect(blotter->TradeApi->ApiInstance, NULL);
+
+    return 0;
+}
+
+int zs_blotter_md_connect(zs_blotter_t* blotter)
+{
+    zs_md_api_t* mdapi;
+
+    mdapi = zs_broker_get_mdapi(blotter->Algorithm->Broker,
+        blotter->AccountConf->MDAPIName);
+    if (!mdapi) {
+        // no trader api
+        return -1;
+    }
+
+    mdapi->UserData = blotter->Algorithm;
+    blotter->MdApi = mdapi;
+
+    mdapi->ApiInstance = mdapi->create("", 0);
+    mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, blotter->AccountConf);
+    mdapi->connect(mdapi->ApiInstance, NULL);
+
+    return 0;
 }
 
 int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)

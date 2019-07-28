@@ -76,7 +76,7 @@ typedef enum
 /* trader apis */
 struct zs_trade_api_s
 {
-    const char*     ApiName;        // the api name
+    const char*     APIName;        // the api name
     void*           HLib;           // the dso object
     void*           UserData;       // the core object
     void*           ApiInstance;    // the api instance, returned by create()
@@ -150,7 +150,7 @@ struct zs_trade_api_handlers_s
 /* md apis */
 struct zs_md_api_s
 {
-    const char*     ApiName;
+    const char*     APIName;
     void*           HLib;           // the dso object
     void*           UserData;
     void*           ApiInstance;

@@ -60,7 +60,7 @@ int zs_order_ex(zs_algorithm_t* algo, zs_order_req_t* order_req, int stop_order)
     // 平仓：检验持仓等
 
     //zs_trade_api_t* td_api;
-    //td_api = zs_broker_get_tradeapi(algo->Broker, apiName);
+    //td_api = zs_broker_get_tradeapi(algo->Broker, api_name);
     //if (td_api == NULL)
     //{
     //    return -1;

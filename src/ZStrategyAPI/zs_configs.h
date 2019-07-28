@@ -37,7 +37,7 @@ extern "C" {
  */
 struct zs_conf_broker_s
 {
-    char        ApiName[ZS_APINAME_SIZE];
+    char        APIName[ZS_APINAME_SIZE];
     char        BrokerID[ZS_BROKERID_SIZE];
     char        BrokerName[ZS_BROKERNAME_SIZE];
     char        TradeAddr[ZS_BROKER_ADDR_SIZE];
@@ -56,8 +56,8 @@ struct zs_conf_account_s
     char        BrokerID[ZS_BROKERID_SIZE];
     char        TradeAddr[ZS_BROKER_ADDR_SIZE];     // retrieve from broker setting
     char        MDAddr[ZS_BROKER_ADDR_SIZE];        // retrieve from broker setting
-    char        TradeApiName[ZS_APINAME_SIZE];
-    char        MDApiName[ZS_APINAME_SIZE];
+    char        TradeAPIName[ZS_APINAME_SIZE];
+    char        MDAPIName[ZS_APINAME_SIZE];
     char        AppID[32];
     char*       AuthCode;
     char*       AccountSetting;

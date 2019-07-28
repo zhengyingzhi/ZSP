@@ -282,7 +282,11 @@ void zs_strategy_engine_stop(zs_strategy_engine_t* zse)
 
 static void zs_strategy_register_event(zs_strategy_engine_t* zse)
 {
-    zs_event_engine_t* ee = zse->Algorithm->EventEngine;
+    zs_event_engine_t* ee;
+    if (!zse->Algorithm || !zse->Algorithm->EventEngine) {
+        return;
+    }
+    ee = zse->Algorithm->EventEngine;
 
     zs_ee_register(ee, zse, ZS_DT_Order, _zs_strategy_handle_order);
     zs_ee_register(ee, zse, ZS_DT_Trade, _zs_strategy_handle_trade);
@@ -306,14 +310,6 @@ int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* libpaths)
             zs_strategy_load(zse, libpath);
         }
     }
-
-#if 1
-    // load demo strategy
-    zs_strategy_entry_t* strategy_entry = NULL;
-    zs_demo_strategy_entry(&strategy_entry);
-
-    ztl_array_push_back(zse->StrategyEntries, &strategy_entry);
-#endif
 
     return 0;
 }

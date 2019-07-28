@@ -6,13 +6,12 @@
 #include <ZToolLib/ztl_config.h>
 
 #include <ZStrategyAPI/zs_algorithm.h>
-
 #include <ZStrategyAPI/zs_common.h>
 #include <ZStrategyAPI/zs_core.h>
-
 #include <ZStrategyAPI/zs_configs.h>
+#include <ZStrategyAPI/zs_data_portal.h>
 
-#include "ZStrategyAPI/zs_data_portal.h"
+#include <ZStrategyAPI/zs_strategy_demo.h>
 
 //#include <ZDataRepository>
 
@@ -75,20 +74,63 @@ int main(int argc, char* argv[])
     zs_algorithm_t* algo;
     algo = zs_algorithm_create(&params);
 
+    // we can mannually add some settings, like broker, account, strategy setting etc.
+
+    // test demo strategy
+    zs_strategy_entry_t* strategy_entry = NULL;
+    zs_demo_strategy_entry(&strategy_entry);
+    zs_algorithm_add_strategy_entry(algo, strategy_entry);
+
+    // broker info
+    zs_conf_broker_t conf_broker = { 0 };
+    strncpy(conf_broker.APIName, "CTP", sizeof(conf_broker.APIName));
+    strncpy(conf_broker.BrokerID, "9999", sizeof(conf_broker.BrokerID));
+    strncpy(conf_broker.BrokerName, "SimNow", sizeof(conf_broker.BrokerName));
+    strncpy(conf_broker.TradeAddr, "tcp://180.168.146.187:10100", sizeof(conf_broker.TradeAddr));
+    strncpy(conf_broker.MDAddr, "tcp://180.168.146.187:10110", sizeof(conf_broker.MDAddr));
+    zs_algorithm_add_broker_info2(algo, &conf_broker);
+
+    // account info
+    zs_conf_account_t account_conf = { 0 };
+    strncpy(account_conf.AccountID, "038313", sizeof(account_conf.AccountID));
+    strncpy(account_conf.AccountName, "yizhe", sizeof(account_conf.AccountName));
+    strncpy(account_conf.Password, "qwert", sizeof(account_conf.Password));
+    strncpy(account_conf.BrokerID, "9999", sizeof(account_conf.BrokerID));
+    strncpy(account_conf.TradeAPIName, "CTP", sizeof(account_conf.TradeAPIName));
+    strncpy(account_conf.MDAPIName, "CTP", sizeof(account_conf.MDAPIName));
+    // strcpy(account_conf.AppID, "", sizeof(account_conf.AppID));
+    // strcpy(account_conf.AuthCode, "", sizeof(account_conf.AuthCode));
+    zs_algorithm_add_account2(algo, &account_conf);
+
+    // !example code! add one strategy (by json buffer)
+    const char* strategy_setting = "{\"Symbol\": \"rb1910\", \"StrategyName\": \"strategy_demo\", \"account_id\": \"00100002\"}";
+    zs_algorithm_add_strategy(algo, strategy_setting);
+
+    // init the algorithm
     rv = zs_algorithm_init(algo);
     assert(rv == 0);
 
+    // start running
     rv = zs_algorithm_run(algo, data_portal);
 
-    while (1) {
-        getchar();
+    char ch;
+    while (1)
+    {
+        ch = getchar();
+        if (ch == 'e' || ch == 'q') {
+            break;
+        }
+
+        // TODO: input some cmds to operate zs algorithm
     }
+    fprintf(stderr, "zs algorithm stopping.");
+    zs_algorithm_stop(algo);
+    fprintf(stderr, "zs algorithm stopped.");
 
     // get run result from algo
     ztl_array_t result;
     ztl_array_init(&result, NULL, 1024, sizeof(void*));
     zs_algorithm_result(algo, &result);
-
 
     /* 
       // 回测资金, 账户信息，策略名字，均由配置文件获取

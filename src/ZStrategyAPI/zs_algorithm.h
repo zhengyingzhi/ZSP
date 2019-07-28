@@ -57,8 +57,16 @@ int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results);
 
 zs_blotter_t* zs_get_blotter(zs_algorithm_t* algo, const char* accountid);
 
-// add one strategy entry mannually
+// mannuly add some settings
 int zs_algorithm_add_strategy_entry(zs_algorithm_t* algo, zs_strategy_entry_t* strategy_entry);
+
+int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting);
+
+int zs_algorithm_add_account(zs_algorithm_t* algo, const char* account_setting);
+int zs_algorithm_add_account2(zs_algorithm_t* algo, const zs_conf_account_t* account_conf);
+
+int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_setting);
+int zs_algorithm_add_broker_info2(zs_algorithm_t* algo, const zs_conf_broker_t* broker_conf);
 
 
 // get version

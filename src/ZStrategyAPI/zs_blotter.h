@@ -70,7 +70,7 @@ struct zs_blotter_s
     ztl_array_t*        TradingStrategy;
 
     // 账户配置
-    zs_conf_account_t*  account_conf;
+    zs_conf_account_t*  AccountConf;
 
     // 请求接口
     int (*order)(zs_blotter_t* blotter, zs_order_req_t* order_req);
@@ -93,6 +93,10 @@ void zs_blotter_release(zs_blotter_t* blotter);
 
 void zs_blotter_stop(zs_blotter_t* blotter);
 
+
+// connect to server
+int zs_blotter_trade_connect(zs_blotter_t* blotter);
+int zs_blotter_md_connect(zs_blotter_t* blotter);
 
 // 下单
 int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req);

@@ -71,8 +71,8 @@ static int _zs_configs_parse_accounts(zs_algo_param_t* algo_params,
 
     _zs_get_string_object_value(tnode, "Password", account_conf->Password, sizeof(account_conf->Password) - 1);
     _zs_get_string_object_value(tnode, "BrokerID", account_conf->BrokerID, sizeof(account_conf->BrokerID) - 1);
-    _zs_get_string_object_value(tnode, "TradeAPIName", account_conf->TradeApiName, sizeof(account_conf->TradeApiName) - 1);
-    _zs_get_string_object_value(tnode, "MDAPIName", account_conf->MDApiName, sizeof(account_conf->MDApiName) - 1);
+    _zs_get_string_object_value(tnode, "TradeAPIName", account_conf->TradeAPIName, sizeof(account_conf->TradeAPIName) - 1);
+    _zs_get_string_object_value(tnode, "MDAPIName", account_conf->MDAPIName, sizeof(account_conf->MDAPIName) - 1);
     _zs_get_string_object_value(tnode, "AppID", account_conf->AppID, sizeof(account_conf->AppID) - 1);
 
     account_conf->AuthCode = NULL;
@@ -215,14 +215,14 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
     broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
     strcpy(broker_conf->BrokerID, "0000");
     strcpy(broker_conf->BrokerName, "INNER");
-    strcpy(broker_conf->ApiName, "backtest");
+    strcpy(broker_conf->APIName, "backtest");
     ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
 
 #if 0
     broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
     strcpy(broker_conf->BrokerID, "2318");
     strcpy(broker_conf->BrokerName, "»ªÌ©·ÂÕæ");
-    strcpy(broker_conf->ApiName, "CTP");
+    strcpy(broker_conf->APIName, "CTP");
     strcpy(broker_conf->TradeAddr, "tcp://59.36.3.115:61206");
     strcpy(broker_conf->MDAddr, "tcp://59.36.3.115:41214");
     ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
@@ -261,7 +261,7 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
 
         broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
 
-        _zs_get_string_object_value(tnode, "APIName", broker_conf->ApiName, sizeof(broker_conf->ApiName) - 1);
+        _zs_get_string_object_value(tnode, "APIName", broker_conf->APIName, sizeof(broker_conf->APIName) - 1);
         _zs_get_string_object_value(tnode, "BrokerID", broker_conf->BrokerID, sizeof(broker_conf->BrokerID) - 1);
         _zs_get_string_object_value(tnode, "BrokerName", broker_conf->BrokerName, sizeof(broker_conf->BrokerName) - 1);
         _zs_get_string_object_value(tnode, "TradeAddr", broker_conf->TradeAddr, sizeof(broker_conf->TradeAddr) - 1);

@@ -185,7 +185,7 @@ zs_trade_api_t* zs_broker_get_tradeapi(zs_broker_t* broker, const char* apiname)
             continue;
         }
 
-        if (strcasecmp(broker->TradeApis[i]->ApiName, apiname) == 0)
+        if (strcasecmp(broker->TradeApis[i]->APIName, apiname) == 0)
             return broker->TradeApis[i];
     }
     return NULL;
@@ -203,7 +203,7 @@ zs_md_api_t* zs_broker_get_mdapi(zs_broker_t* broker, const char* apiname)
             continue;
         }
 
-        if (strcmp(broker->MdApis[i]->ApiName, apiname) == 0)
+        if (strcmp(broker->MdApis[i]->APIName, apiname) == 0)
             return broker->MdApis[i];
     }
     return NULL;

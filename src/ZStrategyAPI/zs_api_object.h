@@ -442,7 +442,7 @@ struct zs_margin_rate_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     uint64_t        Sid;
-    ZSRatioType     MarginRateType;
+    ZSRatioTypeType MarginRateType;
 
     double          LongMarginRateByMoney;
     double          LongMarginRateByVolume;
@@ -456,7 +456,7 @@ struct zs_commission_rate_s
     char            Symbol[ZS_SYMBOL_LEN];
     ZSExchangeID    ExchangeID;
     uint64_t        Sid;
-    ZSRatioType     CommRateType;
+    ZSRatioTypeType CommRateType;
 
     double          OpenRatioByMoney;
     double          OpenRatioByVolume;

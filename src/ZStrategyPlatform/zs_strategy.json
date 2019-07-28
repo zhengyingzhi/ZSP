@@ -5,4 +5,12 @@
         "Period": "1m",
         "Volume": 2
     }
+    {
+        "StrategyName": "strategy_dma",
+        "Symbol": "rb1910",
+        "Period": "3m",
+        "Volume": 2,
+        "FastWindow": 30,
+        "SlowWindow": 10
+    }
 ]

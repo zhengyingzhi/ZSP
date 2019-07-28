@@ -271,7 +271,7 @@ int trade_query(void* instance, ZSApiQueryCategory category, void* data, int siz
 // the api entry func
 int trade_api_entry(zs_trade_api_t* tdapi)
 {
-    tdapi->ApiName = "CTP";
+    tdapi->APIName = "CTP";
     tdapi->HLib = NULL;
     tdapi->UserData = NULL;
     tdapi->ApiInstance = NULL;
@@ -699,9 +699,9 @@ void ZSCtpTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateF
         margin_rate.ShortMarginRateByVolume = pInstrumentMarginRate->ShortMarginRatioByVolume;
 
         if (margin_rate.LongMarginRateByMoney > 0.001)
-            margin_rate.MarginRateType = ZS_R_ByMoney;
+            margin_rate.MarginRateType = ZS_RT_ByMoney;
         else
-            margin_rate.MarginRateType = ZS_R_ByVolume;
+            margin_rate.MarginRateType = ZS_RT_ByVolume;
 
         m_MarginDict[std::string(margin_rate.Symbol)] = margin_rate;
     }
@@ -742,9 +742,9 @@ void ZSCtpTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommiss
         comm_rate.CloseTodayRatioByVolume = pInstrumentCommissionRate->CloseTodayRatioByVolume;
 
         if (comm_rate.OpenRatioByMoney > 0.001)
-            comm_rate.CommRateType = ZS_R_ByMoney;
+            comm_rate.CommRateType = ZS_RT_ByMoney;
         else
-            comm_rate.CommRateType = ZS_R_ByVolume;
+            comm_rate.CommRateType = ZS_RT_ByVolume;
 
         m_CommDict[std::string(comm_rate.Symbol)] = comm_rate;
     }

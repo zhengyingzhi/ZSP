@@ -147,6 +147,7 @@ static zs_strategy_entry_t strategy_dma =
     "1.0.0",            // version
     0,                  // flag
     NULL,               // hlib
+    ZS_ST_AssetSingle,  // 单标的策略
 
     strategy_dma_create,
     strategy_dma_release,

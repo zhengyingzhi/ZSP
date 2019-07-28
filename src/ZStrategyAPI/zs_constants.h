@@ -269,10 +269,17 @@ typedef enum
 /* 费率类型 */
 typedef enum
 {
-    ZS_R_ByMoney,
-    ZS_R_ByVolume
-}ZSRatioType;
+    ZS_RT_ByMoney,
+    ZS_RT_ByVolume
+}ZSRatioTypeType;
 
+
+/* 策略类型 */
+typedef enum
+{
+    ZS_ST_AssetSingle,
+    ZS_ST_AssetMulti
+}ZSStrategyTypeType;
 
 
 /* C数据类型 */
