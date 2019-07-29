@@ -29,6 +29,20 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
         return NULL;
     }
 
+    if (!account_conf->TradeAddr[0])
+    {
+        zs_conf_broker_t* broker_conf;
+        broker_conf = zs_configs_find_broker(algo->Params, account_conf->BrokerID);
+        if (!broker_conf) {
+            // ERRORID: no broker info
+            return NULL;
+        }
+        else {
+            strcpy(account_conf->TradeAddr, broker_conf->TradeAddr);
+            strcpy(account_conf->MDAddr, broker_conf->MDAddr);
+        }
+    }
+
     pool = algo->Pool;
     blotter = (zs_blotter_t*)ztl_pcalloc(pool, sizeof(zs_blotter_t));
     blotter->Pool = pool;
@@ -53,7 +67,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
 
     blotter->Commission = zs_commission_create(blotter->Algorithm);
 
-#if 1
+#if 0
     // demo debug
     zs_fund_account_t* fund_account;
     fund_account = &blotter->Account->FundAccount;
@@ -66,11 +80,18 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
 
     // FIXME: the api object
     blotter->TradeApi = zs_broker_get_tradeapi(algo->Broker, account_conf->TradeAPIName);
+    if (!blotter->TradeApi) {
+        fprintf(stderr, "blotter no tradeapi for account:%s, apiname:%s\n", accountid, account_conf->TradeAPIName);
+        return NULL;
+    }
+
     if (blotter->TradeApi->create)
         blotter->TradeApi->ApiInstance = blotter->TradeApi->create("", 0);
+
     blotter->MdApi = zs_broker_get_mdapi(algo->Broker, account_conf->MDAPIName);
-    if (blotter->MdApi->create)
+    if (blotter->MdApi && blotter->MdApi->create) {
         blotter->MdApi->ApiInstance = blotter->MdApi->create("", 0);
+    }
 
     blotter->subscribe = zs_blotter_subscribe;
     blotter->order = zs_blotter_order;
@@ -149,7 +170,8 @@ int zs_blotter_trade_connect(zs_blotter_t* blotter)
     tdapi->UserData = blotter->Algorithm;
     blotter->TradeApi = tdapi;
 
-    tdapi->ApiInstance = tdapi->create("", 0);
+    if (!tdapi->ApiInstance)
+        tdapi->ApiInstance = tdapi->create("", 0);
     tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, blotter->AccountConf);
     tdapi->connect(blotter->TradeApi->ApiInstance, NULL);
 
@@ -170,7 +192,8 @@ int zs_blotter_md_connect(zs_blotter_t* blotter)
     mdapi->UserData = blotter->Algorithm;
     blotter->MdApi = mdapi;
 
-    mdapi->ApiInstance = mdapi->create("", 0);
+    if (!mdapi->ApiInstance)
+        mdapi->ApiInstance = mdapi->create("", 0);
     mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, blotter->AccountConf);
     mdapi->connect(mdapi->ApiInstance, NULL);
 
@@ -341,7 +364,7 @@ int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos)
 
     sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos->ExchangeID,
         pos->Symbol, (int)strlen(pos->Symbol));
-    if (sid == ZS_INVALID_SID) {
+    if (sid == ZS_SID_INVALID) {
         // ERRORID: not find the asset
         return -1;
     }
@@ -383,7 +406,7 @@ int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_
 
     sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos_detail->ExchangeID,
         pos_detail->Symbol, (int)strlen(pos_detail->Symbol));
-    if (sid == ZS_INVALID_SID) {
+    if (sid == ZS_SID_INVALID) {
         // ERRORID: not find the asset
         return -1;
     }

@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include <ZToolLib/ztl_array.h>
+#include <ZToolLib/ztl_vector.h>
 #include <ZToolLib/ztl_dict.h>
 #include <ZToolLib/ztl_map.h>
 #include <ZToolLib/ztl_palloc.h>

@@ -168,7 +168,7 @@ int md_unsubscribe_forquote(void* instance, zs_subscribe_t* unsub_reqs[], int co
 
 int md_api_entry(zs_md_api_t* mdapi)
 {
-    mdapi->ApiName = "CTP";
+    mdapi->APIName = "CTP";
     mdapi->HLib = NULL;
     mdapi->UserData = NULL;
     mdapi->ApiInstance = NULL;

@@ -98,12 +98,13 @@ int main(int argc, char* argv[])
     strncpy(account_conf.BrokerID, "9999", sizeof(account_conf.BrokerID));
     strncpy(account_conf.TradeAPIName, "CTP", sizeof(account_conf.TradeAPIName));
     strncpy(account_conf.MDAPIName, "CTP", sizeof(account_conf.MDAPIName));
+    account_conf.AuthCode = "";
     // strcpy(account_conf.AppID, "", sizeof(account_conf.AppID));
     // strcpy(account_conf.AuthCode, "", sizeof(account_conf.AuthCode));
     zs_algorithm_add_account2(algo, &account_conf);
 
     // !example code! add one strategy (by json buffer)
-    const char* strategy_setting = "{\"Symbol\": \"rb1910\", \"StrategyName\": \"strategy_demo\", \"account_id\": \"00100002\"}";
+    const char* strategy_setting = "{\"Symbol\": \"rb1910\", \"StrategyName\": \"strategy_demo\", \"AccountID\": \"038313\"}";
     zs_algorithm_add_strategy(algo, strategy_setting);
 
     // init the algorithm

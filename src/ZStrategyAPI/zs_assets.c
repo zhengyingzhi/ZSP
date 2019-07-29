@@ -110,7 +110,7 @@ int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
     void* dst;
 
     sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
-    if (sid == ZS_INVALID_SID) {
+    if (sid == ZS_SID_INVALID) {
         return -1;
     }
 
@@ -138,7 +138,7 @@ int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
     void* dst;
 
     sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
-    if (sid == ZS_INVALID_SID) {
+    if (sid == ZS_SID_INVALID) {
         return -1;
     }
 
@@ -168,7 +168,7 @@ int zs_asset_del(zs_asset_finder_t* asset_finder, int exchangeid, const char* sy
 {
     zs_sid_t sid;
     sid = zs_asset_lookup(asset_finder, exchangeid, symbol, len);
-    if (sid == ZS_INVALID_SID)
+    if (sid == ZS_SID_INVALID)
     {
         return -1;
     }
@@ -206,7 +206,7 @@ void* zs_asset_find(zs_asset_finder_t* asset_finder, int exchangeid, const char*
     zs_sid_t sid;
 
     sid = zs_asset_lookup(asset_finder, exchangeid, symbol, len);
-    if (sid == ZS_INVALID_SID) {
+    if (sid == ZS_SID_INVALID) {
         return NULL;
     }
 
@@ -236,7 +236,7 @@ zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder,
 {
     zs_sid_t sid;
     sid = zs_asset_sid_get(asset_finder, exchangeid, symbol, len);
-    if (sid == ZS_INVALID_SID)
+    if (sid == ZS_SID_INVALID)
     {
         // add new if not existed
         ZAssetKey key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
@@ -251,7 +251,7 @@ zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder,
     int exchangeid, const char* symbol, int len)
 {
     dictEntry*  entry;
-    zs_sid_t    sid = ZS_INVALID_SID;
+    zs_sid_t    sid = ZS_SID_INVALID;
     ZAssetKey   key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
     entry = dictFind(asset_finder->SymbolHashDict, &key);
     if (entry)

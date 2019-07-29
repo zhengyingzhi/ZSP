@@ -438,6 +438,7 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
     zs_blotter_t*           blotter;
     uint32_t                next_strategy_id;
 
+#if 0
     // 是否已存在，FIXME：同时加载多个相同名的策略时如何处理？
     strategy = ztl_array_find(zse->AllStrategy, (char*)strategy_name, _cta_strategy_name_comp);
     if (strategy)
@@ -445,6 +446,7 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
         *pstrategy = strategy;
         return 0;
     }
+#endif
 
     strategy_entry = NULL;
     for (uint32_t x = 0; x < ztl_array_size(zse->StrategyEntries); ++x)
@@ -494,10 +496,13 @@ int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
     ztl_array_t* vec;
 
     // add to map and array
-
+#if 0// FIXME
     if (!ztl_array_find(zse->AllStrategy, strategy, _cta_strategy_object_comp)) {
         ztl_array_push_back(zse->AllStrategy, strategy);
     }
+#else
+    ztl_array_push_back(zse->AllStrategy, &strategy);
+#endif
 
     if (!ztl_map_find(zse->StrategyMap, (uint64_t)strategy->StrategyID)) {
         ztl_map_add(zse->StrategyMap, strategy->StrategyID, strategy);
@@ -512,7 +517,7 @@ int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
         ZStrKey* pkey = zs_str_keydup2(strategy->pAccountID, len, ztl_palloc, zse->Pool);
         dictAdd(zse->AccountStrategyDict, pkey, strategy);
     }
-    ztl_array_push_back(vec, strategy);
+    ztl_array_push_back(vec, &strategy);
 
     return 0;
 }
@@ -580,7 +585,7 @@ int zs_strategy_init_all(zs_strategy_engine_t* zse, const char* accountid)
 
     for (uint32_t i = 0; i < ztl_array_size(strategy_array); ++i)
     {
-        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, i);
+        strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, i);
         if (!strategy) {
             continue;
         }
@@ -603,7 +608,7 @@ int zs_strategy_start_all(zs_strategy_engine_t* zse, const char* accountid)
 
     for (uint32_t i = 0; i < ztl_array_size(strategy_array); ++i)
     {
-        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, i);
+        strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, i);
         if (!strategy) {
             continue;
         }
@@ -626,7 +631,7 @@ int zs_strategy_stop_all(zs_strategy_engine_t* zse, const char* accountid)
 
     for (uint32_t i = 0; i < ztl_array_size(strategy_array); ++i)
     {
-        strategy = (zs_cta_strategy_t*)ztl_array_at(strategy_array, i);
+        strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, i);
         if (!strategy) {
             continue;
         }
@@ -731,7 +736,7 @@ int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy
 
     sid = strategy->lookup_sid(strategy, exchangeid, symbol, (int)strlen(symbol));
 #if 0
-    if (sid == ZS_INVALID_SID) {
+    if (sid == ZS_SID_INVALID) {
         return -1;
     }
 #else

@@ -16,7 +16,13 @@
 #include "zs_simulator.h"
 #include "zs_strategy_engine.h"
 
+#ifdef _MSC_VER
 #include <Windows.h>
+#define zs_strdup   _strdup
+#else
+#define zs_strdup   strdup
+#endif//_MSC_VER
+
 
 /* algo event handlers */
 static void _zs_algo_handle_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
@@ -100,8 +106,8 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         tdapi->UserData = algo;
         mdapi->UserData = algo;
 
-        tdapi->ApiInstance = tdapi->create("bt_td", 0);
-        mdapi->ApiInstance = mdapi->create("bt_md", 0);
+        // tdapi->ApiInstance = tdapi->create("bt_td", 0);
+        // mdapi->ApiInstance = mdapi->create("bt_md", 0);
 
         zs_broker_add_tradeapi(algo->Broker, tdapi);
         zs_broker_add_mdapi(algo->Broker, mdapi);
@@ -193,6 +199,9 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
     algo->StrategyEngine= zs_strategy_engine_create(algo);
     algo->Broker        = zs_broker_create(algo);
     algo->RiskControl   = NULL;
+
+    // 加载API
+    _zs_load_brokers(algo);
 
     return algo;
 }
@@ -296,9 +305,6 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
      * 3. 加载策略（自动订阅，查询数据）
      * 4. 运行
      */
-
-     // 加载API
-    _zs_load_brokers(algo);
 
     // 注册交易核心所关心的事件
     zs_algorithm_register(algo);
@@ -414,14 +420,42 @@ int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting
         return -1;
     }
 
+    char acccount_id[32] = "";
     char strategy_name[256] = "";
+    zs_json_get_string(zjson, "AccountID", acccount_id, sizeof(acccount_id));
     zs_json_get_string(zjson, "StrategyName", strategy_name, sizeof(strategy_name));
 
-    // 
+    // the blotter
+    zs_blotter_t* blotter;
+    blotter = zs_get_blotter(algo, acccount_id);
+    if (!blotter)
+    {
+        // create 
+        blotter = zs_blotter_create(algo, acccount_id);
+        if (!blotter)
+        {
+            fprintf(stderr, "zs_algorithm_add_strategy create blotter failed for %s\n", acccount_id);
+            zs_json_release(zjson);
+            return -1;
+        }
+        fprintf(stderr, "zs_algorithm_add_strategy create blotter for %s\n", acccount_id);
+
+        zs_blotter_manager_add(&algo->BlotterMgr, blotter);
+    }
+
+    // the strategy
+    int rv;
     zs_cta_strategy_t* strategy = NULL;
-    zs_strategy_create(algo->StrategyEngine, &strategy, "strategy_demo", strategy_setting);
-    if (strategy) {
+    rv = zs_strategy_create(algo->StrategyEngine, &strategy, strategy_name, strategy_setting);
+    if (rv == 0 && strategy)
+    {
         zs_strategy_add(algo->StrategyEngine, strategy);
+    }
+    else
+    {
+        fprintf(stderr, "zs_algorithm_add_strategy create strategy:%s failed\n", strategy_name);
+        zs_json_release(zjson);
+        return -1;
     }
 
     zs_json_release(zjson);
@@ -450,7 +484,7 @@ int zs_algorithm_add_account(zs_algorithm_t* algo, const char* account_setting)
     zs_json_get_string(zjson, "AppID", account_conf.AppID, sizeof(account_conf.AppID));
     zs_json_get_string(zjson, "AuthCode", account_conf.AuthCode, sizeof(authcode));
     if (authcode[0]) {
-        account_conf.AuthCode = _strdup(authcode);
+        account_conf.AuthCode = zs_strdup(authcode);
     }
 
     zs_json_release(zjson);
@@ -460,6 +494,18 @@ int zs_algorithm_add_account(zs_algorithm_t* algo, const char* account_setting)
 
 int zs_algorithm_add_account2(zs_algorithm_t* algo, const zs_conf_account_t* account_conf)
 {
+    zs_conf_account_t* old_account_conf;
+    old_account_conf = zs_configs_find_account(algo->Params, account_conf->AccountID);
+    if (old_account_conf) {
+        // already exists
+        *old_account_conf = *account_conf;
+        return 1;
+    }
+
+    ztl_array_push_back(&algo->Params->AccountConf, (void*)&account_conf);
+    return 0;
+
+#if 0
     zs_blotter_t* blotter;
     blotter = zs_get_blotter(algo, account_conf->AccountID);
     if (blotter) {
@@ -476,6 +522,7 @@ int zs_algorithm_add_account2(zs_algorithm_t* algo, const zs_conf_account_t* acc
 
     zs_blotter_manager_add(&algo->BlotterMgr, blotter);
     return 0;
+#endif
 }
 
 int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_setting)
@@ -503,7 +550,14 @@ int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_settin
 
 int zs_algorithm_add_broker_info2(zs_algorithm_t* algo, const zs_conf_broker_t* broker_conf)
 {
-    // TODO: add into
+    zs_conf_broker_t* old_broker_conf;
+    old_broker_conf = zs_configs_find_broker(algo->Params, broker_conf->BrokerID);
+    if (old_broker_conf) {
+        // already exist, overwrite old
+        *old_broker_conf = *broker_conf;
+        return 1;
+    }
+    ztl_array_push_back(&algo->Params->BrokerConf, (void*)&broker_conf);
     return 0;
 }
 

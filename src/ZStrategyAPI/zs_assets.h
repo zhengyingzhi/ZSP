@@ -25,7 +25,7 @@ typedef uint64_t zs_sid_t;
 #define ZS_ASSET_INIT_NUM   8192
 #define ZS_ASSET_START_SID  16
 
-#define ZS_INVALID_SID      (-1)
+#define ZS_SID_INVALID      (-1)
 
 /* global asset manager
  */

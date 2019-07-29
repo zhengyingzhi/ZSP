@@ -64,21 +64,21 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
     }
 
     memset(strategy_name, 0, sizeof(strategy_name));
-    zs_json_get_string(zjson, "strategy_name", strategy_name, sizeof(strategy_name));
+    zs_json_get_string(zjson, "StrategyName", strategy_name, sizeof(strategy_name));
     if (!strategy_name[0]) {
         // ERRORID: no strategy_name in strategy setting
         return NULL;
     }
 
     memset(account_id, 0, sizeof(account_id));
-    zs_json_get_string(zjson, "account_id", account_id, sizeof(account_id));
+    zs_json_get_string(zjson, "AccountID", account_id, sizeof(account_id));
     if (!account_id[0]) {
         // ERRORID: no account id in strategy setting
         return NULL;
     }
 
     memset(symbol, 0, sizeof(symbol));
-    zs_json_get_string(zjson, "symbol", symbol, sizeof(symbol));
+    zs_json_get_string(zjson, "Symbol", symbol, sizeof(symbol));
     if (!symbol[0]) {
         // ERRORID: no symbol in strategy setting
         return NULL;
@@ -172,7 +172,7 @@ zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* strategy, ZSExchangeID exchangeid,
 
     contract = zs_asset_find(strategy->Engine->AssetFinder, exchangeid, symbol, len);
     if (!contract) {
-        return ZS_INVALID_SID;
+        return ZS_SID_INVALID;
     }
 
     return contract->Sid;
@@ -348,7 +348,7 @@ int zs_cta_get_trades(zs_cta_strategy_t* strategy, zs_trade_t* trades[], int siz
 
     for (index = 0; index < (int32_t)ztl_array_size(strategy->Blotter->TradeArray); ++index)
     {
-        trade = (zs_trade_t*)ztl_array_at(strategy->Blotter->TradeArray, index);
+        trade = (zs_trade_t*)ztl_array_at2(strategy->Blotter->TradeArray, index);
         if (index >= size) {
             break;
         }

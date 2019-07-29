@@ -85,9 +85,6 @@
     <ClInclude Include="zs_cta_strategy.h">
       <Filter>Strategy</Filter>
     </ClInclude>
-    <ClInclude Include="zs_broker_info.h">
-      <Filter>Brokerage</Filter>
-    </ClInclude>
     <ClInclude Include="zs_bar_generator.h">
       <Filter>Strategy</Filter>
     </ClInclude>
@@ -203,9 +200,6 @@
     </ClCompile>
     <ClCompile Include="zs_cta_strategy.c">
       <Filter>Strategy</Filter>
-    </ClCompile>
-    <ClCompile Include="zs_broker_info.c">
-      <Filter>Brokerage</Filter>
     </ClCompile>
     <ClCompile Include="zs_bar_generator.c">
       <Filter>Strategy</Filter>

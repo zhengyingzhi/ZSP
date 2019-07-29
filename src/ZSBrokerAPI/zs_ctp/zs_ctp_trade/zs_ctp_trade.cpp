@@ -358,7 +358,7 @@ void ZSCtpTradeSpi::OnFrontConnected()
     if (m_Handlers->on_connect)
         m_Handlers->on_connect(m_zsTdCtx);
 
-    if (m_Conf.AuthCode[0]) {
+    if (m_Conf.AuthCode && m_Conf.AuthCode[0]) {
 #ifdef ZS_HAVE_SE
         ReqAuthenticate();
 #else

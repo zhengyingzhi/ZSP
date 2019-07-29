@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 
 #include "zs_algorithm.h"
 
@@ -23,8 +23,9 @@ typedef struct my_strategy_demo_s
     int             index;
     zs_sid_t        sid;
     ZSExchangeID    exchangeid;
-    char            accountID[16];
-    char            symbol[32];
+    char            account_id[16];     // 交易账号
+    char            symbol[32];         // 交易合约
+    int32_t         volume;             // 下单数量
 }my_strategy_demo_t;
 
 
@@ -33,9 +34,23 @@ void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
     my_strategy_demo_t* instance;
     instance = (my_strategy_demo_t*)calloc(1, sizeof(my_strategy_demo_t));
 
-    strcpy(instance->symbol, "rb1910");
+    // some default values
+    instance->volume = 1;
+
+    // parse the setting
+    zs_json_t* zjson;
+    zjson = zs_json_parse(setting, (int)strlen(setting));
+    if (!zjson) {
+        return NULL;
+    }
+
+    strcpy(instance->account_id, context->pAccountID);
+
+    zs_json_get_int(zjson, "Volume", &instance->volume);
+    zs_json_get_string(zjson, "Symbol", instance->symbol, sizeof(instance->symbol));
     instance->exchangeid = ZS_EI_SHFE;
-    instance->sid = context->lookup_sid(context, instance->exchangeid, instance->symbol, 6);
+
+    zs_json_release(zjson);
 
     // we could assign our user data to UserData field
     context->UserData = NULL;
@@ -68,6 +83,12 @@ void stg_demo_on_init(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 void stg_demo_on_start(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 {
     fprintf(stderr, "stg demo start\n");
+
+    instance->sid = context->lookup_sid(context, instance->exchangeid, instance->symbol, 6);
+    if (instance->sid == ZS_SID_INVALID) {
+        // ERRORID: unknown symbol
+        return;
+    }
 
     context->subscribe(context, instance->sid);
 }
