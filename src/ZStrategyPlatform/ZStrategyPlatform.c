@@ -15,6 +15,9 @@
 
 //#include <ZDataRepository>
 
+#include <ZStrategyAPI/zs_logger.h>
+
+
 
 int main(int argc, char* argv[])
 {

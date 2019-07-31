@@ -29,18 +29,20 @@ struct zs_cta_strategy_s
     ZSTradingFlag   TradingFlag;    // the strategy trading flag
     ZSRunStatus     RunStatus;      // the strategy running status
 
-    const char* StrategySetting;    // the strategy raw setting
-    char*       pAccountID;
-    char*       pCustomID;
+    const char*     StrategySetting;// the strategy raw setting
+    char*           pAccountID;
+    char*           pCustomID;
+    char*           pStrategyName;
 
-    void*       Instance;       // the instance returned by create
-    void*       UserData;       // the user data for each strategy instance
+    void*           Instance;       // the instance returned by create
+    void*           UserData;       // the user data for each strategy instance
 
     zs_strategy_engine_t*   Engine;
     zs_strategy_entry_t*    Entry;
     zs_blotter_t*           Blotter;
     zs_asset_finder_t*      AssetFinder;
     zs_json_t*              SettingJson;
+    zs_log_t*               Log;
 
     // 提供给策略访问的接口
     zs_sid_t (*lookup_sid)(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol, int len);

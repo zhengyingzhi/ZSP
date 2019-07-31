@@ -22,6 +22,8 @@
 #include "zs_position.h"
 #include "zs_protocol.h"
 
+#include "zs_logger.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +74,9 @@ struct zs_blotter_s
     // 账户配置
     zs_conf_account_t*  AccountConf;
 
+    // 日志
+    zs_log_t*           Log;
+
     // 请求接口
     int (*order)(zs_blotter_t* blotter, zs_order_req_t* order_req);
     int (*quote_order)(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
@@ -83,7 +88,9 @@ struct zs_blotter_s
     int (*handle_order_returned)(zs_blotter_t* blotter, zs_order_t* order);
     int (*handle_order_trade)(zs_blotter_t* blotter, zs_trade_t* trade);
     int (*handle_tick)(zs_blotter_t* blotter, zs_tick_t* tick);
+    int (*handle_tickl2)(zs_blotter_t* blotter, zs_tick_t* tickl2);
     int (*handle_bar)(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader);
+    int (*handle_timer)(zs_blotter_t* blotter, int64_t flag);
 };
 
 

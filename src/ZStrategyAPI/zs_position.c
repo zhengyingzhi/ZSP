@@ -1,10 +1,11 @@
 ﻿#include <assert.h>
 
+#include "zs_blotter.h"
 #include "zs_constants_helper.h"
-
 #include "zs_position.h"
-
 #include "zs_order_list.h"
+
+#include "zs_error.h"
 
 
 static double calculate_margin(double price, int volume, int multiplier, double margin_ratio)
@@ -20,7 +21,7 @@ static int _zs_position_new_order(zs_position_engine_t* pos, ZSDirection directi
     {
         if (order_qty > pos->ShortAvail && pos->ShortFrozen > pos->ShortPos) {
             // ERRORID: 可平仓位不够
-            return -1;
+            return ZS_ERR_AvailClose;
         }
 
         if (offset == ZS_OF_Close || offset == ZS_OF_CloseYd)
@@ -37,7 +38,7 @@ static int _zs_position_new_order(zs_position_engine_t* pos, ZSDirection directi
         {
             if (order_qty > pos->ShortTdPos - pos->ShortTdFrozen && pos->ShortTdFrozen > pos->ShortTdPos) {
                 // ERRORID: 可平仓位不够
-                return -1;
+                return ZS_ERR_AvailClose;
             }
             pos->ShortTdFrozen += order_qty;
         }
@@ -48,7 +49,7 @@ static int _zs_position_new_order(zs_position_engine_t* pos, ZSDirection directi
     {
         if (order_qty > pos->LongAvail && pos->LongFrozen > pos->LongPos) {
             // ERRORID: 可平仓位不够
-            return -1;
+            return ZS_ERR_AvailClose;
         }
 
         if (offset == ZS_OF_Close || offset == ZS_OF_CloseYd)
@@ -65,14 +66,14 @@ static int _zs_position_new_order(zs_position_engine_t* pos, ZSDirection directi
         {
             if (order_qty > pos->LongTdPos - pos->LongTdFrozen && pos->LongTdFrozen > pos->LongTdPos) {
                 // ERRORID: 可平仓位不够
-                return -1;
+                return ZS_ERR_AvailClose;
             }
             pos->LongTdFrozen += order_qty;
         }
         pos->LongFrozen += order_qty;
         pos->LongAvail -= order_qty;
     }
-    return 0;
+    return ZS_OK;
 }
 
 
@@ -86,7 +87,8 @@ zs_position_engine_t* zs_position_create(zs_blotter_t* blotter, ztl_pool_t* pool
     pos_engine->Pool = pool;
 
     pos_engine->Blotter = blotter;
-    pos_engine->Contract = contract;
+    pos_engine->Log     = blotter->Log;
+    pos_engine->Contract= contract;
     if (contract)
     {
         pos_engine->Sid = contract->Sid;
@@ -124,7 +126,7 @@ void zs_position_release(zs_position_engine_t* pos_engine)
 int zs_position_handle_order_req(zs_position_engine_t* pos_engine, zs_order_req_t* order_req)
 {
     if (order_req->OffsetFlag == ZS_OF_Open) {
-        return 0;
+        return ZS_OK;
     }
 
     // FIXME: 平仓请求不冻结持仓量，待请求回报确认后再冻结
@@ -134,13 +136,13 @@ int zs_position_handle_order_req(zs_position_engine_t* pos_engine, zs_order_req_
 int zs_position_handle_order_rtn(zs_position_engine_t* pos_engine, zs_order_t* order)
 {
     if (order->OffsetFlag == ZS_OF_Open) {
-        return 0;
+        return ZS_OK;
     }
 
     // 仅处理撤单和拒单，解冻冻结数量
     if (is_finished_status(order->OrderStatus))
     {
-        return 0;
+        return ZS_ERR_OrderFinished;
     }
 
     int residual_qty = order->OrderQty - order->FilledQty;
@@ -181,7 +183,7 @@ int zs_position_handle_order_rtn(zs_position_engine_t* pos_engine, zs_order_t* o
             pos_engine->LongTdFrozen -= residual_qty;
         }
     }
-    return 0;
+    return ZS_OK;
 }
 
 double zs_position_handle_trade_rtn(zs_position_engine_t* pos_engine, zs_trade_t* trade)
@@ -318,7 +320,7 @@ void zs_position_handle_pos_rsp(zs_position_engine_t* pos_engine, zs_position_t*
         pos_engine->LongPrice   = pos->PositionPrice;   // TODO
         pos_engine->LongPnl     = pos->PositionPnl;
         pos_engine->LongMargin  = pos->UseMargin;
-        fprintf(stderr, "pos_engine long  pos:%d,%d,%d,px:%.2lf,pnl:%.2lf,margin:%.1lf\n",
+        zs_log_info(pos_engine->Log, "pos_engine long  pos:%d,%d,%d,px:%.2lf,pnl:%.2lf,margin:%.1lf\n",
             pos->Position, pos->YdPosition, pos_engine->LongTdPos, pos_engine->LongPrice,
             pos_engine->LongPnl, pos_engine->LongMargin);
     }
@@ -332,7 +334,7 @@ void zs_position_handle_pos_rsp(zs_position_engine_t* pos_engine, zs_position_t*
         pos_engine->ShortPrice  = pos->PositionPrice;   // TODO
         pos_engine->ShortPnl    = pos->PositionPnl;
         pos_engine->ShortMargin = pos->UseMargin;
-        fprintf(stderr, "pos_engine short pos:%d,%d,%d,px:%.2lf,pnl:%.2lf,margin:%.1lf\n",
+        zs_log_info(pos_engine->Log, "pos_engine short pos:%d,%d,%d,px:%.2lf,pnl:%.2lf,margin:%.1lf\n",
             pos->Position, pos->YdPosition, pos_engine->ShortTdPos, pos_engine->ShortPrice,
             pos_engine->ShortPnl, pos_engine->ShortMargin);
     }

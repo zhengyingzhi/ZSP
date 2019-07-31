@@ -16,6 +16,7 @@
 
 #include "zs_api_object.h"
 #include "zs_core.h"
+#include "zs_error.h"
 
 
 #ifdef __cplusplus
@@ -101,6 +102,7 @@ struct zs_algo_param_s
     ZSRunMode       RunMode;
     char*           LogName;
     int             LogLevel;
+    int             LogAsync;
 
     // backtest params
     char            StartDate[16];

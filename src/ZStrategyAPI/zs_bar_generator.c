@@ -2,45 +2,71 @@
 #include "zs_bar_generator.h"
 
 
-zs_bar_generator_t* zs_bar_gen_create(ztl_pool_t* pool, uint64_t sid)
+zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, uint64_t sid)
 {
     zs_bar_generator_t* bargen;
     bargen = (zs_bar_generator_t*)ztl_palloc(pool, sizeof(zs_bar_generator_t));
-    zs_bar_gen_init(bargen, sid);
+    zs_bargen_init(bargen, sid);
     return bargen;
 }
 
-void zs_bar_gen_init(zs_bar_generator_t* bargen, uint64_t sid)
+void zs_bargen_init(zs_bar_generator_t* bargen, uint64_t sid)
 {
     memset(bargen, 0, sizeof(bargen));
-    bargen->IsFinished = 0;
+    bargen->IsFinished = 1;
+    bargen->IsFinishedX = 1;
     bargen->Sid = sid;
 }
 
-void zs_bar_gen_release(zs_bar_generator_t* bargen)
+void zs_bargen_release(zs_bar_generator_t* bargen)
 {
 }
 
-void zs_bar_gen_update_tick(zs_bar_generator_t* bargen, zs_tick_t* tick)
+
+void zs_bargen_set_handle_bar(zs_bar_generator_t* bargen, void* userdata,
+    handle_bar_pt handle_bar_func,
+    handle_bar_pt handle_barx_func)
 {
+    bargen->UserData = userdata;
+    bargen->handle_bar = handle_bar_func;
+    bargen->handle_barx = handle_barx_func;
+}
+
+void zs_bargen_update_tick(zs_bar_generator_t* bargen, zs_tick_t* tick)
+{
+    int generated = 0;
     zs_bar_t* bar = &bargen->CurrentBar;
+
     if (bargen->IsFinished)
     {
         bargen->IsFinished = 0;
+        strcpy(bar->Period, "1m");
+        strcpy(bar->Symbol, tick->Symbol);
+        bar->ExchangeID = tick->ExchangeID;
+
         bar->OpenPrice = tick->LastPrice;
         bar->ClosePrice = tick->LastPrice;
         bar->HighPrice = tick->LastPrice;
         bar->LowPrice = tick->LowPrice;
-        bar->Volume += tick->Volume - bargen->LastTick.Volume;
+        bar->Volume = 0;
     }
-    else
+    else if (bar->BarDt.minute != tick->TickDt.minute)
     {
-        if (tick->LastPrice > bar->HighPrice)
+        // generated a new bar
+        generated = 1;
+
+        // this bar is finished
+        bargen->IsFinished = 1;
+    }
+
+    if (1)
+    {
+        if (bar->HighPrice < tick->LastPrice)
             bar->HighPrice = tick->LastPrice;
-        else if (tick->LowPrice < bar->LowPrice)
+        if (bar->LowPrice > tick->LowPrice)
             bar->LowPrice = tick->LastPrice;
         bar->ClosePrice = tick->LastPrice;
-        bar->Volume = 0;
+        bar->Volume += tick->Volume - bargen->LastTick.Volume;
         bar->BarDt = tick->TickDt;
 
         if (tick->TickDt.minute != bargen->LastTick.TickDt.minute)
@@ -49,8 +75,8 @@ void zs_bar_gen_update_tick(zs_bar_generator_t* bargen, zs_tick_t* tick)
             bar->BarDt.millisec = 0;
             bargen->IsFinished = 1;
 
-            if (bargen->handle_bar_pt)
-                bargen->handle_bar_pt(bargen->UserData, bar);
+            if (bargen->handle_bar)
+                bargen->handle_bar(bargen->UserData, bar);
         }
     }
 
@@ -58,28 +84,31 @@ void zs_bar_gen_update_tick(zs_bar_generator_t* bargen, zs_tick_t* tick)
     bargen->LastTick.Volume = tick->Volume;
 }
 
-void zs_bar_gen_update_tickl2(zs_bar_generator_t* bargen, zs_tickl2_t* tickl2)
+void zs_bargen_update_tickl2(zs_bar_generator_t* bargen, zs_tickl2_t* tickl2)
 {
 }
 
-void zs_bar_gen_update_bar(zs_bar_generator_t* bargen, zs_bar_t* bar)
+void zs_bargen_update_bar(zs_bar_generator_t* bargen, zs_bar_t* bar)
 {
     zs_bar_t* barx = &bargen->CurrentBarX;
-    if (bargen->IsFinished)
+    if (bargen->IsFinishedX)
     {
-        bargen->IsFinished = 0;
+        bargen->IsFinishedX = 0;
         barx->OpenPrice = bar->OpenPrice;
-        barx->ClosePrice = bar->ClosePrice;
         barx->HighPrice = bar->HighPrice;
         barx->LowPrice = bar->LowPrice;
-        barx->Volume += bar->Volume;
+        barx->ClosePrice = bar->ClosePrice;
+        barx->Volume = 0;
+        barx->BarDt = bar->BarDt;
+        sprintf(barx->Period, "%dm", bargen->XMin);
     }
     else
     {
-        if (bar->HighPrice > barx->HighPrice)
+        if (barx->HighPrice < bar->HighPrice)
             barx->HighPrice = bar->HighPrice;
-        else if (bar->LowPrice < barx->LowPrice)
+        if (barx->LowPrice > bar->LowPrice)
             barx->LowPrice = bar->LowPrice;
+        barx->Volume += bar->Volume;
         bar->Volume = 0;
         bar->BarDt = bar->BarDt;
 
@@ -88,8 +117,9 @@ void zs_bar_gen_update_bar(zs_bar_generator_t* bargen, zs_bar_t* bar)
             bargen->IsFinishedX = 1;
             barx->BarDt = bar->BarDt;
 
-            if (bargen->handle_barx_pt)
-                bargen->handle_barx_pt(bargen->UserData, barx);
+            if (bargen->handle_barx) {
+                bargen->handle_barx(bargen->UserData, barx);
+            }
         }
     }
 }

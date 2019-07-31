@@ -14,11 +14,9 @@
 #include <ZToolLib/ztl_vector.h>
 
 #include "zs_core.h"
-
 #include "zs_cta_strategy.h"
-
 #include "zs_hashdict.h"
-
+#include "zs_logger.h"
 
 
 
@@ -33,6 +31,7 @@ struct zs_strategy_engine_s
     zs_algorithm_t*     Algorithm;
     zs_asset_finder_t*  AssetFinder;
     ztl_pool_t*         Pool;
+    zs_log_t*           Log;
 
     ztl_array_t*        StrategyEntries;    // 所有导入的策略
 

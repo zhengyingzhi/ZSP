@@ -406,6 +406,7 @@ void test_broker_info()
 {
     setlocale(LC_CTYPE, "");
 
+#if 0
     const char* filename = "brokers.json";
     ztl_vector_t vec;
     ztl_vector_init(&vec, 2, sizeof(zs_broker_info_t));
@@ -415,4 +416,5 @@ void test_broker_info()
     broker_info = zs_broker_find_byid(&vec, "0118");
     broker_info = zs_broker_find_byname(&vec, "九洲期货");
     broker_info = NULL;
+#endif
 }

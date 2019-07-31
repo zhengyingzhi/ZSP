@@ -285,6 +285,8 @@ static void zs_td_on_connect(zs_trade_api_t* tdctx)
     algo = (zs_algorithm_t*)tdctx->UserData;
     zdh = _zs_data_create(algo, NULL, 0);
 
+    zs_log_info(algo->Log, "td_on_connect");
+
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Connected, zdh);
     if (rv != 0)
     {
@@ -301,6 +303,8 @@ static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason)
     algo = (zs_algorithm_t*)tdctx->UserData;
     zdh = _zs_data_create(algo, NULL, 0);
 
+    zs_log_warn(algo->Log, "td_on_connect");
+
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Disconnected, zdh);
     if (rv != 0)
     {
@@ -310,7 +314,10 @@ static void zs_td_on_disconnect(zs_trade_api_t* tdctx, int reason)
 
 static void zs_td_on_error(zs_trade_api_t* tdctx, zs_error_data_t* errdata)
 {
-    //
+    zs_algorithm_t* algo;
+    algo = (zs_algorithm_t*)tdctx->UserData;
+    zs_log_error(algo->Log, "td_on_error errid:%d, errmsg:%s",
+        errdata->ErrorID, errdata->ErrorMsg);
 }
 
 static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth_rsp, zs_error_data_t* errdata)
@@ -320,8 +327,10 @@ static void zs_td_on_authenticate(zs_trade_api_t* tdctx, zs_authenticate_t* auth
     zs_algorithm_t* algo;
 
     algo = (zs_algorithm_t*)tdctx->UserData;
-
     zdh = _zs_data_create(algo, auth_rsp, sizeof(zs_authenticate_t));
+
+    zs_log_info(algo->Log, "td_on_auth errid:%d, errmsg:%s",
+        errdata->ErrorID, errdata->ErrorMsg);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Auth, zdh);
     if (rv != 0)
@@ -337,8 +346,10 @@ static void zs_td_on_login(zs_trade_api_t* tdctx, zs_login_t* login_rsp, zs_erro
     zs_algorithm_t* algo;
 
     algo = (zs_algorithm_t*)tdctx->UserData;
-
     zdh = _zs_data_create(algo, login_rsp, sizeof(zs_login_t));
+
+    zs_log_info(algo->Log, "td_on_login errid:%d, errmsg:%s",
+        errdata->ErrorID, errdata->ErrorMsg);
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_Login, zdh);
     if (rv != 0)
@@ -607,13 +618,14 @@ static void zs_td_on_rsp_data(zs_trade_api_t* tdctx, int dtype, void* data, int 
 
 static void zs_md_on_connect(zs_md_api_t* mdctx)
 {
-    fprintf(stderr, "md_on_connect\n");
     int rv;
     zs_data_head_t* zdh;
     zs_algorithm_t* algo;
 
     algo = (zs_algorithm_t*)mdctx->UserData;
     zdh = _zs_data_create(algo, NULL, 0);
+
+    zs_log_debug(algo->Log, "md_on_connect");
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_Connected, zdh);
     if (rv != 0)
@@ -631,6 +643,8 @@ static void zs_md_on_disconnect(zs_md_api_t* mdctx, int reason)
     algo = (zs_algorithm_t*)mdctx->UserData;
     zdh = _zs_data_create(algo, NULL, 0);
 
+    zs_log_debug(algo->Log, "md_on_disconnect");
+
     rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_Disconnected, zdh);
     if (rv != 0)
     {
@@ -640,14 +654,14 @@ static void zs_md_on_disconnect(zs_md_api_t* mdctx, int reason)
 
 static void zs_md_on_login(zs_md_api_t* mdctx, zs_login_t* login_rsp, zs_error_data_t* errdata)
 {
-    fprintf(stderr, "md_on_login\n");
-
     int rv;
     zs_data_head_t* zdh;
     zs_algorithm_t* algo;
 
     algo = (zs_algorithm_t*)mdctx->UserData;
     zdh = _zs_data_create(algo, login_rsp, sizeof(zs_login_t));
+
+    zs_log_info(algo->Log, "zs_md_on_login");
 
     rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_Login, zdh);
     if (rv != 0)

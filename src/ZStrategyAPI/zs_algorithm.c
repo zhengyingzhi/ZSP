@@ -82,7 +82,7 @@ static int _zs_load_strategies(zs_algorithm_t* algo)
 
     // 根据配置信息，加载策略
 
-    return 0;
+    return ZS_OK;
 }
 
 static int _zs_load_brokers(zs_algorithm_t* algo)
@@ -143,15 +143,15 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
 #endif
 
         if (tdapi->APIName) {
-            fprintf(stderr, "zs_broker_add_tradeapi %s\n", tdapi->APIName);
+            zs_log_info(algo->Log, "zs_broker_add_tradeapi %s\n", tdapi->APIName);
             zs_broker_add_tradeapi(algo->Broker, tdapi);
         }
         if (mdapi->APIName) {
-            fprintf(stderr, "zs_broker_add_mdapi %s\n", mdapi->APIName);
+            zs_log_info(algo->Log, "zs_broker_add_mdapi %s\n", mdapi->APIName);
             zs_broker_add_mdapi(algo->Broker, mdapi);
         }
     }
-    return 0;
+    return ZS_OK;
 }
 
 static int _zs_blotter_connect(zs_algorithm_t* algo)
@@ -167,7 +167,7 @@ static int _zs_blotter_connect(zs_algorithm_t* algo)
         zs_blotter_trade_connect(blotter);
         zs_blotter_md_connect(blotter);
     }
-    return 0;
+    return ZS_OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -190,6 +190,15 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
     algo->Pool = pool;
     algo->Params = algo_param;
 
+    // create log
+    bool is_async = algo_param->LogAsync ? true : false;
+    if (algo_param->LogName) {
+        algo->Log = zs_log_create(algo_param->LogName, ZTL_WritFile, is_async);
+    }
+    else {
+        algo->Log = zs_log_create("", ZTL_PrintScrn, is_async);
+    }
+
     // create other objects...
     algo->EventEngine   = zs_ee_create(algo->Pool, algo->Params->RunMode);
     algo->DataPortal    = NULL;
@@ -208,10 +217,11 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
 
 void zs_algorithm_release(zs_algorithm_t* algo)
 {
-    if (!algo)
-    {
+    if (!algo) {
         return;
     }
+
+    zs_log_info(algo->Log, "zs_algorithm_release");
 
     zs_algorithm_stop(algo);
 
@@ -258,8 +268,9 @@ void zs_algorithm_release(zs_algorithm_t* algo)
 
 int zs_algorithm_init(zs_algorithm_t* algo)
 {
+    zs_log_info(algo->Log, "algo: init");
     zs_strategy_init_all(algo->StrategyEngine, NULL);
-    return 0;
+    return ZS_OK;
 }
 
 void zs_algorithm_register(zs_algorithm_t* algo)
@@ -280,6 +291,9 @@ void zs_algorithm_register(zs_algorithm_t* algo)
 
 int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 {
+    zs_log_info(algo->Log, "algo: running");
+
+    algo->Running = ZS_RS_Running;
     algo->DataPortal = data_portal;
 
 #if 0
@@ -372,7 +386,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
     // 最后，生成交易报告（回测和实盘均可）
 
-    return 0;
+    return ZS_OK;
 }
 
 int zs_algorithm_stop(zs_algorithm_t* algo)
@@ -381,7 +395,9 @@ int zs_algorithm_stop(zs_algorithm_t* algo)
         return 0;
     }
 
-    algo->Running = 0;
+    zs_log_info(algo->Log, "algo: running");
+
+    algo->Running = ZS_RS_Stopping;
 
     // TODO: stop the compenents
 
@@ -389,12 +405,14 @@ int zs_algorithm_stop(zs_algorithm_t* algo)
         zs_strategy_engine_stop(algo->StrategyEngine);
     }
 
-    return 0;
+    algo->Running = ZS_RS_Stopped;
+
+    return ZS_OK;
 }
 
 int zs_algorithm_result(zs_algorithm_t* algo, ztl_array_t* results)
 {
-    return 0;
+    return ZS_ERR_NotImpl;
 }
 
 zs_blotter_t* zs_get_blotter(zs_algorithm_t* algo, const char* accountid)
@@ -417,7 +435,7 @@ int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting
     zjson = zs_json_parse(strategy_setting, (int)strlen(strategy_setting));
     if (!zjson) {
         // ERRORID: invalid json buffer
-        return -1;
+        return ZS_ERR_JsonData;
     }
 
     char acccount_id[32] = "";
@@ -434,11 +452,11 @@ int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting
         blotter = zs_blotter_create(algo, acccount_id);
         if (!blotter)
         {
-            fprintf(stderr, "zs_algorithm_add_strategy create blotter failed for %s\n", acccount_id);
+            zs_log_error(algo->Log, "algo: add_strategy create blotter failed for %s\n", acccount_id);
             zs_json_release(zjson);
-            return -1;
+            return ZS_ERROR;
         }
-        fprintf(stderr, "zs_algorithm_add_strategy create blotter for %s\n", acccount_id);
+        zs_log_info(algo->Log, "algo: dd_strategy create blotter for %s\n", acccount_id);
 
         zs_blotter_manager_add(&algo->BlotterMgr, blotter);
     }
@@ -453,13 +471,13 @@ int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting
     }
     else
     {
-        fprintf(stderr, "zs_algorithm_add_strategy create strategy:%s failed\n", strategy_name);
+        zs_log_error(algo->Log, "algo: add_strategy create strategy:%s failed\n", strategy_name);
         zs_json_release(zjson);
-        return -1;
+        return ZS_ERROR;
     }
 
     zs_json_release(zjson);
-    return 0;
+    return ZS_OK;
 }
 
 int zs_algorithm_add_account(zs_algorithm_t* algo, const char* account_setting)
@@ -503,26 +521,7 @@ int zs_algorithm_add_account2(zs_algorithm_t* algo, const zs_conf_account_t* acc
     }
 
     ztl_array_push_back(&algo->Params->AccountConf, (void*)&account_conf);
-    return 0;
-
-#if 0
-    zs_blotter_t* blotter;
-    blotter = zs_get_blotter(algo, account_conf->AccountID);
-    if (blotter) {
-        // already exists
-        return 1;
-    }
-
-    blotter = zs_blotter_create(algo, account_conf->AccountID);
-    if (!blotter) {
-        return -1;
-    }
-    fprintf(stderr, "zs_algorithm_add_account2 for %s.%s\n", 
-        account_conf->BrokerID, account_conf->AccountID);
-
-    zs_blotter_manager_add(&algo->BlotterMgr, blotter);
-    return 0;
-#endif
+    return ZS_OK;
 }
 
 int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_setting)
@@ -533,7 +532,7 @@ int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_settin
     zjson = zs_json_parse(broker_setting, (int)strlen(broker_setting));
     if (!zjson) {
         // ERRORID: invalid json buffer
-        return -1;
+        return ZS_ERR_JsonData;
     }
 
     char authcode[512] = "";
@@ -555,10 +554,10 @@ int zs_algorithm_add_broker_info2(zs_algorithm_t* algo, const zs_conf_broker_t* 
     if (old_broker_conf) {
         // already exist, overwrite old
         *old_broker_conf = *broker_conf;
-        return 1;
+        return ZS_EXISTED;
     }
     ztl_array_push_back(&algo->Params->BrokerConf, (void*)&broker_conf);
-    return 0;
+    return ZS_OK;
 }
 
 
@@ -705,6 +704,8 @@ static void _zs_algo_handle_margin_rate(zs_event_engine_t* ee, zs_algorithm_t* a
         margin_rate->Symbol, (int)strlen(margin_rate->Symbol));
     if (!contract) {
         // ERRORID: not find contract info for this margin rate
+        zs_log_warn(algo->Log, "algo handle_margin_rate no contract info for exchangeid:%d, symbol:%s",
+            margin_rate->ExchangeID, margin_rate->Symbol);
         return;
     }
 
@@ -727,6 +728,8 @@ static void _zs_algo_handle_comm_rate(zs_event_engine_t* ee, zs_algorithm_t* alg
         comm_rate->Symbol, (int)strlen(comm_rate->Symbol));
     if (!contract) {
         // ERRORID: not find contract info for this commission rate
+        zs_log_warn(algo->Log, "algo handle_comm_rate no contract info for exchangeid:%d, symbol:%s",
+            comm_rate->ExchangeID, comm_rate->Symbol);
         return;
     }
 
@@ -747,7 +750,8 @@ static void _zs_algo_handle_timer(zs_event_engine_t* ee, zs_algorithm_t* algo,
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
         blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
-        zs_blotter_handle_timer(blotter, 0);
+        if (blotter)
+            zs_blotter_handle_timer(blotter, 0);
     }
 
 }
@@ -776,7 +780,8 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
         blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
-        blotter->handle_tick(blotter, tick);
+        if (blotter)
+            blotter->handle_tick(blotter, tick);
     }
 
 }
@@ -784,18 +789,20 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
     uint32_t evtype, zs_data_head_t* evdata)
 {
-    zs_blotter_t*   blotter;
+    zs_blotter_t*       blotter;
+    zs_bar_t*           bar;
+    zs_bar_reader_t*    bar_reader;
 
-    zs_bar_reader_t* bar_reader;
-    memcpy(&bar_reader, zd_data_body(evdata), sizeof(void*));
+    bar = (zs_bar_t*)zd_data_body(evdata);
+    ztl_memcpy(&bar_reader, bar, sizeof(void*));
 
-    double closepx = bar_reader->current(bar_reader, 16, "close");
-    fprintf(stderr, "algo md handler bar close:%.2lf\n", closepx);
+    zs_log_trace(algo->Log, "algo: handler_bar symbol:%s, close:%.2lf, time:%ld\n", bar->Symbol, bar->ClosePrice, bar->BarTime);
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {
         blotter = (zs_blotter_t*)ztl_array_at2(algo->BlotterMgr.BlotterArray, i);
-        blotter->handle_bar(blotter, bar_reader);
+        if (blotter)
+            blotter->handle_bar(blotter, bar_reader);
     }
 
 }

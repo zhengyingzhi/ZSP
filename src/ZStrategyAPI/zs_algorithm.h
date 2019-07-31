@@ -20,6 +20,7 @@
 #include "zs_configs.h"
 #include "zs_core.h"
 #include "zs_hashdict.h"
+#include "zs_logger.h"
 
 
 #ifdef __cplusplus
@@ -42,6 +43,8 @@ struct zs_algorithm_s
     zs_strategy_engine_t*   StrategyEngine; // 各个策略的管理
     zs_broker_t*            Broker;         // 经纪商接口
     zs_risk_control_t*      RiskControl;    // 风控
+
+    zs_log_t*               Log;
 };
 
 zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param);

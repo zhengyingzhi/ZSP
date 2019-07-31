@@ -56,8 +56,10 @@
     <ClInclude Include="zs_cta_strategy.h" />
     <ClInclude Include="zs_data_feed.h" />
     <ClInclude Include="zs_data_portal.h" />
+    <ClInclude Include="zs_error.h" />
     <ClInclude Include="zs_event_engine.h" />
     <ClInclude Include="zs_hashdict.h" />
+    <ClInclude Include="zs_logger.h" />
     <ClInclude Include="zs_order_list.h" />
     <ClInclude Include="zs_position.h" />
     <ClInclude Include="zs_blotter.h" />
@@ -89,6 +91,7 @@
     <ClCompile Include="zs_data_portal.c" />
     <ClCompile Include="zs_event_engine.c" />
     <ClCompile Include="zs_hashdict.c" />
+    <ClCompile Include="zs_logger.c" />
     <ClCompile Include="zs_order_list.c" />
     <ClCompile Include="zs_position.c" />
     <ClCompile Include="zs_protocol.c" />
@@ -230,7 +233,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DEBUG;ZTL_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>../../../ZToolLib/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -258,6 +261,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DEBUG;_LIB;ZTL_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../../ZToolLib/src</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -323,6 +327,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../../ZToolLib/src</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

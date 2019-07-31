@@ -41,7 +41,7 @@ int zs_cta_get_conf_val(zs_cta_strategy_t* context, const char* key, void* val, 
 
 
 
-zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const char* setting, uint32_t strategy_id)
+zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char* setting, uint32_t strategy_id)
 {
     zs_json_t* zjson;
     zs_cta_strategy_t* strategy;
@@ -49,7 +49,7 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
     char account_id[16];
     char symbol[32];
 
-    strategy = ztl_pcalloc(engine->Pool, sizeof(zs_cta_strategy_t));
+    strategy = ztl_pcalloc(zse->Pool, sizeof(zs_cta_strategy_t));
 
     strategy->StrategyID = strategy_id;
     strategy->RunStatus = ZS_RS_Unknown;
@@ -74,6 +74,7 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
     zs_json_get_string(zjson, "AccountID", account_id, sizeof(account_id));
     if (!account_id[0]) {
         // ERRORID: no account id in strategy setting
+        zs_log_error(zse->Log, "cta: strategy_create no 'AccountID' in setting");
         return NULL;
     }
 
@@ -81,21 +82,25 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
     zs_json_get_string(zjson, "Symbol", symbol, sizeof(symbol));
     if (!symbol[0]) {
         // ERRORID: no symbol in strategy setting
+        zs_log_error(zse->Log, "cta: strategy_create no 'Symbol' in setting");
         return NULL;
     }
 
     // not release the zjson, since strategy would get conf param
     strategy->SettingJson = zjson;
 
-    strategy->pAccountID = ztl_pcalloc(engine->Pool, 16);
-    strcpy(strategy->pAccountID, account_id);
-    strategy->pCustomID = ztl_pcalloc(engine->Pool, 16);
-    strcpy(strategy->pCustomID, strategy_name);
+    strategy->pAccountID = ztl_pcalloc(zse->Pool, 24);
+    strncpy(strategy->pAccountID, account_id, 15);
+    strategy->pCustomID = ztl_pcalloc(zse->Pool, 24);
+    strncpy(strategy->pCustomID, strategy_name, 15);
+    strategy->pStrategyName = ztl_pcalloc(zse->Pool, 24);
+    strncpy(strategy->pStrategyName, strategy_name, 15);
 
-    strategy->Engine = engine;
+    strategy->Engine = zse;
     strategy->Entry = NULL;         // will be assigned outside
     strategy->Blotter = NULL;       // will be assigned outside
-    strategy->AssetFinder = engine->AssetFinder;
+    strategy->AssetFinder = zse->AssetFinder;
+    strategy->Log = zse->Log;
 
     strategy->lookup_sid = zs_cta_lookup_sid;
     strategy->lookup_symbol = zs_cta_lookup_symbol;
@@ -122,6 +127,9 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* engine, const ch
 
 void zs_cta_strategy_release(zs_cta_strategy_t* strategy)
 {
+    zs_log_info(strategy->Log, "cta: strategy_release name:%s,ptr:%p",
+        strategy->pStrategyName, strategy);
+
     if (strategy)
     {
         if (strategy->SettingJson) {
@@ -204,20 +212,20 @@ int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, doubl
     contract = zs_asset_find_by_sid(strategy->Engine->AssetFinder, sid);
     if (!contract) {
         // ERRORID: not find the contract info
-        return -1;
+        return ZS_ERR_NoContract;
     }
 
     strcpy(order_req.Symbol, contract->Symbol);
     strcpy(order_req.AccountID, strategy->pAccountID);
     strcpy(order_req.UserID, strategy->pCustomID);
 
-    order_req.ExchangeID = contract->ExchangeID;
-    order_req.Sid       = sid;
-    order_req.OrderQty  = order_qty;
-    order_req.OrderPrice= order_price;
-    order_req.Direction = direction;
-    order_req.OffsetFlag= offset;
-    order_req.OrderType = order_price < 0.001 ? ZS_OT_Market : ZS_OT_Limit;
+    order_req.ExchangeID    = contract->ExchangeID;
+    order_req.Sid           = sid;
+    order_req.OrderQty      = order_qty;
+    order_req.OrderPrice    = order_price;
+    order_req.Direction     = direction;
+    order_req.OffsetFlag    = offset;
+    order_req.OrderType     = order_price < 0.001 ? ZS_OT_Market : ZS_OT_Limit;
 
     // set this member for easily process internally
     order_req.Contract  = contract;
@@ -229,7 +237,7 @@ int zs_cta_place_order(zs_cta_strategy_t* strategy, zs_order_req_t* order_req)
 {
     int rv;
     rv = zs_blotter_order(strategy->Blotter, order_req);
-    if (rv == 0)
+    if (rv == ZS_OK)
     {
         zs_strategy_engine_save_order(strategy->Engine, strategy, order_req);
     }
@@ -245,13 +253,12 @@ int zs_cta_cancelex(zs_cta_strategy_t* strategy, zs_order_t* order)
 {
     int rv;
     if (!order) {
-        return -1;
+        return ZS_ERROR;
     }
 
-    if (is_finished_status(order->OrderStatus))
-    {
+    if (is_finished_status(order->OrderStatus)) {
         // ERRORID: already finished
-        return -2;
+        return ZS_ERR_OrderFinished;
     }
 
     zs_cancel_req_t cancel_req;
@@ -273,15 +280,16 @@ int zs_cta_cancelex(zs_cta_strategy_t* strategy, zs_order_t* order)
 int zs_cta_cancel_all(zs_cta_strategy_t* strategy)
 {
     int count;
-    zs_order_t* open_orders[1020];
+    zs_order_t* open_orders[1020] = { 0 };
     count = zs_cta_get_open_orders(strategy, open_orders, 1020);
+    zs_log_info(strategy->Log, "cta: cancel_all count:%d", count);
 
     for (int i = 0; i < count; ++i)
     {
         zs_cta_cancelex(strategy, open_orders[i]);
     }
 
-    return 0;
+    return ZS_OK;
 }
 
 
@@ -292,22 +300,22 @@ int zs_cta_get_account_position(zs_cta_strategy_t* strategy, zs_position_engine_
     if (pos_engine)
     {
         *ppos_engine = pos_engine;
-        return 0;
+        return ZS_OK;
     }
 
-    return -1;
+    return ZS_ERR_NoPosEngine;
 }
 
 int zs_cta_get_strategy_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid)
 {
     // ERRORID: not support currently
-    return -1;
+    return ZS_ERR_NotImpl;
 }
 
 int zs_cta_get_trading_account(zs_cta_strategy_t* strategy, zs_account_t** paccount)
 {
     *paccount = strategy->Blotter->Account;
-    return 0;
+    return ZS_OK;
 }
 
 int zs_cta_get_open_orders(zs_cta_strategy_t* strategy, zs_order_t* open_orders[], int size)
@@ -355,7 +363,7 @@ int zs_cta_get_trades(zs_cta_strategy_t* strategy, zs_trade_t* trades[], int siz
 
         trades[index] = trade;
     }
-    return 0;
+    return ZS_OK;
 }
 
 zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* strategy, zs_sid_t sid)
@@ -366,6 +374,7 @@ zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* strategy, zs_sid_t sid)
 }
 
 
+// deprecated
 static int _make_log_line_time(char* buf)
 {
     int lLength = 0;
@@ -374,13 +383,13 @@ static int _make_log_line_time(char* buf)
     return lLength;
 }
 
-int zs_cta_write_log(zs_cta_strategy_t* context, const char* content, ...)
+int zs_cta_write_log(zs_cta_strategy_t* strategy, const char* content, ...)
 {
     int  length;
     char buffer[4090];
 
     length = 0;
-    length += _make_log_line_time(buffer + length);
+    // length += _make_log_line_time(buffer + length);
 
     va_list args;
     va_start(args, content);
@@ -388,12 +397,13 @@ int zs_cta_write_log(zs_cta_strategy_t* context, const char* content, ...)
     va_end(args);
 
     // append line feed
-    buffer[length] = '\r';
-    buffer[length + 1] = '\n';
-    length += 2;
-    buffer[length] = '\0';
+//     buffer[length] = '\r';
+//     buffer[length + 1] = '\n';
+//     length += 2;
+//     buffer[length] = '\0';
 
-    fprintf(stderr, buffer);
+    // fprintf(stderr, buffer);
+    zs_log_info(strategy->Log, buffer);
 
     return 0;
 }
@@ -405,11 +415,11 @@ int zs_cta_get_conf_val(zs_cta_strategy_t* strategy,
     zjson = strategy->SettingJson;
 
     if (!zjson) {
-        return -1;
+        return ZS_ERR_JsonData;
     }
 
     if (!zs_json_have_object(zjson, key)) {
-        return -2;
+        return ZS_ERR_NoConfItem;
     }
 
     switch (ctype)
@@ -421,6 +431,6 @@ int zs_cta_get_conf_val(zs_cta_strategy_t* strategy,
     case ZS_CT_String:
         return zs_json_get_string(strategy->SettingJson, key, val, size);
     default:
-        return -1;
+        return ZS_ERROR;
     }
 }

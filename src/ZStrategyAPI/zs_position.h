@@ -16,6 +16,8 @@
 #include "zs_api_object.h"
 #include "zs_assets.h"
 #include "zs_core.h"
+#include "zs_logger.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +31,7 @@ typedef struct zs_position_engine_s zs_position_engine_t;
 struct zs_position_engine_s
 {
     zs_blotter_t*   Blotter;
+    zs_log_t*       Log;
     zs_contract_t*  Contract;
     zs_sid_t        Sid;
     int32_t         Multiplier;

@@ -3,7 +3,7 @@
 #include <ZToolLib/ztl_palloc.h>
 
 #include "zs_account.h"
-
+#include "zs_error.h"
 
 
 static double calculate_margin(double price, int volume, int multiplier, double margin_ratio)
@@ -123,7 +123,7 @@ static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDi
         frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
         if (frozen_margin > account->FundAccount.Available) {
             // ERRORID: 可用资金不够
-            return -1;
+            return ZS_ERR_AvailCash;
         }
 
         update_long_frozen_margin(account, frozen_margin);
@@ -133,7 +133,7 @@ static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDi
         frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
         if (frozen_margin > account->FundAccount.Available) {
             // ERRORID: 可用资金不够
-            return -1;
+            return ZS_ERR_AvailCash;
         }
 
         update_short_frozen_margin(account, frozen_margin);
@@ -141,7 +141,7 @@ static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDi
     else
     {
         // ERRORID: 不合法的买卖标志
-        return -2;
+        return ZS_ERR_InvalidField;
     }
 
     if (pmargin)
@@ -151,7 +151,8 @@ static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDi
     update_frozen_margin(account);
     update_frozen_cash(account, frozen_margin);
     update_avail_cash(account, -frozen_margin);
-    return 0;
+
+    return ZS_OK;
 }
 
 static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirection direction,
@@ -185,7 +186,7 @@ static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid
 
 static int freeze_commission(zs_account_t* account, ZSOffsetFlag offset, double price, int volume, zs_contract_t* contract)
 {
-    return 0;
+    return ZS_OK;
 }
 static void free_frozen_commission(zs_account_t* account, ZSOffsetFlag offset, double price, int volume, zs_contract_t* contract)
 {
@@ -249,32 +250,31 @@ void zs_account_release(zs_account_t* account)
     }
 }
 
-void zs_account_update(zs_account_t* account, zs_fund_account_t* fund_account)
+void zs_account_fund_update(zs_account_t* account, zs_fund_account_t* fund_account)
 {
     account->FundAccount = *fund_account;
 }
 
-int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs_contract_t* contract)
+int zs_account_handle_order_req(zs_account_t* account, zs_order_req_t* order_req, zs_contract_t* contract)
 {
     int rv;
     double frozen_margin;
 
-    if (order_req->OffsetFlag != ZS_OF_Open)
-    {
-        return 0;
+    if (order_req->OffsetFlag != ZS_OF_Open) {
+        return ZS_OK;
     }
 
     // 冻结资金
     rv = freeze_margin(account, order_req->Symbol, order_req->Sid, 
         order_req->Direction, order_req->OrderPrice, order_req->OrderQty,
         order_req->UserID, contract, &frozen_margin);
-    if (rv != 0)
-    {
+    if (rv != ZS_OK) {
         // ERRORID:
+        return rv;
     }
 
     rv = freeze_commission(account, order_req->OffsetFlag, order_req->OrderPrice, order_req->OrderQty, contract);
-    if (rv != 0)
+    if (rv != ZS_OK)
     {
         double frozen_margin = 0;
         free_frozen_margin(account, order_req->Symbol, order_req->Sid, order_req->Direction,
@@ -287,12 +287,12 @@ int zs_account_on_order_req(zs_account_t* account, zs_order_req_t* order_req, zs
     return rv;
 }
 
-int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contract_t* contract)
+int zs_account_handle_order_rtn(zs_account_t* account, zs_order_t* order, zs_contract_t* contract)
 {
     int vol = order->OrderQty - order->FilledQty;
     if (vol <= 0) {
         // do not process the order filled
-        return 0;
+        return ZS_OK;
     }
 
     if (order->OffsetFlag == ZS_OF_Open)
@@ -303,10 +303,10 @@ int zs_account_on_order_rtn(zs_account_t* account, zs_order_t* order, zs_contrac
     }
     free_frozen_commission(account, order->OffsetFlag, order->OrderPrice, vol, contract);
 
-    return 0;
+    return ZS_OK;
 }
 
-int zs_account_on_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
+int zs_account_handle_trade_rtn(zs_account_t* account, zs_order_t* order, zs_trade_t* trade, zs_contract_t* contract)
 {
     double  margin, margin_ratio;
     double  price;

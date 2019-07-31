@@ -101,6 +101,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="zs_logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -208,6 +214,9 @@
       <Filter>Strategy</Filter>
     </ClCompile>
     <ClCompile Include="zs_constants_helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_logger.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
