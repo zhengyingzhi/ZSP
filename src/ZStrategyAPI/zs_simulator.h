@@ -1,6 +1,7 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define the backtest simulator engine
  */
 
@@ -40,6 +41,8 @@ struct zs_simulator_s
     zs_trade_api_handlers_t *TdHandlers;        // 用于从模拟器中接收回测交易回报
     zs_md_api_t*            MdApi;
     zs_md_api_handlers_t*   MdHandlers;         // 用于从模拟器中接收回测行情数据
+    ztl_array_t*            MdSeries;           // history md series
+    int32_t                 IsTickMd;           // is tick data of the mdseries
 
     int32_t                 Progress;
     int32_t                 Running;
@@ -51,9 +54,12 @@ void zs_simulator_release(zs_simulator_t* simu);
 
 // pass-in api handler to connect simulator-platform_core
 void zs_simulator_regist_tradeapi(zs_simulator_t* simu,
-    zs_trade_api_t* tdapi, zs_trade_api_handlers_t* tdHandlers);
+    zs_trade_api_t* tdapi, zs_trade_api_handlers_t* td_handlers);
 void zs_simulator_regist_mdapi(zs_simulator_t* simu, 
-    zs_md_api_t* mdapi, zs_md_api_handlers_t* mdHandlers);
+    zs_md_api_t* mdapi, zs_md_api_handlers_t* md_handlers);
+
+// set history md series
+void zs_simulator_set_mdseries(zs_simulator_t* simu, ztl_array_t* mdseries, int32_t istick);
 
 // stop the simulator
 void zs_simulator_stop(zs_simulator_t* simu);

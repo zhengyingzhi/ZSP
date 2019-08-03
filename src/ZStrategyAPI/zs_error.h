@@ -1,6 +1,7 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define the errors
  */
 
@@ -29,6 +30,11 @@
 #define ZS_ERR_JsonData         -24
 #define ZS_ERR_NoConfItem       -25
 #define ZS_ERR_OrderFinished    -26
+
+#define ZS_ERR_NotStarted       -27
+#define ZS_ERR_PlacePaused      -28
+#define ZS_ERR_PlaceOpenPaused  -29
+#define ZS_ERR_NoMemory         -30
 
 
 #endif//_ZS_ERROR_H_INCLUDED_

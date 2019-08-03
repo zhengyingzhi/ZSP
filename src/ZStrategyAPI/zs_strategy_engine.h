@@ -1,6 +1,7 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define strategy manager
  */
 
@@ -111,6 +112,7 @@ int zs_strategy_engine_save_order(zs_strategy_engine_t* zse,
 int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, 
     ZSExchangeID exchangeid, const char* symbol);
 int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sid);
+int zs_strategy_subscribe_bysid_batch(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sids[], int count);
 
 
 #ifdef __cplusplus

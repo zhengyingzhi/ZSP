@@ -1,8 +1,9 @@
 
 #include <ZToolLib/ztl_hash.h>
 
+#include "zs_api_object.h"
+#include "zs_constants.h"
 #include "zs_assets.h"
-
 #include "zs_hashdict.h"
 
 
@@ -77,8 +78,9 @@ zs_asset_finder_t* zs_asset_create(void* ctxdata, ztl_pool_t* pool, int init_num
 
     asset_finder->BaseSid = ZS_ASSET_START_SID;
 
-    asset_finder->Count = 0;
     asset_finder->CreatedSelf = CreatedSelf;
+    asset_finder->EnableDefaultEquity = 1;
+    asset_finder->Count = 0;
 
     return asset_finder;
 }
@@ -101,6 +103,13 @@ void zs_asset_release(zs_asset_finder_t* asset_finder)
             ztl_destroy_pool(asset_finder->Pool);
         }
     }
+}
+
+
+int zs_asset_enable_default_equity(zs_asset_finder_t* asset_finder, int32_t enable)
+{
+    asset_finder->EnableDefaultEquity = enable;
+    return 0;
 }
 
 int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
@@ -258,6 +267,31 @@ zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder,
     {
         // found
         sid = (zs_sid_t)entry->v.u64;
+    }
+
+    if ((exchangeid == ZS_EI_SSE || exchangeid == ZS_EI_SZSE) &&
+        asset_finder->EnableDefaultEquity)
+    {
+        sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
+        if (sid == ZS_SID_INVALID) {
+            return -1;
+        }
+
+        zs_contract_t* contract;
+        contract = ztl_pcalloc(asset_finder->Pool, sizeof(zs_contract_t));
+        strcpy(contract->Symbol, symbol);
+        contract->ExchangeID = exchangeid;
+        contract->Sid = sid;
+        contract->PriceTick = 0.01;     // FIXME AShare
+        contract->ProductClass = ZS_PC_Stock;
+        contract->Multiplier = 1;
+        contract->Decimal = 2;
+        contract->LongMarginRateByMoney = 1.0;
+        contract->ShortMarginRateByMoney = 0.0;
+        contract->OpenRatioByMoney = 0.0003;
+        contract->CloseRatioByMoney = 0.0003;
+
+        dictAdd(asset_finder->AssetTable, (void*)sid, contract);
     }
 
     return sid;

@@ -123,13 +123,8 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
         const char* mdlibpath;
         // tdlibpath = "D:\\MyProjects\\ZStrategyPlatform\\build\\msvc\\x64\\Debug\\zs_ctp_trade.dll";
 
-#ifdef ZS_HAVE_SE
-        tdlibpath = "zs_ctp_trade_se.dll";
-        mdlibpath = "zs_ctp_md_se.dll";
-#else
         tdlibpath = "zs_ctp_trade.dll";
         mdlibpath = "zs_ctp_md.dll";
-#endif//ZS_HAVE_SE
 
         tdapi->UserData = algo;
         mdapi->UserData = algo;
@@ -143,11 +138,11 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
 #endif
 
         if (tdapi->APIName) {
-            zs_log_info(algo->Log, "zs_broker_add_tradeapi %s\n", tdapi->APIName);
+            zs_log_info(algo->Log, "algo: load_broker add_tradeapi %s\n", tdapi->APIName);
             zs_broker_add_tradeapi(algo->Broker, tdapi);
         }
         if (mdapi->APIName) {
-            zs_log_info(algo->Log, "zs_broker_add_mdapi %s\n", mdapi->APIName);
+            zs_log_info(algo->Log, "algo: load_broker add_mdapi %s\n", mdapi->APIName);
             zs_broker_add_mdapi(algo->Broker, mdapi);
         }
     }
@@ -284,7 +279,7 @@ void zs_algorithm_register(zs_algorithm_t* algo)
     zs_ee_register(ee, algo, ZS_DT_QryAccount, _zs_algo_handle_account);
     zs_ee_register(ee, algo, ZS_DT_QryContract, _zs_algo_handle_contract);
     zs_ee_register(ee, algo, ZS_DT_MD_Tick, _zs_algo_handle_tick);
-    zs_ee_register(ee, algo, ZS_DT_MD_Bar, _zs_algo_handle_bar);
+    zs_ee_register(ee, algo, ZS_DT_MD_KLine, _zs_algo_handle_bar);
     zs_ee_register(ee, algo, ZS_DT_Timer, _zs_algo_handle_timer);
     zs_ee_register(ee, algo, ZS_DT_Other, _zs_algo_handle_other);
 }
@@ -294,7 +289,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
     zs_log_info(algo->Log, "algo: running");
 
     algo->Running = ZS_RS_Running;
-    algo->DataPortal = data_portal;
+    // algo->DataPortal = data_portal;
 
 #if 0
     // fake contract info
@@ -339,24 +334,22 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
         zs_simulator_t* simu;
         simu = zs_simulator_create(algo);
 
-        // TODO
-#if 0
-        zs_trading_conf_t* trading_conf;
-        trading_conf = (zs_trading_conf_t*)ztl_array_at2(&algo->Params->TradingConf, 0);
-
         zs_trade_api_t* tdapi = zs_broker_get_tradeapi(algo->Broker, NULL);
-        tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, &trading_conf->TradeConf);
+        tdapi->ApiInstance = tdapi->create("", 0);
+        tdapi->regist(tdapi->ApiInstance, &td_handlers, tdapi, NULL);
         tdapi->connect(tdapi->ApiInstance, simu->Slippage);
 
         zs_md_api_t* mdapi = zs_broker_get_mdapi(algo->Broker, NULL);
-        mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, &trading_conf->MdConf);
+        mdapi->ApiInstance = mdapi->create("", 0);
+        mdapi->regist(mdapi->ApiInstance, &md_handlers, mdapi, NULL);
         mdapi->connect(mdapi->ApiInstance, NULL);
 
         zs_simulator_regist_tradeapi(simu, tdapi, &td_handlers);
         zs_simulator_regist_mdapi(simu, mdapi, &md_handlers);
         algo->Simulator = simu;
 
-#endif
+        if (data_portal)
+            zs_simulator_set_mdseries(simu, data_portal->RawDatas, data_portal->IsTick);
         zs_simulator_run(simu);
     }
     else
@@ -392,7 +385,7 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 int zs_algorithm_stop(zs_algorithm_t* algo)
 {
     if (!algo->Running) {
-        return 0;
+        return ZS_ERR_NotStarted;
     }
 
     zs_log_info(algo->Log, "algo: running");
@@ -774,7 +767,7 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     static int count = 0;
     count += 1;
-    if (count & 15)
+    if (count & 127)
         fprintf(stderr, "algo_handle_tick %s,%d\n", tick->Symbol, tick->UpdateTime);
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)

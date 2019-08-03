@@ -71,6 +71,7 @@ static void zs_md_on_subscribe(zs_md_api_t* mdctx, zs_subscribe_t* sub_rsp, int 
 static void zs_md_on_unsubscribe(zs_md_api_t* mdctx, zs_subscribe_t* unsub_rsp, int flag);
 static void zs_md_on_rtn_mktdata(zs_md_api_t* mdctx, zs_tick_t* tick);
 static void zs_md_on_rtn_mktdatal2(zs_md_api_t* mdctx, zs_tickl2_t* tickl2);
+static void zs_md_on_rtn_kline(zs_md_api_t* mdctx, zs_bar_t* bar);
 static void zs_md_on_for_quote(zs_md_api_t* mdctx, void* forquote);
 
 
@@ -86,6 +87,7 @@ zs_md_api_handlers_t md_handlers = {
     NULL,
     zs_md_on_rtn_mktdata,
     zs_md_on_rtn_mktdatal2,
+    zs_md_on_rtn_kline,
     zs_md_on_for_quote
 };
 
@@ -724,8 +726,29 @@ static void zs_md_on_rtn_mktdatal2(zs_md_api_t* mdctx, zs_tickl2_t* tickl2)
     //
 }
 
+static void zs_md_on_rtn_kline(zs_md_api_t* mdctx, zs_bar_t* bar)
+{
+    int rv;
+    zs_data_head_t* zdh;
+    zs_algorithm_t* algo;
+    zs_bar_t*       dst_bar;
+
+    algo = (zs_algorithm_t*)mdctx->UserData;
+    zdh = _zs_data_create(algo, dst_bar, sizeof(zs_bar_t));
+    dst_bar = (zs_bar_t*)zd_data_body(zdh);
+    set_zd_head_symbol(zdh, dst_bar);
+
+    dst_bar->Sid = zs_asset_lookup(algo->AssetFinder, dst_bar->ExchangeID,
+        dst_bar->Symbol, zdh->SymbolLength);
+
+    rv = zs_ee_post(algo->EventEngine, ZS_DT_MD_KLine, zdh);
+    if (rv != 0)
+    {
+        // log error
+    }
+}
+
 static void zs_md_on_for_quote(zs_md_api_t* mdctx, void* forquote)
 {
     //
 }
-

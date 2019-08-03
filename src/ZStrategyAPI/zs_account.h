@@ -1,6 +1,7 @@
 /*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define the trading account
  */
 
@@ -20,6 +21,8 @@
 extern "C" {
 #endif
 
+
+// 冻结细节
 struct zs_frozen_detail_s
 {
     uint64_t    Sid;
@@ -31,6 +34,7 @@ struct zs_frozen_detail_s
 };
 typedef struct zs_frozen_detail_s zs_frozen_detail_t;
 
+// 资金账户
 struct zs_account_s
 {
     zs_fund_account_t   FundAccount;
@@ -45,7 +49,6 @@ struct zs_account_s
     double      FrozenLongMargin;
     double      FrozenShortMargin;
 };
-
 typedef struct zs_account_s zs_account_t;
 
 

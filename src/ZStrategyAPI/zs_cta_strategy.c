@@ -15,31 +15,6 @@
 #include "zs_strategy_engine.h"
 
 
-zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* context, ZSExchangeID exchangeid, const char* symbol, int len);
-const char* zs_cta_lookup_symbol(zs_cta_strategy_t* context, zs_sid_t sid);
-int zs_cta_subscribe(zs_cta_strategy_t* context, zs_sid_t sid);
-
-int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset);
-int zs_cta_place_order(zs_cta_strategy_t* strategy, zs_order_req_t* order_req);
-int zs_cta_cancel(zs_cta_strategy_t* strategy, zs_cancel_req_t* cancel_req);
-int zs_cta_cancelex(zs_cta_strategy_t* strategy, zs_order_t* order);
-int zs_cta_cancel_all(zs_cta_strategy_t* strategy);
-
-int zs_cta_get_account_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid);
-int zs_cta_get_strategy_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid);
-int zs_cta_get_trading_account(zs_cta_strategy_t* context, zs_account_t** paccount);
-int zs_cta_get_open_orders(zs_cta_strategy_t* context, zs_order_t* open_orders[], int size);
-int zs_cta_get_orders(zs_cta_strategy_t* context, zs_order_t* orders[], int size);
-int zs_cta_get_trades(zs_cta_strategy_t* context, zs_trade_t* trades[], int size);
-zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* context, zs_sid_t sid);
-
-int zs_cta_strategy_print(zs_cta_strategy_t* strategy);
-int32_t zs_cta_get_trading_day(zs_cta_strategy_t* strategy, int flag);
-const char* zs_cta_strategy_get_info(zs_cta_strategy_t* strategy);
-int zs_cta_write_log(zs_cta_strategy_t* context, const char* content, ...);
-int zs_cta_get_conf_val(zs_cta_strategy_t* context, const char* key, void* val, int size, ZSCType ctype);
-
-
 
 zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char* setting, uint32_t strategy_id)
 {
@@ -47,7 +22,7 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char*
     zs_cta_strategy_t* strategy;
     char strategy_name[16];
     char account_id[16];
-    char symbol[32];
+    // char symbol[32];
 
     strategy = ztl_pcalloc(zse->Pool, sizeof(zs_cta_strategy_t));
 
@@ -78,6 +53,7 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char*
         return NULL;
     }
 
+#if 0
     memset(symbol, 0, sizeof(symbol));
     zs_json_get_string(zjson, "Symbol", symbol, sizeof(symbol));
     if (!symbol[0]) {
@@ -85,6 +61,7 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char*
         zs_log_error(zse->Log, "cta: strategy_create no 'Symbol' in setting");
         return NULL;
     }
+#endif//0
 
     // not release the zjson, since strategy would get conf param
     strategy->SettingJson = zjson;
@@ -102,25 +79,27 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char*
     strategy->AssetFinder = zse->AssetFinder;
     strategy->Log = zse->Log;
 
-    strategy->lookup_sid = zs_cta_lookup_sid;
-    strategy->lookup_symbol = zs_cta_lookup_symbol;
-    strategy->subscribe = zs_cta_subscribe;
+    strategy->lookup_sid        = zs_cta_lookup_sid;
+    strategy->lookup_symbol     = zs_cta_lookup_symbol;
+    strategy->subscribe         = zs_cta_subscribe;
+    strategy->subscribe_batch   = zs_cta_subscribe_batch;
 
-    strategy->order = zs_cta_order;
-    strategy->place_order = zs_cta_place_order;
-    strategy->cancel_order = zs_cta_cancel;
-    strategy->cancel_all = zs_cta_cancel_all;
+    strategy->order             = zs_cta_order;
+    strategy->place_order       = zs_cta_place_order;
+    strategy->cancel_order      = zs_cta_cancel;
+    strategy->cancel_order2     = zs_cta_cancel_req;
+    strategy->cancel_all        = zs_cta_cancel_all;
     strategy->get_account_position = zs_cta_get_account_position;
     strategy->get_trading_account = zs_cta_get_trading_account;
-    strategy->get_open_orders = zs_cta_get_open_orders;
-    strategy->get_orders = zs_cta_get_orders;
-    strategy->get_trades = zs_cta_get_trades;
-    strategy->get_contract = zs_cta_get_contract;
+    strategy->get_open_orders   = zs_cta_get_open_orders;
+    strategy->get_orders        = zs_cta_get_orders;
+    strategy->get_trades        = zs_cta_get_trades;
+    strategy->get_contract      = zs_cta_get_contract;
 
-    strategy->get_trading_day = zs_cta_get_trading_day;
-    strategy->get_info = zs_cta_strategy_get_info;
-    strategy->write_log = zs_cta_write_log;
-    strategy->get_conf_val = zs_cta_get_conf_val;
+    strategy->get_trading_day   = zs_cta_get_trading_day;
+    strategy->get_info          = zs_cta_strategy_get_info;
+    strategy->write_log         = zs_cta_write_log;
+    strategy->get_conf_val      = zs_cta_get_conf_val;
 
     return strategy;
 }
@@ -154,7 +133,9 @@ int zs_cta_strategy_print(zs_cta_strategy_t* strategy)
 int32_t zs_cta_get_trading_day(zs_cta_strategy_t* strategy, int flag)
 {
     // todo:
-    return 0;
+    if (flag == 0)
+        return strategy->Blotter->TradingDay;
+    return -1;
 }
 
 const char* zs_cta_strategy_get_info(zs_cta_strategy_t* strategy)
@@ -186,7 +167,7 @@ zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* strategy, ZSExchangeID exchangeid,
     return contract->Sid;
 }
 
-const char* zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, zs_sid_t sid)
+const char* zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, zs_sid_t sid, ZSExchangeID* pexchangeid)
 {
     zs_contract_t*  contract;
 
@@ -195,12 +176,19 @@ const char* zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, zs_sid_t sid)
         return NULL;
     }
 
+    if (pexchangeid)
+        *pexchangeid = contract->ExchangeID;
     return contract->Symbol;
 }
 
 int zs_cta_subscribe(zs_cta_strategy_t* strategy, zs_sid_t sid)
 {
     return zs_strategy_subscribe_bysid(strategy->Engine, strategy, sid);
+}
+
+int zs_cta_subscribe_batch(zs_cta_strategy_t* strategy, zs_sid_t sids[], int count)
+{
+    return zs_strategy_subscribe_bysid_batch(strategy->Engine, strategy, sids, count);
 }
 
 int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset)
@@ -236,6 +224,21 @@ int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, doubl
 int zs_cta_place_order(zs_cta_strategy_t* strategy, zs_order_req_t* order_req)
 {
     int rv;
+
+    // 策略未运行
+    if (strategy->RunStatus != ZS_RS_Running) {
+        return ZS_ERR_NotStarted;
+    }
+
+    // 策略处于禁止交易/禁止开仓状态
+    if (strategy->TradingFlag == ZS_TF_Paused) {
+        return ZS_ERR_PlacePaused;
+    }
+    else if (strategy->TradingFlag == ZS_TF_PauseOpen) {
+        return ZS_ERR_PlaceOpenPaused;
+    }
+
+    // 执行下单
     rv = zs_blotter_order(strategy->Blotter, order_req);
     if (rv == ZS_OK)
     {
@@ -244,7 +247,31 @@ int zs_cta_place_order(zs_cta_strategy_t* strategy, zs_order_req_t* order_req)
     return rv;
 }
 
-int zs_cta_cancel(zs_cta_strategy_t* strategy, zs_cancel_req_t* cancel_req)
+int zs_cta_cancel(zs_cta_strategy_t* strategy, int frontid, int sessionid, const char* orderid)
+{
+    zs_order_t* order;
+    order = zs_cta_get_order(strategy, frontid, sessionid, orderid);
+    if (order)
+    {
+        return zs_cta_cancelex(strategy, order);
+    }
+
+    return ZS_ERR_NoOrder;
+}
+
+int zs_cta_cancel_by_sysid(zs_cta_strategy_t* strategy, ZSExchangeID exchangeid, const char* order_sysid)
+{
+    zs_order_t* order;
+    order = zs_cta_get_order_by_sysid(strategy, exchangeid, order_sysid);
+    if (order)
+    {
+        return zs_cta_cancelex(strategy, order);
+    }
+
+    return ZS_ERR_NoOrder;
+}
+
+int zs_cta_cancel_req(zs_cta_strategy_t* strategy, zs_cancel_req_t* cancel_req)
 {
     return zs_blotter_cancel(strategy->Blotter, cancel_req);
 }
@@ -273,7 +300,7 @@ int zs_cta_cancelex(zs_cta_strategy_t* strategy, zs_order_t* order)
     cancel_req.SessionID = order->SessionID;
     cancel_req.ExchangeID = order->ExchangeID;
 
-    rv = zs_cta_cancel(strategy, &cancel_req);
+    rv = zs_cta_cancel_req(strategy, &cancel_req);
     return rv;
 }
 
@@ -281,7 +308,7 @@ int zs_cta_cancel_all(zs_cta_strategy_t* strategy)
 {
     int count;
     zs_order_t* open_orders[1020] = { 0 };
-    count = zs_cta_get_open_orders(strategy, open_orders, 1020);
+    count = zs_cta_get_open_orders(strategy, open_orders, 1020, ZS_SID_WILDCARD);
     zs_log_info(strategy->Log, "cta: cancel_all count:%d", count);
 
     for (int i = 0; i < count; ++i)
@@ -306,9 +333,10 @@ int zs_cta_get_account_position(zs_cta_strategy_t* strategy, zs_position_engine_
     return ZS_ERR_NoPosEngine;
 }
 
-int zs_cta_get_strategy_position(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid)
+int zs_cta_get_strategy_position(zs_cta_strategy_t* strategy, zs_position_engine_t** ppos_engine, zs_sid_t sid)
 {
     // ERRORID: not support currently
+    *ppos_engine = strategy->PosEngine;
     return ZS_ERR_NotImpl;
 }
 
@@ -318,16 +346,44 @@ int zs_cta_get_trading_account(zs_cta_strategy_t* strategy, zs_account_t** pacco
     return ZS_OK;
 }
 
-int zs_cta_get_open_orders(zs_cta_strategy_t* strategy, zs_order_t* open_orders[], int size)
+
+int zs_cta_get_trades(zs_cta_strategy_t* strategy, 
+    zs_trade_t* trades[], int size, zs_sid_t filter_sid)
 {
-    return zs_orderlist_retrieve(strategy->Blotter->WorkOrderList, open_orders, size);
+    int32_t index, count;
+    zs_trade_t* trade;
+
+    index = 0;
+    count = 0;
+
+    for (; index < (int32_t)ztl_array_size(strategy->Blotter->TradeArray); ++index)
+    {
+        trade = (zs_trade_t*)ztl_array_at2(strategy->Blotter->TradeArray, index);
+        if (index >= size) {
+            break;
+        }
+
+        if (!filter_sid || trade->Sid == filter_sid)
+            trades[count++] = trade;
+    }
+
+    return count;
 }
 
-int zs_cta_get_orders(zs_cta_strategy_t* strategy, zs_order_t* orders[], int size)
+int zs_cta_get_open_orders(zs_cta_strategy_t* strategy,
+    zs_order_t* open_orders[], int size, zs_sid_t filter_sid)
+{
+    return zs_orderlist_retrieve(strategy->Blotter->WorkOrderList,
+        open_orders, size, filter_sid);
+}
+
+int zs_cta_get_orders(zs_cta_strategy_t* strategy,
+    zs_order_t* orders[], int size, zs_sid_t filter_sid)
 {
     ztl_dict_t*     dict;
     dictIterator*   iter;
     dictEntry*      entry;
+    zs_order_t*     order;
     int             index;
 
     dict = strategy->Blotter->OrderDict;
@@ -341,7 +397,10 @@ int zs_cta_get_orders(zs_cta_strategy_t* strategy, zs_order_t* orders[], int siz
             break;
         }
 
-        orders[index++] = entry->v.val;
+        order = (zs_order_t*)entry->v.val;
+        if (!filter_sid || order->Sid == filter_sid) {
+            orders[index++] = order;
+        }
     }
 
     dictReleaseIterator(iter);
@@ -349,21 +408,16 @@ int zs_cta_get_orders(zs_cta_strategy_t* strategy, zs_order_t* orders[], int siz
     return index;
 }
 
-int zs_cta_get_trades(zs_cta_strategy_t* strategy, zs_trade_t* trades[], int size)
+zs_order_t* zs_cta_get_order(zs_cta_strategy_t* strategy,
+    int frontid, int sessionid, const char* orderid)
 {
-    int32_t index;
-    zs_trade_t* trade;
+    return zs_get_order_by_id(strategy->Blotter, frontid, sessionid, orderid);
+}
 
-    for (index = 0; index < (int32_t)ztl_array_size(strategy->Blotter->TradeArray); ++index)
-    {
-        trade = (zs_trade_t*)ztl_array_at2(strategy->Blotter->TradeArray, index);
-        if (index >= size) {
-            break;
-        }
-
-        trades[index] = trade;
-    }
-    return ZS_OK;
+zs_order_t* zs_cta_get_order_by_sysid(zs_cta_strategy_t* strategy,
+    ZSExchangeID exchangeid, const char* order_sysid)
+{
+    return zs_get_order_by_sysid(strategy->Blotter, exchangeid, order_sysid);
 }
 
 zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* strategy, zs_sid_t sid)

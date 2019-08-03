@@ -12,13 +12,7 @@
 #include "zs_commission.h"
 
 
-typedef union 
-{
-    char c[4];
-    uint32_t i;
-}ZSVarietyInt;
-
-static uint32_t zs_get_variety_int(const char* symbol);
+extern uint32_t zs_get_variety_int(const char* symbol);
 
 double zs_per_share_calculate(zs_commission_model_t* comm_model,
     const zs_order_t* order, const zs_trade_t* trade);
@@ -111,21 +105,6 @@ double zs_commission_calculate(zs_commission_t* comm, int is_equity,
 }
 
 
-static uint32_t zs_get_variety_int(const char* symbol)
-{
-#ifdef _DEBUG
-    assert(sizeof(ZSVarietyInt) == 4);
-#endif
-
-    ZSVarietyInt vi;
-    vi.i = 0;
-
-    vi.c[0] = symbol[0];
-    if (isalpha(symbol[1]))
-        vi.c[1] = symbol[1];
-
-    return vi.i;
-}
 
 double zs_per_share_calculate(zs_commission_model_t* comm_model,
     const zs_order_t* order, const zs_trade_t* trade)

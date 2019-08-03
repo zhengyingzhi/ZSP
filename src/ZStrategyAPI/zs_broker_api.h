@@ -1,6 +1,7 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define the broker api
  */
 
@@ -206,6 +207,7 @@ struct zs_md_api_handlers_s
     void (*on_unsubscribe_forquote)(void* mdctx, zs_subscribe_t* unsub_rsp, int flag);
     void (*on_rtn_mktdata)(void* mdctx, zs_tick_t* tick);
     void (*on_rtn_mktdata_l2)(void* mdctx, zs_tickl2_t* tickl2);
+    void (*on_rtn_kline)(void* mdctx, zs_bar_t* bar);
     void (*on_rtn_forquote)(void* mdctx, void* for_quote);
 };
 

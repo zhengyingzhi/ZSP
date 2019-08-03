@@ -11,6 +11,9 @@
 #include <ZStrategyAPI/zs_broker_info.h>
 #include <ZStrategyAPI/zs_bar_generator.h>
 
+#include <ZStrategyAPI/zs_data_feed.h>
+
+
 void test_asset_finder();
 void test_calendar();
 void test_array();
@@ -183,7 +186,10 @@ int main(int argc, char* argv[])
     // test_calendar();
     // test_array();
     // test_broker_info();
-    zs_data_demo();
+    // zs_data_demo();
+
+    zs_csv_loader_t csv_loader = { 0 };
+    zs_csv_loader(&csv_loader);
     return 0;
 }
 

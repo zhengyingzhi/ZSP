@@ -308,7 +308,7 @@ static void zs_strategy_register_event(zs_strategy_engine_t* zse)
     zs_ee_register(ee, zse, ZS_DT_Order, _zs_strategy_handle_order);
     zs_ee_register(ee, zse, ZS_DT_Trade, _zs_strategy_handle_trade);
     zs_ee_register(ee, zse, ZS_DT_MD_Tick, _zs_strategy_handle_tick);
-    zs_ee_register(ee, zse, ZS_DT_MD_Bar, _zs_strategy_handle_bar);
+    zs_ee_register(ee, zse, ZS_DT_MD_KLine, _zs_strategy_handle_bar);
     zs_ee_register(ee, zse, ZS_DT_Timer, _zs_strategy_handle_timer);
 }
 
@@ -852,7 +852,8 @@ int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* st
     strategy->Blotter->subscribe(strategy->Blotter, &sub_req);
 
     array = zs_strategy_find_by_sid(zse, sid);
-    if (!array) {
+    if (!array)
+    {
         array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
         ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
         dictAdd(zse->Tick2StrategyList, (void*)sid, array);
@@ -862,4 +863,49 @@ int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* st
 
     return ZS_OK;
 }
+int zs_strategy_subscribe_bysid_batch(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sids[], int count)
+{
+    ztl_array_t*    array;
+    zs_contract_t*  contract;
+    zs_subscribe_t* sub_req;
+    zs_subscribe_t* psub_reqs[2040];
+    zs_subscribe_t  sub_reqs[2040];
+    zs_sid_t        sid;
+    int             rv;
 
+    zs_log_debug(zse->Log, "ctas: subscribe_bysid sids:%d by strategy:%s",
+        count, strategy->pStrategyName);
+
+    for (int i = 0; i < count; ++i)
+    {
+        sid = sids[i];
+        sub_req = &sub_reqs[i];
+        psub_reqs[i] = sub_req;
+
+        contract = strategy->get_contract(strategy, sid);
+        if (contract) {
+            strcpy(sub_req->Exchange, zs_convert_exchange_id(contract->ExchangeID));
+            strcpy(sub_req->Symbol, contract->Symbol);
+        }
+        sub_req->Sid = sid;
+    }
+
+    rv = strategy->Blotter->subscribe_batch(strategy->Blotter, psub_reqs, count);
+    if (rv == ZS_OK)
+    {
+        for (int k = 0; k < count; ++k)
+        {
+            array = zs_strategy_find_by_sid(zse, sid);
+            if (!array)
+            {
+                array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+                ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
+                dictAdd(zse->Tick2StrategyList, (void*)sid, array);
+            }
+
+            ztl_array_push_back(array, &strategy);
+        }
+    }
+
+    return rv;
+}

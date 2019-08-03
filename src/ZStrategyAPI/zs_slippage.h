@@ -1,7 +1,8 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
- * define slippages
+ * ZStrategyAPI
+ * define slippages for backtest
  */
 
 #ifndef _ZS_SLIPPAGE_H_INCLUDED_
@@ -45,8 +46,8 @@ typedef enum
 
 typedef enum
 {
-    ZS_PFF_Close,
     ZS_PFF_Open,
+    ZS_PFF_Close
 }ZS_PRICE_FIELD_FILL;
 
 
@@ -65,11 +66,11 @@ struct zs_slippage_model_s
 
     // Process how orders get filled, get filled_price, filled_volume
     int (*process_order_by_bar)(zs_slippage_model_t* slippage_model,
-            zs_bar_reader_t* bar_reader, const zs_order_t* order, 
+            zs_bar_reader_t* bar_reader, zs_order_t* order, 
             double* pfilled_price, int* pfilled_qty);
 
     int (*process_order_by_tick)(zs_slippage_model_t* slippage_model,
-            zs_tick_t* tick, const zs_order_t* order,
+            zs_tick_t* tick, zs_order_t* order,
             double* pfilled_price, int* pfilled_qty);
 };
 
@@ -82,15 +83,25 @@ struct zs_slippage_s
     zs_slippage_model_t*    SlippageModel;
     zs_slippage_handler_pt  Handler;
     void*                   UserData;           // 通常是 zs_simulator_t
-    ZS_PRICE_FIELD_FILL     FillPriceField;     // 参考成交价格Open/Close
+    ZS_PRICE_FIELD_FILL     PriceField;         // 参考成交价格Open/Close
+
+    int32_t                 trading_day;
+    uint32_t                order_sysid;
+    uint32_t                trade_id;
 };
 
 
 /* create slippage instance */
-zs_slippage_t* zs_slippage_create(ZS_PRICE_FIELD_FILL price_field, 
-    zs_slippage_handler_pt handler, void* userdata);
+zs_slippage_t* zs_slippage_create(zs_slippage_handler_pt handler, void* userdata);
 
 void zs_slippage_release(zs_slippage_t* slippage);
+
+void zs_slippage_set_price_field(zs_slippage_t* slippage, ZS_PRICE_FIELD_FILL price_field);
+
+void zs_slippage_set_model(zs_slippage_t* slippage, zs_slippage_model_t* slippage_model);
+
+int zs_slippage_update_tradingday(zs_slippage_t* slippage, int32_t trading_day);
+
 
 /* 输入/撤销订单 */
 int zs_slippage_order(zs_slippage_t* slippage, const zs_order_req_t* order_req);
@@ -98,7 +109,7 @@ int zs_slippage_quote_order(zs_slippage_t* slippage, const zs_quote_order_req_t*
 int zs_slippage_cancel(zs_slippage_t* slippage, const zs_cancel_req_t* cancel_req);
 
 /* 根据行情，进行订单撮合 */
-int zs_slippage_process_bybar(zs_slippage_t* slippage, zs_bar_reader_t* bar_reader);
+int zs_slippage_process_bybar(zs_slippage_t* slippage, zs_bar_t* bar);
 int zs_slippage_process_bytick(zs_slippage_t* slippage, zs_tick_t* tick);
 
 

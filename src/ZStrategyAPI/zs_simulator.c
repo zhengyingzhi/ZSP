@@ -3,13 +3,8 @@
 #include <ZToolLib/ztl_utils.h>
 
 #include "zs_algorithm.h"
-
-#include "zs_algorithm_api.h"
-
 #include "zs_broker_backtest.h"
-
 #include "zs_simulator.h"
-
 #include "zs_slippage.h"
 
 
@@ -25,12 +20,16 @@ typedef enum
 
 
 // 处理slippage的回调，并回调通知到api_handler(即broker_entry里定义的)
-static void _zs_slippage_handler(zs_slippage_t* slippage, ZSSlippageDataType dataType,
-    void* data, int dataSize);
+static void _zs_slippage_td_handler(zs_slippage_t* slippage, ZSSlippageDataType datatype,
+    void* data, int size);
 // 处理模拟器的新行情，并回调通知到api_handler(即broker_entry里定义的)
-static void _zs_simu_newmd_handler(zs_simulator_t* simu, zs_bar_reader_t* barData);
+static void _zs_simu_newbar_handler(zs_simulator_t* simu, zs_bar_t* bar);
+static void _zs_simu_newtick_handler(zs_simulator_t* simu, zs_tick_t* tick);
 
+static int zs_simulator_run_ticks(zs_simulator_t* simu);
+static int zs_simulator_run_bars(zs_simulator_t* simu);
 
+//////////////////////////////////////////////////////////////////////////
 zs_simulator_t* zs_simulator_create(zs_algorithm_t* algo)
 {
     zs_simulator_t* simu;
@@ -39,13 +38,14 @@ zs_simulator_t* zs_simulator_create(zs_algorithm_t* algo)
 
     simu->Algorithm     = algo;
     simu->DataPortal    = algo->DataPortal;
-    simu->Slippage      = zs_slippage_create(ZS_PFF_Close, _zs_slippage_handler, simu);
+    simu->Slippage      = zs_slippage_create(_zs_slippage_td_handler, simu);
+    zs_slippage_set_price_field(simu->Slippage, ZS_PFF_Open);
 
     simu->TdApi = NULL;
     simu->MdApi = NULL;
 
     simu->Progress = 0;
-    simu->Running = 0;
+    simu->Running = ZS_RS_Inited;
 
     return simu;
 }
@@ -62,29 +62,40 @@ void zs_simulator_release(zs_simulator_t* simu)
 }
 
 void zs_simulator_regist_tradeapi(zs_simulator_t* simu,
-    zs_trade_api_t* tdapi, zs_trade_api_handlers_t* tdHandlers)
+    zs_trade_api_t* tdapi, zs_trade_api_handlers_t* td_handlers)
 {
     simu->TdApi = tdapi;
-    simu->TdHandlers = tdHandlers;
+    simu->TdHandlers = td_handlers;
 }
 
 void zs_simulator_regist_mdapi(zs_simulator_t* simu,
-    zs_md_api_t* mdapi, zs_md_api_handlers_t* mdHandlers)
+    zs_md_api_t* mdapi, zs_md_api_handlers_t* md_handlers)
 {
     simu->MdApi = mdapi;
-    simu->MdHandlers = mdHandlers;
+    simu->MdHandlers = md_handlers;
+}
+
+void zs_simulator_set_mdseries(zs_simulator_t* simu, ztl_array_t* mdseries, int32_t istick)
+{
+    simu->MdSeries = mdseries;
+    simu->IsTickMd = istick;
 }
 
 void zs_simulator_stop(zs_simulator_t* simu)
 {
-    simu->Running = 0;
+    simu->Running = ZS_RS_Stopped;
 }
 
 int zs_simulator_run(zs_simulator_t* simu)
 {
-    simu->Running = 1;
+    simu->Running = ZS_RS_Running;
 
-    int64_t currentDt = 20180800000000;
+#if 0
+    // TODO: support backtest with bar_reader like zipline
+    /* 根据起止日期，从交易日历的时间信息，及回测时间段，然后生成各个事件ZSSimuEvent
+     */
+
+    int64_t current_dt = 20180800000000;
     zs_bar_reader_t bar_reader;
     zs_bar_reader_init(&bar_reader, simu->Algorithm->DataPortal);
 
@@ -92,41 +103,41 @@ int zs_simulator_run(zs_simulator_t* simu)
     //if (simu->Handler)
     //    simu->Handler(simu, ZS_SEV_PreRun);
 
-    while (simu->Running)
+    while (1)
     {
-        /* 根据起止日期，从交易日历的时间信息，及回测时间段，然后生成各个事件ZSSimuEvent
-         */
-
-        ZSSimuEvent sev = ZS_SEV_Bar;
-
-        currentDt += 1000000;
+        // current_dt += 1000000;
 
         // 更新时间
-        bar_reader.CurrentDt = currentDt;
+        // bar_reader.CurrentDt = current_dt;
 
-        if (sev == ZS_SEV_Bar)
-        {
-            // 获取到新bar行情，先撮合
-            zs_slippage_process_bybar(simu->Slippage, &bar_reader);
-
-            // 再通过broker md handler通知到交易核心
-            _zs_simu_newmd_handler(simu, &bar_reader);
-        }
-
-        sleepms(1000);
+        // notify bar_reader to slippage and md_handler
     }
 
-    // 结束时
-    //if (simu->Handler)
-    //    simu->Handler(simu, ZS_SEV_PostRun);
+#endif//0
 
-    return 0;
+    if (simu->MdSeries)
+    {
+        if (simu->IsTickMd) {
+            zs_simulator_run_ticks(simu);
+        }
+        else {
+            zs_simulator_run_bars(simu);
+        }
+    }
+    else
+    {
+        return ZS_ERROR;
+    }
+
+    simu->Running = ZS_RS_Stopped;
+
+    return ZS_OK;
 }
 
 
 
-static void _zs_slippage_handler(zs_slippage_t* slippage, 
-    ZSSlippageDataType dataType, void* data, int dataSize)
+static void _zs_slippage_td_handler(zs_slippage_t* slippage, 
+    ZSSlippageDataType data_type, void* data, int size)
 {
     zs_simulator_t* simu;
     zs_trade_api_handlers_t* td_handlers;
@@ -134,14 +145,14 @@ static void _zs_slippage_handler(zs_slippage_t* slippage,
     simu = (zs_simulator_t*)slippage->UserData;
     td_handlers = simu->TdHandlers;
 
-    if (dataType == ZS_SDT_Order)
+    if (data_type == ZS_SDT_Order)
     {
         zs_order_t* order = (zs_order_t*)data;
 
         if (td_handlers->on_rtn_order)
             td_handlers->on_rtn_order(simu->TdApi, order);
     }
-    else if (dataType == ZS_SDT_Trade)
+    else if (data_type == ZS_SDT_Trade)
     {
         zs_trade_t* trade = (zs_trade_t*)data;
 
@@ -150,19 +161,103 @@ static void _zs_slippage_handler(zs_slippage_t* slippage,
     }
 }
 
-static void _zs_simu_newmd_handler(zs_simulator_t* simu, zs_bar_reader_t* barReader)
+static void _zs_simu_newbar_handler(zs_simulator_t* simu, zs_bar_t* bar)
 {
     zs_md_api_handlers_t* md_handlers;
     md_handlers = simu->MdHandlers;
 
-#if 0
-    if (md_handlers->on_bardata)
-        md_handlers->on_bardata(simu->MdApi, barReader, 0);
-#endif
+    if (md_handlers->on_rtn_kline)
+        md_handlers->on_rtn_kline(simu->MdApi, bar);
 }
 
+static void _zs_simu_newtick_handler(zs_simulator_t* simu, zs_tick_t* tick)
+{
+    zs_md_api_handlers_t* md_handlers;
+    md_handlers = simu->MdHandlers;
 
+    if (md_handlers->on_rtn_mktdata)
+        md_handlers->on_rtn_mktdata(simu->MdApi, tick);
+}
 
+static int zs_simulator_run_bars(zs_simulator_t* simu)
+{
+    uint32_t    index;
+    zs_bar_t*   prev_bar;
+    zs_bar_t*   bar;
+
+    prev_bar = NULL;
+    bar = (zs_bar_t*)ztl_array_at2(simu->MdSeries, 0);
+    zs_slippage_update_tradingday(simu->Slippage, (int32_t)(bar->BarTime / 1000000000));
+
+    // replay each tick
+    for (index = 0; index < ztl_array_size(simu->MdSeries); ++index)
+    {
+        if (simu->Running != ZS_RS_Running) {
+            break;
+        }
+
+        bar = (zs_bar_t*)ztl_array_at2(simu->MdSeries, index);
+
+#if 0
+        if (prev_bar && prev_bar->TradingDay != bar->TradingDay)
+        {
+            // trading day changed
+            zs_slippage_update_tradingday(simu->Slippage, bar->TradingDay);
+        }
+#endif
+
+        // 获取到新行情，先撮合
+        zs_slippage_process_bybar(simu->Slippage, bar);
+
+        // 通知新行情
+        _zs_simu_newbar_handler(simu, bar);
+
+        prev_bar = bar;
+    }
+
+    fprintf(stderr, "zs_simulator_run_bars finished!\n");
+    return ZS_OK;
+}
+
+static int zs_simulator_run_ticks(zs_simulator_t* simu)
+{
+    uint32_t    index;
+    zs_tick_t*  prev_tick;
+    zs_tick_t*  tick;
+
+    prev_tick = NULL;
+    tick = (zs_tick_t*)ztl_array_at2(simu->MdSeries, 0);
+    zs_slippage_update_tradingday(simu->Slippage, tick->TradingDay);
+
+    // replay each tick
+    for (index = 0; index < ztl_array_size(simu->MdSeries); ++index)
+    {
+        if (simu->Running != ZS_RS_Running) {
+            break;
+        }
+
+        tick = (zs_tick_t*)ztl_array_at2(simu->MdSeries, index);
+
+        if (prev_tick && prev_tick->TradingDay != tick->TradingDay)
+        {
+            // trading day changed
+            zs_slippage_update_tradingday(simu->Slippage, tick->TradingDay);
+        }
+
+        // 获取到新行情，先撮合
+        zs_slippage_process_bytick(simu->Slippage, tick);
+
+        // 通知新行情
+        _zs_simu_newtick_handler(simu, tick);
+
+        prev_tick = tick;
+    }
+
+    fprintf(stderr, "zs_simulator_run_ticks finished!\n");
+    return ZS_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////
 zs_trade_api_t* zs_sim_backtest_trade_api()
 {
     return &bt_tdapi;

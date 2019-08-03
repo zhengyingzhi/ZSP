@@ -41,6 +41,8 @@ struct zs_data_portal_s
     ztl_dict_t*     Time2Data;              // 方便使用时间找到该时间的所有数据Array，<time,dict>
     ztl_dict_t*     Asset2Data;             // 每个产品和该产品对应的所有bar数据(一个时间序列的array)
     zs_bar_reader_t *BarReader;             // default bar reader
+
+    int32_t         IsTick;
 };
 
 

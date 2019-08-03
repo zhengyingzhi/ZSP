@@ -320,8 +320,22 @@ int ZSCtpTradeSpi::ReqAuthenticate()
     CThostFtdcReqAuthenticateField lAuth = { 0 };
     strcpy(lAuth.BrokerID, m_Conf.BrokerID);
     strcpy(lAuth.UserID, m_Conf.AccountID);
-    strcpy(lAuth.AppID, m_Conf.AppID);
-    strcpy(lAuth.AuthCode, m_Conf.AuthCode);
+
+    // auto fill empty fields if simnow
+    if (m_Conf.AppID[0]) {
+        strcpy(lAuth.AppID, m_Conf.AppID);
+    }
+    else if (strcmp(m_Conf.BrokerID, "9999") == 0) {
+        strcpy(lAuth.AppID, "simnow_client_test");
+    }
+
+    if (m_Conf.AuthCode && m_Conf.AuthCode[0]) {
+        strcpy(lAuth.AuthCode, m_Conf.AuthCode);
+    }
+    else if (strcmp(m_Conf.BrokerID, "9999") == 0) {
+        strcpy(lAuth.AuthCode, "0000000000000000");
+    }
+
     fprintf(stderr, "req auth ->> broker:%s,account:%s,appid:%s,code:%s\n", lAuth.BrokerID,
         lAuth.AuthCode, lAuth.AppID, lAuth.AuthCode);
     return m_pTradeApi->ReqAuthenticate(&lAuth, NextReqID());
@@ -358,16 +372,11 @@ void ZSCtpTradeSpi::OnFrontConnected()
     if (m_Handlers->on_connect)
         m_Handlers->on_connect(m_zsTdCtx);
 
-    if (m_Conf.AuthCode && m_Conf.AuthCode[0]) {
 #ifdef ZS_HAVE_SE
-        ReqAuthenticate();
+    ReqAuthenticate();
 #else
-        ReqLogin();
+    ReqLogin();
 #endif//ZS_HAVE_SE
-    }
-    else {
-        ReqLogin();
-    }
 }
 
 void ZSCtpTradeSpi::OnFrontDisconnected(int nReason)

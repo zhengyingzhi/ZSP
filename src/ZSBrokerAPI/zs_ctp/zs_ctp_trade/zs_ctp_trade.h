@@ -6,7 +6,6 @@
 #include <string>
 #include <map>
 
-#undef ZS_HAVE_SE
 #ifdef ZS_HAVE_SE
 #include <ctp_se/ThostFtdcTraderApi.h>
 #else

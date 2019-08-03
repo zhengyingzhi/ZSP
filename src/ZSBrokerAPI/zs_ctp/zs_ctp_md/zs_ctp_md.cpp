@@ -36,6 +36,17 @@ extern const char* get_exchange_name(ZSExchangeID exchangeid);
 extern void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo);
 extern int32_t conv_ctp_time(const char* stime);
 
+static void conv_zs_dt(zs_dt_t* zsdt, int date, int update_time, int millisec)
+{
+    zsdt->dt.year   = date / 10000;
+    zsdt->dt.month  = (date / 10000) % 100;
+    zsdt->dt.day    = date % 1000000;
+    zsdt->dt.hour   = update_time / 10000;
+    zsdt->dt.minute = (update_time / 100) % 100;
+    zsdt->dt.second = update_time % 10000;
+    zsdt->dt.millisec = millisec;
+}
+
 static inline double check_double(double d) {
     return (d == DBL_MAX) ? 0 : d;
 }
@@ -509,7 +520,9 @@ void ZSCtpMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pMD)
     ztick.PreDelta      = check_double(pMD->PreDelta);
     ztick.CurrDelta     = check_double(pMD->CurrDelta);
 
-    ztick.UpdateTime    = conv_ctp_time(pMD->UpdateTime) * 1000 + pMD->UpdateMillisec;
+    ztick.UpdateTime    = conv_ctp_time(pMD->UpdateTime);
+    conv_zs_dt(&ztick.TickDt, ztick.ActionDay, ztick.UpdateTime, pMD->UpdateMillisec);
+    ztick.UpdateTime    = ztick.UpdateTime * 1000 + pMD->UpdateMillisec;
     ztick.BidPrice[0]   = check_double(pMD->BidPrice1);
     ztick.BidVolume[0]  = check_int(pMD->BidVolume1);
     ztick.AskPrice[0]   = check_double(pMD->AskPrice1);

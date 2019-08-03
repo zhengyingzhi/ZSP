@@ -198,8 +198,7 @@ zs_account_t* zs_account_create(ztl_pool_t* pool)
 {
     zs_account_t* account;
     if (pool) {
-        account = (zs_account_t*)ztl_palloc(pool, sizeof(zs_account_t));
-        memset(account, 0, sizeof(zs_account_t));
+        account = (zs_account_t*)ztl_pcalloc(pool, sizeof(zs_account_t));
         account->Pool = pool;
     }
     else {
@@ -297,6 +296,7 @@ int zs_account_handle_order_rtn(zs_account_t* account, zs_order_t* order, zs_con
 
     if (order->OffsetFlag == ZS_OF_Open)
     {
+        // FIXME: 只有期权卖方才会冻结保证金
         double frozen_margin = 0;
         free_frozen_margin(account, order->Symbol, order->Sid, order->Direction,
             order->OrderPrice, vol, order->UserID, contract, &frozen_margin);
@@ -342,5 +342,5 @@ int zs_account_handle_trade_rtn(zs_account_t* account, zs_order_t* order, zs_tra
     account->FundAccount.Commission += trade->Commission;
     update_avail_cash(account, -trade->Commission);
 
-    return 0;
+    return ZS_OK;
 }

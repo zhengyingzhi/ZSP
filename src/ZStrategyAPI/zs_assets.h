@@ -1,7 +1,8 @@
 /*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
- * define the assets(Equity/Future) manager object
+ * ZStrategyAPI
+ * define the assets(Equity/Future/Option) manager object
  */
 
 #ifndef _ZS_ASSETS_H_INCLUDED_
@@ -25,7 +26,9 @@ typedef uint64_t zs_sid_t;
 #define ZS_ASSET_INIT_NUM   8192
 #define ZS_ASSET_START_SID  16
 
+#define ZS_SID_WILDCARD     0
 #define ZS_SID_INVALID      (-1)
+
 
 /* global asset manager
  */
@@ -37,6 +40,7 @@ struct zs_asset_finder_s
     ztl_dict_t*         AssetTable;         // Table<sid, assetinfo>
     zs_sid_t            BaseSid;            // start from ZS_ASSET_START_SID
     int32_t             CreatedSelf;
+    int32_t             EnableDefaultEquity;
     uint32_t            Count;
 };
 
@@ -47,6 +51,9 @@ zs_asset_finder_t* zs_asset_create(void* ctxdata, ztl_pool_t* pool, int init_num
 
 // release the asset finder
 void zs_asset_release(zs_asset_finder_t* asset_finder);
+
+// enable equity asset within default info
+int zs_asset_enable_default_equity(zs_asset_finder_t* asset_finder, int32_t enable);
 
 // add data, and will do a copy of it internally
 int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, int exchangeid, const char* symbol, int len, void* data);

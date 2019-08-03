@@ -1,6 +1,7 @@
 /*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define the common api struct
  */
 
@@ -12,7 +13,7 @@
 #include "zs_constants.h"
 
 
-#define ORDER_ID_LEN        16
+#define ORDER_ID_LEN        20
 #define ORDER_SYSID_LEN     24
 #define TRADE_ID_LEN        24
 #define BROKER_ID_LEN       12
@@ -65,7 +66,8 @@ typedef union zs_dt_u
         uint64_t    minute : 8;
         uint64_t    second : 8;
     };
-    uint64_t dt;
+    struct dt_s dt;
+    uint64_t dt64;
 }zs_dt_t;
 
 /* error data */
@@ -130,6 +132,7 @@ struct zs_tick_s
     double          HighPrice;
     double          LowPrice;
     double          LastPrice;
+    double          ClosePrice;
 
     int64_t         Volume;
     double          Turnover;
@@ -287,7 +290,7 @@ struct zs_order_s
     // ctp 
     int32_t         FrontID;
     int32_t         SessionID;
-    char            Padding[12];
+    char            Padding[8];
 };
 typedef struct zs_order_s zs_order_t;
 
@@ -412,6 +415,7 @@ struct zs_contract_s
     int32_t         Multiplier;
     int32_t         Decimal;
 
+    ZSOptionType    OptionType;
     ZSStrikeType    StrikeType;
     double          StrikePrice;
     char            UnderlyingSymbol[8];

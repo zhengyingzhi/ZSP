@@ -100,6 +100,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     }
 
     blotter->subscribe      = zs_blotter_subscribe;
+    blotter->subscribe_batch= zs_blotter_subscribe_batch;
     blotter->order          = zs_blotter_order;
     blotter->quote_order    = zs_blotter_quote_order;
     blotter->cancel         = zs_blotter_cancel;
@@ -289,7 +290,22 @@ int zs_blotter_subscribe(zs_blotter_t* blotter, zs_subscribe_t* sub_req)
     rv = mdapi->subscribe(mdapi->ApiInstance, &sub_req, 1);
     if (rv != 0)
     {
-        //
+        zs_log_error(blotter->Log, "blotter: subscribe failed:%d", rv);
+    }
+
+    return rv;
+}
+
+int zs_blotter_subscribe_batch(zs_blotter_t* blotter, zs_subscribe_t* sub_reqs[], int count)
+{
+    int rv;
+    zs_md_api_t* mdapi;
+
+    mdapi = blotter->MdApi;
+    rv = mdapi->subscribe(mdapi->ApiInstance, sub_reqs, count);
+    if (rv != 0)
+    {
+        zs_log_error(blotter->Log, "blotter: subscribe_batch failed:%d", rv);
     }
 
     return rv;
@@ -307,19 +323,19 @@ int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
     zs_orderdict_add_order(blotter->OrderDict, order);
     zs_orderlist_append(blotter->WorkOrderList, order);
 
-    return 0;
+    return ZS_OK;
 }
 
 zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid)
 {
-    zs_order_t* order = NULL;
+    zs_order_t* order;
     order = zs_order_find_by_sysid(blotter->WorkOrderList, exchange_id, order_sysid);
     return order;
 }
 
 zs_order_t* zs_get_order_by_id(zs_blotter_t* blotter, int32_t frontid, int32_t sessionid, const char* orderid)
 {
-    zs_order_t* order = NULL;
+    zs_order_t* order;
     order = zs_order_find(blotter->WorkOrderList, frontid, sessionid, orderid);
     return order;
 }
@@ -542,7 +558,7 @@ int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
 
     order_status = order->OrderStatus;
 
-    old_order = zs_orderdict_find(blotter->OrderDict, order->FrontID, order->SessionID, order->OrderID);
+    old_order = zs_get_order_by_id(blotter, order->FrontID, order->SessionID, order->OrderID);
     if (old_order)
     {
         if (is_finished_status(order_status))
@@ -561,7 +577,10 @@ int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
         zs_order_t* dup_order;
         dup_order = (zs_order_t*)ztl_palloc(blotter->Pool, sizeof(zs_order_t));
         ztl_memcpy(dup_order, order, sizeof(zs_order_t));
+
+        // the order maybe from other client
         zs_orderdict_add_order(blotter->OrderDict, dup_order);
+        zs_orderlist_append(blotter->WorkOrderList, dup_order);
     }
 
     // working order
@@ -571,11 +590,17 @@ int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
         return ZS_ERR_NoOrder;
     }
 
-    strcpy(work_order->OrderSysID, order->OrderSysID);
-    work_order->FilledQty = order->FilledQty;
+    // 更新委托状态
+    if (!work_order->OrderSysID[0])
+    {
+        strcpy(work_order->OrderSysID, order->OrderSysID);
+        work_order->OrderDate = order->OrderDate;
+        work_order->OrderTime = order->OrderTime;
+    }
+    work_order->FilledQty   = order->FilledQty;
+    work_order->AvgPrice    = order->AvgPrice;
     work_order->OrderStatus = order->OrderStatus;
-    work_order->OrderTime = order->OrderTime;
-    work_order->CancelTime = order->CancelTime;
+    work_order->CancelTime  = order->CancelTime;
 
     // 是否自动维护模式
     if (!blotter->IsSelfCalc) {

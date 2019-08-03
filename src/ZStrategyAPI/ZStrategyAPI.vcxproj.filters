@@ -107,6 +107,12 @@
     <ClInclude Include="zs_error.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="zs_category_info.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_margin_model.h">
+      <Filter>Finance</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -218,6 +224,12 @@
     </ClCompile>
     <ClCompile Include="zs_logger.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_category_info.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_margin_model.c">
+      <Filter>Finance</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

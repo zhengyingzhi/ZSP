@@ -47,7 +47,7 @@ int zs_orderlist_size(zs_orderlist_t* orderlist)
     return ztl_dlist_size(orderlist);
 }
 
-int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size)
+int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size, uint64_t filter_sid)
 {
     int index = 0;
     zs_order_t* order = NULL;
@@ -61,7 +61,10 @@ int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int s
         if (index >= size) {
             break;
         }
-        orders[index++] = temp;
+
+        if (!filter_sid || temp->Sid == filter_sid) {
+            orders[index++] = temp;
+        }
 
         iter = ztl_dlist_next(orderlist, iter);
     }

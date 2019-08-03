@@ -2,15 +2,10 @@
 #include <ZToolLib/ztl_map.h>
 
 #include "zs_algorithm.h"
-
 #include "zs_assets.h"
-
 #include "zs_broker_api.h"
-
 #include "zs_broker_backtest.h"
-
 #include "zs_constants_helper.h"
-
 #include "zs_slippage.h"
 
 #ifdef _MSC_VER
@@ -160,6 +155,7 @@ int zs_bt_query(zs_bt_trade_impl_t* instance, ZSApiQueryCategory category, void*
 
 
 //////////////////////////////////////////////////////////////////////////
+// debug test
 static unsigned int __stdcall bt_md_sim_thread(void* data)
 {
     fprintf(stderr, "bt_md_sim_thread running\n");
@@ -225,11 +221,13 @@ int zs_bt_md_connect(zs_bt_md_impl_t* md_instrance, void* addr)
     // do nothing
     (void)md_instrance;
 
+#if 0
     if (!md_instrance->running)
     {
         md_instrance->running = 1;
         md_instrance->thr = (HANDLE)_beginthreadex(NULL, 0, bt_md_sim_thread, md_instrance, 0, NULL);
     }
+#endif//0
 
     return 0;
 }

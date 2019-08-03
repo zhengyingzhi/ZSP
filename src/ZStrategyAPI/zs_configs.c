@@ -46,17 +46,39 @@ static char* _zs_read_file_content(const char* filename, int* length)
     return buffer;
 }
 
-static int _zs_get_string_object_value(cJSON* tnode, const char* key, char* dst,
-    int dstsz)
+int zs_get_string_object_value(cJSON* tnode, const char* key, char* dst, int dstsz)
 {
     cJSON* obj;
     obj = cJSON_GetObjectItem(tnode, key);
     if (obj) {
         strncpy(dst, obj->valuestring, dstsz);
-        return 0;
+        return ZS_OK;
     }
-    return -1;
+    return ZS_ERROR;
 }
+
+int zs_get_int_object_value(cJSON* tnode, const char* key, int32_t* dst)
+{
+    cJSON* obj;
+    obj = cJSON_GetObjectItem(tnode, key);
+    if (obj) {
+        *dst = obj->valueint;
+        return ZS_OK;
+    }
+    return ZS_ERROR;
+}
+
+int zs_get_double_object_value(cJSON* tnode, const char* key, double* dst)
+{
+    cJSON* obj;
+    obj = cJSON_GetObjectItem(tnode, key);
+    if (obj) {
+        *dst = obj->valuedouble;
+        return ZS_OK;
+    }
+    return ZS_ERROR;
+}
+
 
 static int _zs_configs_parse_accounts(zs_algo_param_t* algo_params,
     cJSON* tnode, ztl_pool_t* pool,
@@ -64,16 +86,16 @@ static int _zs_configs_parse_accounts(zs_algo_param_t* algo_params,
 {
     int rv;
 
-    rv = _zs_get_string_object_value(tnode, "AccountID", account_conf->AccountID, sizeof(account_conf->AccountID) - 1);
+    rv = zs_get_string_object_value(tnode, "AccountID", account_conf->AccountID, sizeof(account_conf->AccountID) - 1);
     if (0 != rv) {
         return rv;
     }
 
-    _zs_get_string_object_value(tnode, "Password", account_conf->Password, sizeof(account_conf->Password) - 1);
-    _zs_get_string_object_value(tnode, "BrokerID", account_conf->BrokerID, sizeof(account_conf->BrokerID) - 1);
-    _zs_get_string_object_value(tnode, "TradeAPIName", account_conf->TradeAPIName, sizeof(account_conf->TradeAPIName) - 1);
-    _zs_get_string_object_value(tnode, "MDAPIName", account_conf->MDAPIName, sizeof(account_conf->MDAPIName) - 1);
-    _zs_get_string_object_value(tnode, "AppID", account_conf->AppID, sizeof(account_conf->AppID) - 1);
+    zs_get_string_object_value(tnode, "Password", account_conf->Password, sizeof(account_conf->Password) - 1);
+    zs_get_string_object_value(tnode, "BrokerID", account_conf->BrokerID, sizeof(account_conf->BrokerID) - 1);
+    zs_get_string_object_value(tnode, "TradeAPIName", account_conf->TradeAPIName, sizeof(account_conf->TradeAPIName) - 1);
+    zs_get_string_object_value(tnode, "MDAPIName", account_conf->MDAPIName, sizeof(account_conf->MDAPIName) - 1);
+    zs_get_string_object_value(tnode, "AppID", account_conf->AppID, sizeof(account_conf->AppID) - 1);
 
     account_conf->AuthCode = NULL;
     if (cJSON_HasObjectItem(tnode, "AuthCode"))
@@ -129,7 +151,7 @@ int zs_configs_load_global(zs_algo_param_t* algo_param, ztl_pool_t* pool,
         goto PARSE_END;
     }
 
-    _zs_get_string_object_value(json, "LogName", log_name, sizeof(log_name) - 1);
+    zs_get_string_object_value(json, "LogName", log_name, sizeof(log_name) - 1);
     algo_param->LogName = _zs_pool_str_dup(pool, log_name, (int)strlen(log_name));
 
     rv = 0;
@@ -261,11 +283,11 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
 
         broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
 
-        _zs_get_string_object_value(tnode, "APIName", broker_conf->APIName, sizeof(broker_conf->APIName) - 1);
-        _zs_get_string_object_value(tnode, "BrokerID", broker_conf->BrokerID, sizeof(broker_conf->BrokerID) - 1);
-        _zs_get_string_object_value(tnode, "BrokerName", broker_conf->BrokerName, sizeof(broker_conf->BrokerName) - 1);
-        _zs_get_string_object_value(tnode, "TradeAddr", broker_conf->TradeAddr, sizeof(broker_conf->TradeAddr) - 1);
-        _zs_get_string_object_value(tnode, "MDAddr", broker_conf->MDAddr, sizeof(broker_conf->MDAddr) - 1);
+        zs_get_string_object_value(tnode, "APIName", broker_conf->APIName, sizeof(broker_conf->APIName) - 1);
+        zs_get_string_object_value(tnode, "BrokerID", broker_conf->BrokerID, sizeof(broker_conf->BrokerID) - 1);
+        zs_get_string_object_value(tnode, "BrokerName", broker_conf->BrokerName, sizeof(broker_conf->BrokerName) - 1);
+        zs_get_string_object_value(tnode, "TradeAddr", broker_conf->TradeAddr, sizeof(broker_conf->TradeAddr) - 1);
+        zs_get_string_object_value(tnode, "MDAddr", broker_conf->MDAddr, sizeof(broker_conf->MDAddr) - 1);
 
         ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
     }
@@ -328,8 +350,8 @@ int zs_configs_load_strategy_setting(zs_algo_param_t* algo_param, ztl_pool_t* po
 
         strategy_conf = (zs_conf_strategy_t*)ztl_pcalloc(pool, sizeof(zs_conf_strategy_t));
 
-        _zs_get_string_object_value(tnode, "StrategyName", strategy_conf->StrategyName, sizeof(strategy_conf->StrategyName) - 1);
-        _zs_get_string_object_value(tnode, "Symbol", strategy_conf->Symbol, sizeof(strategy_conf->Symbol) - 1);
+        zs_get_string_object_value(tnode, "StrategyName", strategy_conf->StrategyName, sizeof(strategy_conf->StrategyName) - 1);
+        zs_get_string_object_value(tnode, "Symbol", strategy_conf->Symbol, sizeof(strategy_conf->Symbol) - 1);
 
         // keep the original setting
         char* strategy_setting = cJSON_Print(tnode);
@@ -397,17 +419,17 @@ static int zs_configs_load_tradings(zs_algo_param_t* algo_param, ztl_pool_t* poo
 
         trading_conf = (zs_conf_trading_t*)ztl_pcalloc(pool, sizeof(zs_conf_trading_t));
 
-        rv = _zs_get_string_object_value(tnode, "AccountID", trading_conf->AccountID, sizeof(trading_conf->AccountID) - 1);
+        rv = zs_get_string_object_value(tnode, "AccountID", trading_conf->AccountID, sizeof(trading_conf->AccountID) - 1);
         if (0 != rv) {
             continue;
         }
 
-        rv = _zs_get_string_object_value(tnode, "StrategyName", trading_conf->StrategyName, sizeof(trading_conf->StrategyName) - 1);
+        rv = zs_get_string_object_value(tnode, "StrategyName", trading_conf->StrategyName, sizeof(trading_conf->StrategyName) - 1);
         if (0 != rv) {
             continue;
         }
 
-        _zs_get_string_object_value(tnode, "Symbol", trading_conf->Symbol, sizeof(trading_conf->Symbol) - 1);
+        zs_get_string_object_value(tnode, "Symbol", trading_conf->Symbol, sizeof(trading_conf->Symbol) - 1);
 
         // keep the original setting
         char* trading_setting = cJSON_Print(tnode);

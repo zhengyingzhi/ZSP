@@ -46,6 +46,7 @@
     <ClInclude Include="zs_broker_api.h" />
     <ClInclude Include="zs_broker_backtest.h" />
     <ClInclude Include="zs_broker_entry.h" />
+    <ClInclude Include="zs_category_info.h" />
     <ClInclude Include="zs_commission.h" />
     <ClInclude Include="zs_common.h" />
     <ClInclude Include="zs_assets.h" />
@@ -60,6 +61,7 @@
     <ClInclude Include="zs_event_engine.h" />
     <ClInclude Include="zs_hashdict.h" />
     <ClInclude Include="zs_logger.h" />
+    <ClInclude Include="zs_margin_model.h" />
     <ClInclude Include="zs_order_list.h" />
     <ClInclude Include="zs_position.h" />
     <ClInclude Include="zs_blotter.h" />
@@ -82,6 +84,7 @@
     <ClCompile Include="zs_blotter_manager.c" />
     <ClCompile Include="zs_broker_backtest.c" />
     <ClCompile Include="zs_broker_entry.c" />
+    <ClCompile Include="zs_category_info.c" />
     <ClCompile Include="zs_commission.c" />
     <ClCompile Include="zs_assets.c" />
     <ClCompile Include="zs_configs.c" />
@@ -92,6 +95,7 @@
     <ClCompile Include="zs_event_engine.c" />
     <ClCompile Include="zs_hashdict.c" />
     <ClCompile Include="zs_logger.c" />
+    <ClCompile Include="zs_margin_model.c" />
     <ClCompile Include="zs_order_list.c" />
     <ClCompile Include="zs_position.c" />
     <ClCompile Include="zs_protocol.c" />

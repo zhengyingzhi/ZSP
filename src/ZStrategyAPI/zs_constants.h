@@ -1,6 +1,8 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
+ * define some constants defines
  */
 
 #pragma warning(disable:4819)
@@ -53,12 +55,12 @@ typedef enum
     ZS_DT_Unkown,
     ZS_DT_Timer,
     ZS_DT_Other,
-    ZS_DT_MD_Bar,
     ZS_DT_MD_Connected,
     ZS_DT_MD_Disconnected,
     ZS_DT_MD_Login,
+    ZS_DT_MD_KLine,
     ZS_DT_MD_Tick,
-    ZS_DT_MD_Level2,
+    ZS_DT_MD_Tickl2,
     ZS_DT_MD_StepOrder,
     ZS_DT_MD_Transaction,
     ZS_DT_MD_ForQuote,
@@ -85,28 +87,6 @@ typedef enum
     ZS_DT_QryCommRate
 }ZSDataType;
 
-/* 字段类型 */
-typedef enum
-{
-    ZS_FT_Unkown,
-    ZS_FT_Price,
-    ZS_FT_Open,
-    ZS_FT_High,
-    ZS_FT_Low,
-    ZS_FT_Close,
-    ZS_FT_Volume,
-    ZS_FT_Amount,
-    ZS_FT_OpenInterest,
-    ZS_FT_Settlement,
-    ZS_FT_AdjustFactor,
-    ZS_FT_PreClose,
-    ZS_FT_UpperLimit,
-    ZS_FT_LowerLimit,
-    ZS_FT_TWAP,
-    ZS_FT_VWAP,
-    ZS_FT_Time,
-    ZS_FT_Name
-}ZSFieldType;
 
 /* 产品类型 */
 typedef enum

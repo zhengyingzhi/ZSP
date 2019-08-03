@@ -13,11 +13,46 @@
 
 #include <ZStrategyAPI/zs_strategy_demo.h>
 
-//#include <ZDataRepository>
-
 #include <ZStrategyAPI/zs_logger.h>
 
 
+static int _parse_line_tick_fdata(zs_csv_loader_t* csv_loader, int num, zditem_t fields[], int size)
+{
+    zs_tick_t*      tick;
+    ztl_pool_t*     pool;
+    ztl_array_t*    array;
+    uint32_t        alloc_size;
+
+    if (num == 0) {
+        return ZS_OK;
+    }
+
+    pool = (ztl_pool_t*)csv_loader->userdata1;
+    array = (ztl_array_t*)csv_loader->userdata2;
+
+    alloc_size = ztl_align(sizeof(zs_tick_t), 8);
+    // tick = (zs_tick_t*)ztl_pcalloc(pool, alloc_size);
+    tick = (zs_tick_t*)calloc(1, alloc_size);
+
+    // retrieve each field
+    strncpy(tick->Symbol, fields[1].ptr, fields[1].len);
+    tick->ExchangeID = ZS_EI_DCE;
+    tick->TradingDay = 0;       // FIXME
+    tick->UpdateTime = 0;
+
+    tick->LastPrice = atof(fields[3].ptr);
+    tick->OpenInterest = atof(fields[4].ptr);
+    tick->Turnover = atof(fields[5].ptr);
+    tick->Volume = atoi(fields[7].ptr);
+
+    tick->BidPrice[0] = atof(fields[12].ptr);
+    tick->AskPrice[0] = atof(fields[13].ptr);
+    tick->BidVolume[0] = atoi(fields[12].ptr);
+    tick->AskVolume[0] = atoi(fields[13].ptr);
+
+    ztl_array_push_back(array, &tick);
+    return ZS_OK;
+}
 
 int main(int argc, char* argv[])
 {
@@ -55,22 +90,36 @@ int main(int argc, char* argv[])
     // assert(rv == 0);
 
     zs_data_portal_t* data_portal;
-    data_portal = NULL;
+    data_portal = zs_data_portal_create();
 
-#if 0
-    // load ohlc,benchmark data
+#if 1
+    // load history ohlc, benchmark data
     ztl_array_t ohlc_datas;
-    ztl_array_init(&ohlc_datas, pool, 32, sizeof(zs_bar_t*));
-    zs_data_load_csv("IF000.csv", &ohlc_datas);
-    assert(rv == 0);
+    ztl_array_init(&ohlc_datas, NULL, 32000, sizeof(zs_tick_t*));
+
+    zs_csv_loader_t csv_loader;
+    memset(&csv_loader, 0, sizeof(csv_loader));
+    csv_loader.filename = "i1905_20180903-05.csv";
+    csv_loader.parse_line_fields = _parse_line_tick_fdata;
+    csv_loader.have_header = 1;
+    csv_loader.is_tick_data = 1;
+    csv_loader.sep = ",";
+    csv_loader.userdata1 = pool;
+    csv_loader.userdata2 = &ohlc_datas;
+    rv = zs_data_load_csv(&csv_loader);
+    assert(rv == ZS_OK);
 
     //ztl_array_t benchmark_datas;
     //zs_data_load_csv("000300SH.csv", &benchmark_datas);
     //assert(rv == 0);
 
-    data_portal = zs_data_portal_create();
-    zs_data_portal_wrapper(data_portal, &ohlc_datas);
-    //zs_data_portal_wrapper(data_portal, &benchmark_datas);
+    // data_portal = zs_data_portal_create();
+    // zs_data_portal_wrapper(data_portal, &ohlc_datas);
+    // zs_data_portal_wrapper(data_portal, &benchmark_datas);
+
+    data_portal->RawDatas = &ohlc_datas;
+    data_portal->IsTick = 1;
+    params.RunMode = ZS_RM_Backtest;
 #endif
 
     // run algo
