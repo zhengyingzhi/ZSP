@@ -19,6 +19,8 @@
 #include "zs_api_object.h"
 
 #include "zs_data_portal.h"
+#include "zs_trading_calendar.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -108,7 +110,12 @@ int zs_slippage_order(zs_slippage_t* slippage, const zs_order_req_t* order_req);
 int zs_slippage_quote_order(zs_slippage_t* slippage, const zs_quote_order_req_t* quote_order_req);
 int zs_slippage_cancel(zs_slippage_t* slippage, const zs_cancel_req_t* cancel_req);
 
-/* 根据行情，进行订单撮合 */
+/* 回测事件，进行订单处理：撮合/取消等 */
+int zs_slippage_session_start(zs_slippage_t* slippage, zs_bar_reader_t* current_data);
+int zs_slippage_session_before_trading(zs_slippage_t* slippage, zs_bar_reader_t* current_data);
+int zs_slippage_session_every_bar(zs_slippage_t* slippage, zs_bar_reader_t* current_data);
+int zs_slippage_session_end(zs_slippage_t* slippage, zs_bar_reader_t* current_data);
+
 int zs_slippage_process_bybar(zs_slippage_t* slippage, zs_bar_t* bar);
 int zs_slippage_process_bytick(zs_slippage_t* slippage, zs_tick_t* tick);
 

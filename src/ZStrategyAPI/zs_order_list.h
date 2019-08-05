@@ -69,6 +69,8 @@ zs_orderdict_t* zs_orderdict_create(ztl_pool_t* privptr);
 
 void zs_orderdict_release(zs_orderdict_t* orderdict);
 
+void zs_orderdict_clear(zs_orderdict_t* orderdict, void (callback)(void*));
+
 int zs_orderdict_add_order(zs_orderdict_t* orderdict, zs_order_t* value);
 
 int zs_orderdict_add(zs_orderdict_t* orderdict, int32_t frontid, int32_t sessionid,

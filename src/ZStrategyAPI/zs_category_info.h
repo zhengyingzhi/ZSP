@@ -52,6 +52,8 @@ typedef struct zs_category_s zs_category_t;
  */
 int zs_category_init(zs_category_t* category_obj);
 
+int zs_category_release(zs_category_t* category_obj);
+
 /* load category infos by setting file
  */
 int zs_category_load(zs_category_t* category_obj, const char* info_file);
@@ -60,7 +62,7 @@ int zs_category_load(zs_category_t* category_obj, const char* info_file);
  */
 zs_category_info_t* zs_category_find(zs_category_t* category_obj, const char* symbol);
 
-zs_category_last_trading_day(zs_category_t* category_obj, const char* symbol);
+int32_t zs_category_last_trading_day(zs_category_t* category_obj, const char* symbol);
 
 
 /* get variety code integer

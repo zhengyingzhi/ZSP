@@ -87,9 +87,9 @@ struct zs_blotter_s
     int (*subscribe_batch)(zs_blotter_t* blotter, zs_subscribe_t* sub_reqs[], int count);
 
     // 回报事件接口
-    int (*handle_order_submit)(zs_blotter_t* blotter, zs_order_req_t* order_req);
-    int (*handle_order_returned)(zs_blotter_t* blotter, zs_order_t* order);
-    int (*handle_order_trade)(zs_blotter_t* blotter, zs_trade_t* trade);
+    int (*handle_order_req)(zs_blotter_t* blotter, zs_order_req_t* order_req);
+    int (*handle_order_rtn)(zs_blotter_t* blotter, zs_order_t* order);
+    int (*handle_trade_rtn)(zs_blotter_t* blotter, zs_trade_t* trade);
     int (*handle_tick)(zs_blotter_t* blotter, zs_tick_t* tick);
     int (*handle_tickl2)(zs_blotter_t* blotter, zs_tick_t* tickl2);
     int (*handle_bar)(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader);
@@ -138,10 +138,10 @@ int zs_blotter_handle_qry_trade(zs_blotter_t* blotter, zs_trade_t* trade);
 int zs_blotter_handle_timer(zs_blotter_t* blotter, int64_t flag);
 
 // 订单事件
-int zs_blotter_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req);
-int zs_blotter_handle_quote_order_submit(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
-int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order);
-int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade);
+int zs_blotter_handle_order_req(zs_blotter_t* blotter, zs_order_req_t* order_req);
+int zs_blotter_handle_quote_order_req(zs_blotter_t* blotter, zs_quote_order_req_t* quote_req);
+int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order);
+int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade);
 
 // 行情事件
 int zs_blotter_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick);

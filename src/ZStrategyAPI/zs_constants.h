@@ -101,6 +101,16 @@ typedef enum
     ZS_PC_Other
 }ZSProductClass;
 
+
+/* 复权类型 */
+typedef enum
+{
+    ZS_ADJ_None,
+    ZS_ADJ_Pre,
+    ZS_ADJ_Post
+}ZSAdjustedType;
+
+
 /* 期权类型 */
 typedef enum
 {

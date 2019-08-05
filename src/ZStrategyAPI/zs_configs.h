@@ -93,6 +93,22 @@ struct zs_conf_trading_s
 typedef struct zs_conf_trading_s zs_conf_trading_t;
 
 
+/* 回测参数配置
+ */
+struct zs_conf_backtest_s
+{
+    char            StartDate[20];
+    char            EndDate[20];
+    ZSDataFrequency DataFrequency;
+    ZSProductClass  ProductType;
+    ZSAdjustedType  AdjustedType;
+    double          CapitalBase;
+    double          VolumeLimit;
+    int             FillPolicy;             // open-0, close-1
+
+};
+typedef struct zs_conf_backtest_s zs_conf_backtest_t;
+
 
 /* 全局交易参数
  */
@@ -104,13 +120,7 @@ struct zs_algo_param_s
     int             LogLevel;
     int             LogAsync;
 
-    // backtest params
-    char            StartDate[16];
-    char            EndDate[16];
-    ZSDataFrequency DataFrequency;
-    ZSProductClass  ProductType;
-    double          CapitalBase;
-    int             FillPolicy;             // current bar close, next bar open
+    zs_conf_backtest_t  BacktestConf;
 
     ztl_array_t     BrokerConf;             // zs_broker_conf_t array
     ztl_array_t     AccountConf;            // zs_account_conf_t array

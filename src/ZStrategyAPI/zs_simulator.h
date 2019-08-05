@@ -12,9 +12,9 @@
 
 #include <ZToolLib/ztl_array.h>
 
-#include "zs_core.h"
-
 #include "zs_broker_api.h"
+#include "zs_core.h"
+#include "zs_trading_calendar.h"
 
 
 #ifdef __cplusplus
@@ -31,12 +31,11 @@ extern "C" {
 
 struct zs_simulator_s
 {
-    int64_t                 StartDate;
-    int64_t                 EndDate;
     zs_algorithm_t*         Algorithm;          // 全局Algo对象
     zs_data_portal_t*       DataPortal;         // 数据读取统一入口
+    zs_conf_backtest_t*     BacktestConf;       // 回测参数
     zs_trading_calendar_t*  TradingCalendar;    // 交易日历
-    zs_slippage_t*          Slippage;           // 由于Simulator管理Slippage的生命周期
+    zs_slippage_t*          Slippage;           // 由Simulator管理Slippage的生命周期
     zs_trade_api_t*         TdApi;
     zs_trade_api_handlers_t *TdHandlers;        // 用于从模拟器中接收回测交易回报
     zs_md_api_t*            MdApi;

@@ -62,6 +62,19 @@ int zs_category_init(zs_category_t* category_obj)
     return ZS_OK;
 }
 
+int zs_category_release(zs_category_t* category_obj)
+{
+    if (category_obj->Pool)
+    {
+        dictRelease(category_obj->Dict);
+        ztl_destroy_pool(category_obj->Pool);
+        category_obj->Dict = NULL;
+        category_obj->Pool = NULL;
+        category_obj->Count = 0;
+    }
+    return ZS_OK;
+}
+
 int zs_category_load(zs_category_t* category_obj, const char* info_file)
 {
     int     rv;

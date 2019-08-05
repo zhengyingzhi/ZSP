@@ -38,7 +38,12 @@ zs_simulator_t* zs_simulator_create(zs_algorithm_t* algo)
 
     simu->Algorithm     = algo;
     simu->DataPortal    = algo->DataPortal;
-    simu->Slippage      = zs_slippage_create(_zs_slippage_td_handler, simu);
+    simu->BacktestConf  = &algo->Params->BacktestConf;
+
+    const char* market_name = (simu->BacktestConf->ProductType == ZS_PC_Future) ? ZS_EXCHANGE_SHFE : ZS_EXCHANGE_SSE;
+    simu->TradingCalendar = zs_tc_create_by_market(simu->BacktestConf->StartDate, simu->BacktestConf->EndDate, market_name);
+
+    simu->Slippage = zs_slippage_create(_zs_slippage_td_handler, simu);
     zs_slippage_set_price_field(simu->Slippage, ZS_PFF_Open);
 
     simu->TdApi = NULL;
@@ -91,28 +96,44 @@ int zs_simulator_run(zs_simulator_t* simu)
     simu->Running = ZS_RS_Running;
 
 #if 0
-    // TODO: support backtest with bar_reader like zipline
-    /* 根据起止日期，从交易日历的时间信息，及回测时间段，然后生成各个事件ZSSimuEvent
+    /* 根据起止日期，从交易日历的时间信息，及回测时间段，然后生成各个事件
+     * 循环获取交易日历中的各个日期（更新currentdt），然后依次触发各种回测事件
      */
 
-    int64_t current_dt = 20180800000000;
-    zs_bar_reader_t bar_reader;
-    zs_bar_reader_init(&bar_reader, simu->Algorithm->DataPortal);
+    zs_conf_backtest_t* bktconf;
+    zs_bar_reader_t     current_data;
+    int64_t             current_dt;
 
-    // 开始前，通知上层回测事件开始
-    //if (simu->Handler)
-    //    simu->Handler(simu, ZS_SEV_PreRun);
+    bktconf = simu->BacktestConf;
+    zs_bar_reader_init(&current_data, simu->Algorithm->DataPortal);
+    current_dt = zs_tc_first_session(simu->TradingCalendar);
 
     while (1)
     {
-        // current_dt += 1000000;
+        // update current data
+        current_data.CurrentDt = current_dt;
 
-        // 更新时间
-        // bar_reader.CurrentDt = current_dt;
+        // SESSION_START event, mid-night dt
+        zs_slippage_session_start(simu->Slippage, &current_data);
+        zs_algorithm_session_start(simu->Algorithm, &current_data);
 
-        // notify bar_reader to slippage and md_handler
+        // BEFORE_TRADING_EVENT event, like 08:45:00 dt
+        current_data.CurrentDt = current_dt + (8 * 3600 + 45 * 60);
+        zs_slippage_session_before_trading(simu->Slippage, &current_data);
+        zs_algorithm_session_before_trading(simu->Algorithm, &current_data);
+
+        // BAR event, 15:00:00 dt if daily
+        current_data.CurrentDt = current_dt + (15 * 3600);
+        zs_slippage_session_every_bar(simu->Slippage, &current_data);
+        zs_algorithm_session_every_bar(simu->Algorithm, &current_data);
+
+        // SESSION_END event, mid-night dt as well ?
+        zs_slippage_session_end(simu->Slippage, &current_data);
+        zs_algorithm_session_end(simu->Algorithm, &current_data);
+
+        current_dt += ZS_SECONDS_PER_DAY;
     }
-
+    return ZS_OK;
 #endif//0
 
     if (simu->MdSeries)
@@ -160,6 +181,7 @@ static void _zs_slippage_td_handler(zs_slippage_t* slippage,
             td_handlers->on_rtn_trade(simu->TdApi, trade);
     }
 }
+
 
 static void _zs_simu_newbar_handler(zs_simulator_t* simu, zs_bar_t* bar)
 {

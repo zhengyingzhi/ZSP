@@ -734,7 +734,7 @@ static void zs_md_on_rtn_kline(zs_md_api_t* mdctx, zs_bar_t* bar)
     zs_bar_t*       dst_bar;
 
     algo = (zs_algorithm_t*)mdctx->UserData;
-    zdh = _zs_data_create(algo, dst_bar, sizeof(zs_bar_t));
+    zdh = _zs_data_create(algo, bar, sizeof(zs_bar_t));
     dst_bar = (zs_bar_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_bar);
 

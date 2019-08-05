@@ -39,8 +39,6 @@ static int _strategy_entry_name_comp(void* expect, void* actual)
     return strcmp(s->StrategyName, name) == 0;
 }
 
-static void zs_strategy_register_event(zs_strategy_engine_t* zse);
-
 /* zs_strategy event handlers */
 static void _zs_strategy_handle_order(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
     uint32_t evtype, zs_data_head_t* evdata)
@@ -192,6 +190,21 @@ static void _zs_strategy_handle_timer(zs_event_engine_t* ee, zs_strategy_engine_
 }
 
 
+static void zs_strategy_register_event(zs_strategy_engine_t* zse)
+{
+    zs_event_engine_t* ee;
+    if (!zse->Algorithm || !zse->Algorithm->EventEngine) {
+        return;
+    }
+    ee = zse->Algorithm->EventEngine;
+
+    zs_ee_register(ee, zse, ZS_DT_Order, _zs_strategy_handle_order);
+    zs_ee_register(ee, zse, ZS_DT_Trade, _zs_strategy_handle_trade);
+    zs_ee_register(ee, zse, ZS_DT_MD_Tick, _zs_strategy_handle_tick);
+    zs_ee_register(ee, zse, ZS_DT_MD_KLine, _zs_strategy_handle_bar);
+    zs_ee_register(ee, zse, ZS_DT_Timer, _zs_strategy_handle_timer);
+}
+
 //////////////////////////////////////////////////////////////////////////
 /* zs_strategy engine */
 zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
@@ -202,14 +215,15 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
 
     zse->Algorithm      = algo;
     zse->AssetFinder    = algo->AssetFinder;
-    zse->Pool           = algo->Pool;
+    zse->Pool           = ztl_create_pool(ZTL_DEFAULT_POOL_SIZE);
     zse->Log            = algo->Log;
     zse->StrategyBaseID = 1;
+    zse->TradingDay     = 0;
 
-    zse->StrategyEntries = ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+    zse->StrategyEntries = ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(zse->StrategyEntries, NULL, 64, sizeof(zs_strategy_entry_t*));
 
-    zse->AllStrategy = ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+    zse->AllStrategy = ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(zse->AllStrategy, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
 
     zse->StrategyMap        = ztl_map_create(MAX_STRATEGY_COUNT);
@@ -277,6 +291,10 @@ void zs_strategy_engine_release(zs_strategy_engine_t* zse)
         zse->TradeDict = NULL;
     }
 
+    if (zse->Pool) {
+        ztl_destroy_pool(zse->Pool);
+        zse->Pool = NULL;
+    }
 }
 
 void zs_strategy_engine_stop(zs_strategy_engine_t* zse)
@@ -297,19 +315,18 @@ void zs_strategy_engine_stop(zs_strategy_engine_t* zse)
     }
 }
 
-static void zs_strategy_register_event(zs_strategy_engine_t* zse)
+void zs_strategy_engine_update_tradingday(zs_strategy_engine_t* zse, int32_t trading_day)
 {
-    zs_event_engine_t* ee;
-    if (!zse->Algorithm || !zse->Algorithm->EventEngine) {
+    zs_log_info(zse->Log, "ctas: update_tradingday: %d -->> %d",
+        zse->TradingDay, trading_day);
+    if (zse->TradingDay == trading_day) {
         return;
     }
-    ee = zse->Algorithm->EventEngine;
 
-    zs_ee_register(ee, zse, ZS_DT_Order, _zs_strategy_handle_order);
-    zs_ee_register(ee, zse, ZS_DT_Trade, _zs_strategy_handle_trade);
-    zs_ee_register(ee, zse, ZS_DT_MD_Tick, _zs_strategy_handle_tick);
-    zs_ee_register(ee, zse, ZS_DT_MD_KLine, _zs_strategy_handle_bar);
-    zs_ee_register(ee, zse, ZS_DT_Timer, _zs_strategy_handle_timer);
+    // clear cached orders & trades
+    zs_orderdict_clear(zse->OrderStrategyDict, NULL);
+    dictEmpty(zse->TradeDict, NULL);
+    ztl_reset_pool(zse->Pool);
 }
 
 
@@ -362,7 +379,7 @@ int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath)
     }
 
 #if 0
-    strategy_entry = (zs_strategy_entry_t*)ztl_pcalloc(zse->Pool, sizeof(zs_strategy_entry_t));
+    strategy_entry = (zs_strategy_entry_t*)malloc(sizeof(zs_strategy_entry_t));
     strategy_entry->HLib         = dso;
     strategy_entry->create       = ztl_dso_symbol(dso, "create");
     strategy_entry->release      = ztl_dso_symbol(dso, "release");
@@ -545,11 +562,11 @@ int zs_strategy_add(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
     int len = (int)strlen(strategy->pAccountID);
     vec = (ztl_array_t*)zs_strdict_find(zse->AccountStrategyDict, (char*)strategy->pAccountID, len);
     if (!vec) {
-        vec = ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+        vec = ztl_pcalloc(zse->Algorithm->Pool, sizeof(ztl_array_t));
         ztl_array_init(vec, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
 
         ZStrKey* pkey;
-        pkey = zs_str_keydup2(strategy->pAccountID, len, ztl_palloc, zse->Pool);
+        pkey = zs_str_keydup2(strategy->pAccountID, len, ztl_palloc, zse->Algorithm->Pool);
         dictAdd(zse->AccountStrategyDict, pkey, strategy);
     }
     ztl_array_push_back(vec, &strategy);
@@ -823,7 +840,7 @@ int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy
 
     array = zs_strategy_find_by_sid(zse, sid);
     if (!array) {
-        array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+        array = (ztl_array_t*)ztl_pcalloc(zse->Algorithm->Pool, sizeof(ztl_array_t));
         ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
         dictAdd(zse->Tick2StrategyList, (void*)sid, array);
     }
@@ -854,7 +871,7 @@ int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* st
     array = zs_strategy_find_by_sid(zse, sid);
     if (!array)
     {
-        array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+        array = (ztl_array_t*)ztl_pcalloc(zse->Algorithm->Pool, sizeof(ztl_array_t));
         ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
         dictAdd(zse->Tick2StrategyList, (void*)sid, array);
     }
@@ -898,7 +915,7 @@ int zs_strategy_subscribe_bysid_batch(zs_strategy_engine_t* zse, zs_cta_strategy
             array = zs_strategy_find_by_sid(zse, sid);
             if (!array)
             {
-                array = (ztl_array_t*)ztl_pcalloc(zse->Pool, sizeof(ztl_array_t));
+                array = (ztl_array_t*)ztl_pcalloc(zse->Algorithm->Pool, sizeof(ztl_array_t));
                 ztl_array_init(array, NULL, MAX_STRATEGY_COUNT, sizeof(zs_cta_strategy_t*));
                 dictAdd(zse->Tick2StrategyList, (void*)sid, array);
             }

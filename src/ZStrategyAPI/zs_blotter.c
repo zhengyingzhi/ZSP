@@ -46,8 +46,8 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
         }
     }
 
-    pool = algo->Pool;
-    blotter = (zs_blotter_t*)ztl_pcalloc(pool, sizeof(zs_blotter_t));
+    pool = ztl_create_pool(ZTL_DEFAULT_POOL_SIZE);
+    blotter = (zs_blotter_t*)ztl_pcalloc(algo->Pool, sizeof(zs_blotter_t));
     blotter->Pool = pool;
 
     blotter->AccountConf = account_conf;
@@ -59,15 +59,15 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter->WorkOrderList = zs_orderlist_create();
 
     blotter->TradeDict = dictCreate(&strHashDictType, blotter->Pool);
-    blotter->TradeArray = (ztl_array_t*)ztl_pcalloc(blotter->Pool, sizeof(ztl_array_t));
+    blotter->TradeArray = (ztl_array_t*)ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(blotter->TradeArray, NULL, 1024, sizeof(zs_trade_t*));
 
     blotter->Positions = dictCreate(&uintHashDictType, blotter);
-    blotter->PositionArray = (ztl_array_t*)ztl_pcalloc(pool, sizeof(ztl_array_t));
+    blotter->PositionArray = (ztl_array_t*)ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(blotter->PositionArray, NULL, 64, sizeof(zs_position_engine_t*));
 
-    blotter->Account = zs_account_create(blotter->Pool);
-    blotter->pPortfolio = (zs_portfolio_t*)ztl_pcalloc(pool, sizeof(zs_portfolio_t));
+    blotter->Account = zs_account_create(algo->Pool);
+    blotter->pPortfolio = (zs_portfolio_t*)ztl_pcalloc(algo->Pool, sizeof(zs_portfolio_t));
 
     blotter->Commission = zs_commission_create(blotter->Algorithm);
 
@@ -105,9 +105,9 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter->quote_order    = zs_blotter_quote_order;
     blotter->cancel         = zs_blotter_cancel;
 
-    blotter->handle_order_submit    = zs_blotter_handle_order_submit;
-    blotter->handle_order_returned  = zs_blotter_handle_order_returned;
-    blotter->handle_order_trade     = zs_blotter_handle_order_trade;
+    blotter->handle_order_req   = zs_blotter_handle_order_req;
+    blotter->handle_order_rtn   = zs_blotter_handle_order_rtn;
+    blotter->handle_trade_rtn   = zs_blotter_handle_trade_rtn;
 
     blotter->handle_tick    = zs_blotter_handle_tick;
     blotter->handle_tickl2  = NULL;
@@ -232,7 +232,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         goto ORDER_END;
     }
 
-    rv = blotter->handle_order_submit(blotter, order_req);
+    rv = blotter->handle_order_req(blotter, order_req);
     if (rv != ZS_OK) {
         goto ORDER_END;
     }
@@ -245,7 +245,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         zs_order_t order = { 0 };
         zs_convert_order_req(&order, order_req);
 
-        blotter->handle_order_returned(blotter, &order);
+        blotter->handle_order_rtn(blotter, &order);
         goto ORDER_END;
     }
 
@@ -362,7 +362,7 @@ zs_position_engine_t* zs_position_engine_get_ex(zs_blotter_t* blotter, zs_sid_t 
     {
         zs_contract_t* contract;
         contract = (zs_contract_t*)zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, sid);
-        pos_engine = zs_position_create(blotter, blotter->Pool, contract);
+        pos_engine = zs_position_create(blotter, blotter->Algorithm->Pool, contract);
 
         if (pos_engine) {
             dictAdd(blotter->Positions, (void*)sid, pos_engine);
@@ -479,7 +479,7 @@ int zs_blotter_handle_timer(zs_blotter_t* blotter, int64_t flag)
 
 //////////////////////////////////////////////////////////////////////////
 // 订单回报事件
-int zs_blotter_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_req)
+int zs_blotter_handle_order_req(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
     // 处理订单提交请求:
     // 1. 风控
@@ -536,13 +536,13 @@ int zs_blotter_handle_order_submit(zs_blotter_t* blotter, zs_order_req_t* order_
     return ZS_OK;
 }
 
-int zs_blotter_handle_quote_order_submit(zs_blotter_t* blotter,
+int zs_blotter_handle_quote_order_req(zs_blotter_t* blotter,
     zs_quote_order_req_t* quote_req)
 {
     return ZS_ERR_NotImpl;
 }
 
-int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
+int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
 {
     zs_order_t*     work_order;
     zs_order_t*     old_order;
@@ -622,7 +622,7 @@ int zs_blotter_handle_order_returned(zs_blotter_t* blotter, zs_order_t* order)
     return ZS_OK;
 }
 
-int zs_blotter_handle_order_trade(zs_blotter_t* blotter, zs_trade_t* trade)
+int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
 {
     // 开仓单成交：调整持仓，重新计算占用资金，计算持仓成本
     // 平仓单成交：解冻持仓，回笼资金

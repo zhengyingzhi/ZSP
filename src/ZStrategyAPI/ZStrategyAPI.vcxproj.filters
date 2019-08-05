@@ -113,6 +113,9 @@
     <ClInclude Include="zs_margin_model.h">
       <Filter>Finance</Filter>
     </ClInclude>
+    <ClInclude Include="zs_times.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -230,6 +233,9 @@
     </ClCompile>
     <ClCompile Include="zs_margin_model.c">
       <Filter>Finance</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_times.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

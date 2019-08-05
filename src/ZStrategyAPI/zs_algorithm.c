@@ -243,6 +243,11 @@ void zs_algorithm_release(zs_algorithm_t* algo)
         algo->Simulator = NULL;
     }
 
+    if (algo->Category) {
+        zs_category_release(algo->Category);
+        algo->Category = NULL;
+    }
+
     if (algo->StrategyEngine) {
         zs_strategy_engine_release(algo->StrategyEngine);
         algo->StrategyEngine = NULL;
@@ -264,6 +269,11 @@ void zs_algorithm_release(zs_algorithm_t* algo)
 int zs_algorithm_init(zs_algorithm_t* algo)
 {
     zs_log_info(algo->Log, "algo: init");
+
+    algo->Category = (zs_category_t*)ztl_pcalloc(algo->Pool, sizeof(zs_category_t));
+    zs_category_init(algo->Category);
+    zs_category_load(algo->Category, "category.json");
+
     zs_strategy_init_all(algo->StrategyEngine, NULL);
     return ZS_OK;
 }
@@ -574,7 +584,7 @@ static void _zs_algo_handle_order(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     blotter = zs_get_blotter(algo, order->AccountID);
     if (blotter) {
-        blotter->handle_order_returned(blotter, order);
+        blotter->handle_order_rtn(blotter, order);
     }
 }
 
@@ -589,7 +599,7 @@ static void _zs_algo_handle_trade(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     blotter = zs_get_blotter(algo, trade->AccountID);
     if (blotter) {
-        blotter->handle_order_trade(blotter, trade);
+        blotter->handle_trade_rtn(blotter, trade);
     }
 }
 
@@ -800,3 +810,26 @@ static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
 }
 
+
+int zs_algorithm_session_start(zs_algorithm_t* algo, zs_bar_reader_t* current_data)
+{
+    return ZS_OK;
+}
+
+int zs_algorithm_session_before_trading(zs_algorithm_t* algo, zs_bar_reader_t* current_data)
+{
+    // TODO: update trading day also
+    return ZS_OK;
+}
+
+int zs_algorithm_session_every_bar(zs_algorithm_t* algo, zs_bar_reader_t* current_data)
+{
+    // TODO: notify to finance and strategy model
+    return ZS_OK;
+}
+
+int zs_algorithm_session_end(zs_algorithm_t* algo, zs_bar_reader_t* current_data)
+{
+    // TODO: output perf message
+    return ZS_OK;
+}

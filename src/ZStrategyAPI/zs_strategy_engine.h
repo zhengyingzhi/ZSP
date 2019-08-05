@@ -2,11 +2,11 @@
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
  * ZStrategyAPI
- * define strategy manager
+ * define strategy engine manager
  */
 
-#ifndef _ZS_STRATEGY_H_INCLUDED_
-#define _ZS_STRATEGY_H_INCLUDED_
+#ifndef _ZS_STRATEGY_ENGINE_H_
+#define _ZS_STRATEGY_ENGINE_H_
 
 #include <stdint.h>
 
@@ -46,6 +46,7 @@ struct zs_strategy_engine_s
     ztl_dict_t*         TradeDict;          // 成交ID集合 ExchangeID+TradeID
 
     uint32_t            StrategyBaseID;     // 策略编号
+    int32_t             TradingDay;         // 交易日
 };
 
 /* cta engine related
@@ -55,6 +56,10 @@ void zs_strategy_engine_release(zs_strategy_engine_t* zse);
 
 void zs_strategy_engine_stop(zs_strategy_engine_t* zse);
 
+// process update trading day
+void zs_strategy_engine_update_tradingday(zs_strategy_engine_t* zse, int32_t trading_day);
+
+// load strategy entry from dso
 int zs_strategy_engine_load(zs_strategy_engine_t* zse, ztl_array_t* libpaths);
 int zs_strategy_load(zs_strategy_engine_t* zse, const char* libpath);
 int zs_strategy_unload(zs_strategy_engine_t* zse, zs_strategy_entry_t* entry);
@@ -119,4 +124,4 @@ int zs_strategy_subscribe_bysid_batch(zs_strategy_engine_t* zse, zs_cta_strategy
 }
 #endif
 
-#endif//_ZS_STRATEGY_H_INCLUDED_
+#endif//_ZS_STRATEGY_ENGINE_H_

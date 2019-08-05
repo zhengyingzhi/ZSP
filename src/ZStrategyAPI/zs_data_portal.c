@@ -112,6 +112,7 @@ bool _zs_bar_reader_can_trade(zs_bar_reader_t* bar_reader, zs_sid_t sid)
 
 int _zs_bar_reader_history(zs_bar_reader_t* bar_reader, zs_sid_t sid, zs_bar_t* arr[], int size)
 {
+    // TODO: visit history data
     return 0;
 }
 
@@ -119,11 +120,7 @@ double _zs_bar_reader_current(zs_bar_reader_t* bar_reader, zs_sid_t sid, const c
 {
     zs_bar_t* bar;
 
-    if (bar_reader->DataPortal)
-        bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
-    else
-        bar = &bar_reader->Bar;
-
+    bar = bar_reader->current_bar(bar_reader, sid);
     if (!bar) {
         return 0;
     }
@@ -161,11 +158,7 @@ double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFiel
 {
     zs_bar_t* bar;
 
-    if (bar_reader->DataPortal)
-        bar = zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
-    else
-        bar = &bar_reader->Bar;
-
+    bar = bar_reader->current_bar(bar_reader, sid);
     if (!bar) {
         return 0;
     }
@@ -200,7 +193,12 @@ double _zs_bar_reader_current2(zs_bar_reader_t* bar_reader, zs_sid_t sid, ZSFiel
 
 zs_bar_t* _zs_bar_reader_current_bar(zs_bar_reader_t* bar_reader, zs_sid_t sid)
 {
-    return zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    if (bar_reader->DataPortal) {
+        return zs_data_portal_get_bar(bar_reader->DataPortal, sid, bar_reader->CurrentDt);
+    }
+    else {
+        return &bar_reader->Bar;
+    }
 }
 
 int zs_bar_reader_init(zs_bar_reader_t* bar_reader, zs_data_portal_t* data_portal)

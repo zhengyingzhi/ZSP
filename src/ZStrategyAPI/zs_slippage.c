@@ -403,6 +403,32 @@ int zs_slippage_process_order(zs_slippage_t* slippage,
     return rv;
 }
 
+
+int zs_slippage_session_start(zs_slippage_t* slippage, zs_bar_reader_t* current_data)
+{
+    // pass
+    return ZS_OK;
+}
+
+int zs_slippage_session_before_trading(zs_slippage_t* slippage, zs_bar_reader_t* current_data)
+{
+    slippage->trading_day = zs_session_to_date(current_data->CurrentDt);
+    return ZS_OK;
+}
+
+int zs_slippage_session_every_bar(zs_slippage_t* slippage, zs_bar_reader_t* current_data)
+{
+    return zs_slippage_process_order(slippage, current_data, NULL);
+}
+
+int zs_slippage_session_end(zs_slippage_t* slippage, zs_bar_reader_t* current_data)
+{
+    // clear all pendings
+    zs_slippage_reset(slippage);
+
+    return ZS_OK;
+}
+
 int zs_slippage_process_bybar(zs_slippage_t* slippage, zs_bar_t* bar)
 {
     zs_bar_reader_t bar_reader = { 0 };

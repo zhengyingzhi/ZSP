@@ -178,6 +178,11 @@ void zs_orderdict_release(zs_orderdict_t* orderdict)
     dictRelease(orderdict);
 }
 
+void zs_orderdict_clear(zs_orderdict_t* orderdict, void (callback)(void*))
+{
+    dictEmpty(orderdict, callback);
+}
+
 int zs_orderdict_add_order(zs_orderdict_t* orderdict, zs_order_t* order)
 {
     ZSOrderKey key;

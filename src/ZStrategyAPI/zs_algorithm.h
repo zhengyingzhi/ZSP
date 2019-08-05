@@ -17,6 +17,7 @@
 #include <ZToolLib/ztl_producer_consumer.h>
 
 #include "zs_blotter_manager.h"
+#include "zs_category_info.h"
 #include "zs_configs.h"
 #include "zs_core.h"
 #include "zs_hashdict.h"
@@ -38,6 +39,7 @@ struct zs_algorithm_s
     zs_event_engine_t*      EventEngine;    // 事件引擎
     zs_data_portal_t*       DataPortal;     // 统一数据入口
     zs_simulator_t*         Simulator;      // 回测模拟器(回测事件的产生与事件驱动)
+    zs_category_t*          Category;       // 静态品种信息
     zs_blotter_manager_t    BlotterMgr;     // 多账户交易管理
     zs_asset_finder_t*      AssetFinder;    // 合约管理
     zs_strategy_engine_t*   StrategyEngine; // 各个策略的管理
@@ -72,6 +74,12 @@ int zs_algorithm_add_account2(zs_algorithm_t* algo, const zs_conf_account_t* acc
 int zs_algorithm_add_broker_info(zs_algorithm_t* algo, const char* broker_setting);
 int zs_algorithm_add_broker_info2(zs_algorithm_t* algo, const zs_conf_broker_t* broker_conf);
 
+
+// some events for backtest
+int zs_algorithm_session_start(zs_algorithm_t* algo, zs_bar_reader_t* current_data);
+int zs_algorithm_session_before_trading(zs_algorithm_t* algo, zs_bar_reader_t* current_data);
+int zs_algorithm_session_every_bar(zs_algorithm_t* algo, zs_bar_reader_t* current_data);
+int zs_algorithm_session_end(zs_algorithm_t* algo, zs_bar_reader_t* current_data);
 
 // get version
 const char* zs_version(int* pver);
