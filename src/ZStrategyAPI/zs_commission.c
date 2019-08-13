@@ -83,9 +83,9 @@ void zs_commssion_set_per_contract(zs_commission_t* comm,
     ztl_map_add(comm->VarietyMap, vi, per_contract);
 }
 
-zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int is_equity)
+zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, ZSProductClass product)
 {
-    if (is_equity) {
+    if (product == ZS_PC_Stock) {
         return comm->EquityModel;
     }
     else {
@@ -93,14 +93,17 @@ zs_commission_model_t* zs_commission_model_get(zs_commission_t* comm, int is_equ
     }
 }
 
-double zs_commission_calculate(zs_commission_t* comm, int is_equity,
+double zs_commission_calculate(zs_commission_t* comm, ZSProductClass product,
     zs_order_t* order, zs_trade_t* trade)
 {
     double commission;
     zs_commission_model_t* model;
-    model = zs_commission_model_get(comm, is_equity);
+    model = zs_commission_model_get(comm, product);
 
-    commission = model->calculate(model, order, trade);
+    if (model)
+        commission = model->calculate(model, order, trade);
+    else
+        commission = 0.0;
     return commission;
 }
 

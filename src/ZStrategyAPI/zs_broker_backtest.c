@@ -99,7 +99,7 @@ int zs_bt_order(zs_bt_trade_impl_t* instance, zs_order_req_t* order_req)
 
         zs_order_t order = { 0 };
         zs_convert_order_req(&order, order_req);
-        order.OrderStatus = ZS_OS_Accepted;
+        order.OrderStatus = ZS_OS_Pending;
         strcpy(order.OrderSysID, order_req->OrderID);       // fake
 
         instance->TdHandlers->on_rtn_order(instance->TdCtx, &order);

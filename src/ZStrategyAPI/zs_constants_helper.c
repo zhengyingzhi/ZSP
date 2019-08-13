@@ -19,7 +19,7 @@ const char* exchange_names[] = { ZS_EXCHANGE_UNKNOWN,
     ZS_EXCHANGE_SGE, ZS_EXCHANGE_CFE, ZS_EXCHANGE_TEST
 };
 
-int finished_status_table[] = { 0, 0, 0, 0, 1, 1, 1, 1, 0 };
+int finished_status_table[] = { 0, 0, 0, 0, 0, 1, 1, 1, 1, 0 };
 
 
 uint32_t zs_data_increment(zs_data_head_t* zdh)

@@ -157,16 +157,19 @@ typedef enum
     ZS_OT_StopMarket
 }ZSOrderType;
 
-/* 订单状态 */
+/* 订单状态
+ * 注意与 finished_status_table 值对应
+ */
 typedef enum 
 {
+    ZS_OS_Unknown,
     ZS_OS_NotSubmit,
     ZS_OS_Submiting,
-    ZS_OS_Accepted,
+    ZS_OS_Pending,
     ZS_OS_PartFilled,
     ZS_OS_Filled,
-    ZS_OS_Canceld,
-    ZS_OS_PartCancled,
+    ZS_OS_Cancelld,
+    ZS_OS_PartCanclled,
     ZS_OS_Rejected,
     ZS_OS_Triggered
 }ZSOrderStatus;

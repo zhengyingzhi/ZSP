@@ -75,7 +75,7 @@ struct zs_position_engine_s
     double          ShortCost;
     int64_t         ShortUpdateTime;
 
-    int (*handle_order_req)(zs_position_engine_t* pos_engine, zs_order_req_t* order_req);
+    int (*handle_order_req)(zs_position_engine_t* pos_engine, ZSDirection direction, ZSOffsetFlag offset, int order_qty);
     int (*handle_order_rtn)(zs_position_engine_t* pos_engine, zs_order_t* order);
     double(*handle_trade_rtn)(zs_position_engine_t* pos_engine, zs_trade_t* trade);
     void (*sync_last_price)(zs_position_engine_t* pos_engine, double lastpx);
@@ -91,7 +91,8 @@ zs_position_engine_t* zs_position_create(zs_blotter_t* blotter, ztl_pool_t* pool
 void zs_position_release(zs_position_engine_t* pos_engine);
 
 // 报单更新
-int zs_position_handle_order_req(zs_position_engine_t* pos_engine, zs_order_req_t* order_req);
+int zs_position_handle_order_req(zs_position_engine_t* pos_engine,
+    ZSDirection direction, ZSOffsetFlag offset, int order_qty);
 
 // 订单更新
 int zs_position_handle_order_rtn(zs_position_engine_t* pos_engine, zs_order_t* order);

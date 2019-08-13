@@ -63,6 +63,13 @@ static int _zs_next_trade_id(zs_slippage_t* slippage, char trade_id[])
     return sprintf(trade_id, "%u", tid);
 }
 
+static void _zs_slippage_handler_empty(zs_slippage_t* slippage, ZSSlippageDataType datatype, void* data, int datasz)
+{
+    (void)slippage;
+    (void)datatype;
+    (void)data;
+    (void)datasz;
+}
 
 zs_slippage_t* zs_slippage_create(zs_slippage_handler_pt handler, void* userdata)
 {
@@ -84,8 +91,11 @@ zs_slippage_t* zs_slippage_create(zs_slippage_handler_pt handler, void* userdata
     slippage->UserData      = userdata;
     slippage->PriceField    = ZS_PFF_Open;
 
-    slippage->order_sysid   = 1;
-    slippage->trade_id      = 1;
+    if (!slippage->Handler)
+        slippage->Handler   = _zs_slippage_handler_empty;
+
+    slippage->order_sysid  = 1;
+    slippage->trade_id     = 1;
 
     return slippage;
 }
@@ -170,6 +180,7 @@ void zs_slippage_reset(zs_slippage_t* slippage)
 
     if (ztl_mp_exposed(slippage->MemPool) > 1) {
         // error: not all data was released
+        fprintf(stderr, "slippage: warn reset since exposed > 1\n");
     }
 }
 
@@ -193,7 +204,6 @@ int zs_slippage_order(zs_slippage_t* slippage,
 {
     zs_order_t* order;
     order = (zs_order_t*)ztl_mp_alloc(slippage->MemPool);
-    _zs_next_order_sysid(slippage, order->OrderSysID);
     zs_generate_order(order, order_req, 0);
 
     // add to new order firstly
@@ -234,21 +244,22 @@ int zs_slippage_process_cancel(zs_slippage_t* slippage,
         zs_order_t* cur_order;
         cur_order = ztl_dlist_next(order_list, iter);
         if (!cur_order) {
-            rv = ZS_ERROR;
+            rv = ZS_OK;
             break;
         }
 
         if ((strcmp(cur_order->OrderSysID, cancel_req->OrderSysID) == 0 &&
-            cur_order->ExchangeID == cancel_req->ExchangeID)
-            || (cur_order->OrderID == cancel_req->OrderID && 
+            cur_order->ExchangeID == cancel_req->ExchangeID && cur_order->OrderSysID[0])
+            || (strcmp(cur_order->OrderID, cancel_req->OrderID) == 0 && 
                 cur_order->FrontID == cancel_req->FrontID && 
                 cur_order->SessionID == cancel_req->SessionID))
         {
             // found
-            cur_order->OrderStatus = ZS_OS_Canceld;
-            if (cur_order->FilledQty > 0)
-            {
-                cur_order->OrderStatus = ZS_OS_PartCancled;
+            if (cur_order->FilledQty > 0) {
+                cur_order->OrderStatus = ZS_OS_PartCanclled;
+            }
+            else {
+                cur_order->OrderStatus = ZS_OS_Cancelld;
             }
             cur_order->CancelTime = (int32_t)(ztl_intdatetime() % 100000000);
 
@@ -270,7 +281,6 @@ int zs_slippage_process_cancel(zs_slippage_t* slippage,
 
 static void zs_slippage_process_neworder(zs_slippage_t* slippage)
 {
-    // 新订单先发送一个确认
     ztl_dlist_t*    new_orders;
     zs_order_t*     cur_order;
     ztl_dlist_iterator_t* iter;
@@ -288,6 +298,10 @@ static void zs_slippage_process_neworder(zs_slippage_t* slippage)
             break;
         }
 
+        // 
+        _zs_next_order_sysid(slippage, cur_order->OrderSysID);
+
+        // order accepted
         slippage->Handler(slippage, ZS_SDT_Order, cur_order, sizeof(*cur_order));
 
         // append to order list
@@ -298,20 +312,10 @@ static void zs_slippage_process_neworder(zs_slippage_t* slippage)
     ztl_dlist_iter_del(new_orders, iter);
 }
 
-int zs_slippage_process_order(zs_slippage_t* slippage, 
-    zs_bar_reader_t* bar_reader, zs_tick_t* tick)
+static void zs_slippage_process_newcancel(zs_slippage_t* slippage)
 {
-    int     rv;
-    int     filled_qty;
-    double  filled_price;
-
-    ztl_dlist_t*     order_list;
-    zs_order_t*      cur_order;
     zs_cancel_req_t* cancel_req;
     ztl_dlist_iterator_t* iter;
-
-    // process pending queue firstly
-    zs_slippage_process_neworder(slippage);
 
     if (ztl_dlist_size(slippage->CancelRequests) > 0)
     {
@@ -331,6 +335,21 @@ int zs_slippage_process_order(zs_slippage_t* slippage,
         }
         ztl_dlist_iter_del(slippage->CancelRequests, iter);
     }
+}
+
+int zs_slippage_process_order(zs_slippage_t* slippage, 
+    zs_bar_reader_t* bar_reader, zs_tick_t* tick)
+{
+    int     rv;
+    int     filled_qty;
+    double  filled_price;
+
+    ztl_dlist_t*     order_list;
+    zs_order_t*      cur_order;
+    ztl_dlist_iterator_t* iter;
+
+    // process pending queue firstly
+    zs_slippage_process_neworder(slippage);
 
     // no pending order
     if (ztl_dlist_size(slippage->OrderList) == 0) {
@@ -394,11 +413,25 @@ int zs_slippage_process_order(zs_slippage_t* slippage,
         if (cur_order->OrderStatus == ZS_OS_Filled)
         {
             ztl_dlist_erase(order_list, iter);
+            ztl_mp_free(slippage->MemPool, cur_order);
+        }
+        else if (cur_order->OrderType == ZS_OT_Market)
+        {
+            // auto cancel residual qty if market order
+            cur_order->OrderStatus = ZS_OS_PartCanclled;
+            cur_order->CancelTime = (int32_t)(ztl_intdatetime() % 100000000);
 
+            // order rtn
+            slippage->Handler(slippage, ZS_SDT_Order, cur_order, sizeof(*cur_order));
+
+            ztl_dlist_erase(order_list, iter);
             ztl_mp_free(slippage->MemPool, cur_order);
         }
     }
     ztl_dlist_iter_del(order_list, iter);
+
+    // process cancels at end
+    zs_slippage_process_newcancel(slippage);
 
     return rv;
 }
@@ -442,29 +475,29 @@ int zs_slippage_process_bytick(zs_slippage_t* slippage, zs_tick_t* tick)
 }
 
 
-static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req, int filled_volume)
+static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req, int filled_qty)
 {
-    strcpy(order->Symbol, order_req->Symbol);
+    strcpy(order->Symbol,   order_req->Symbol);
     strcpy(order->BrokerID, order_req->BrokerID);
-    strcpy(order->AccountID, order_req->AccountID);
-    strcpy(order->UserID, order_req->UserID);
-    strcpy(order->OrderID, order_req->OrderID);
+    strcpy(order->AccountID,order_req->AccountID);
+    strcpy(order->UserID,   order_req->UserID);
+    strcpy(order->OrderID,  order_req->OrderID);
     order->ExchangeID   = order_req->ExchangeID;
     order->Sid          = order_req->Sid;
     order->OrderPrice   = order_req->OrderPrice;
     order->OrderQty     = order_req->OrderQty;
-    order->FilledQty    = filled_volume;
+    order->FilledQty    = filled_qty;
 
     order->Direction    = order_req->Direction;
     order->OffsetFlag   = order_req->OffsetFlag;
     order->OrderType    = order_req->OrderType;
 
-    order->OrderStatus  = ZS_OS_Accepted;
+    order->OrderStatus  = ZS_OS_Pending;
 
-    if ((filled_volume + order->FilledQty) < order_req->OrderQty) {
+    if ((filled_qty + order->FilledQty) < order_req->OrderQty) {
         order->OrderStatus = ZS_OS_PartFilled;
     }
-    else if ((filled_volume + order->FilledQty) == order_req->OrderQty) {
+    else if ((filled_qty + order->FilledQty) == order_req->OrderQty) {
         order->OrderStatus = ZS_OS_Filled;
     }
 
@@ -479,7 +512,7 @@ static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req
 static void zs_update_order(zs_order_t* order, double filled_price, int filled_qty)
 {
     if (filled_qty == 0 && order->FilledQty == 0) {
-        order->OrderStatus = ZS_OS_Accepted;
+        order->OrderStatus = ZS_OS_Pending;
     }
     else
     {
@@ -545,7 +578,7 @@ static int _zs_process_order_bar_volume_share(
     bar = bar_reader->current_bar(bar_reader, order->Sid);
     if (!bar || bar->Volume == 0)
     {
-        return -1;
+        return ZS_ERROR;
     }
 
     double open_px = bar->OpenPrice;
@@ -575,7 +608,7 @@ static int _zs_process_order_bar_volume_share(
         }
     }
 
-    return -2;
+    return ZS_ERROR;
 }
 
 static int _zs_process_order_tick(
@@ -593,7 +626,7 @@ static int _zs_process_order_tick(
         {
             *pfilled_price = last_px;
             *pfilled_qty = order->OrderQty;
-            return 0;
+            return ZS_OK;
         }
     }
     else if (order->Direction == ZS_D_Short)
@@ -602,8 +635,8 @@ static int _zs_process_order_tick(
         {
             *pfilled_price = last_px;
             *pfilled_qty = order->OrderQty;
-            return 0;
+            return ZS_OK;
         }
     }
-    return -2;
+    return ZS_ERROR;
 }

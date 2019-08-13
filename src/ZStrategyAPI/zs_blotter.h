@@ -51,7 +51,7 @@ struct zs_blotter_s
     ztl_array_t*        TradeArray;
 
     // 持仓管理 <sid, zs_position_engine_t>
-    ztl_dict_t*         Positions;
+    ztl_dict_t*         PositionDict;
     ztl_array_t*        PositionArray;
 
     // 资金账户
@@ -126,6 +126,7 @@ zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_i
 zs_order_t* zs_get_order_by_id(zs_blotter_t* blotter, int32_t frontid, int32_t sessionid, const char* orderid);
 
 zs_position_engine_t* zs_position_engine_get(zs_blotter_t* blotter, zs_sid_t sid);
+zs_position_engine_t* zs_position_engine_get_ex(zs_blotter_t* blotter, zs_sid_t sid);
 
 
 // 查询回报事件

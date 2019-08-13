@@ -25,7 +25,6 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     account_conf = zs_configs_find_account(algo->Params, accountid);
     if (!account_conf)
     {
-        // ERRORID: not find the account
         zs_log_error(algo->Log, "blotter: create not find account conf for account:%s", accountid);
         return NULL;
     }
@@ -35,7 +34,6 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
         zs_conf_broker_t* broker_conf;
         broker_conf = zs_configs_find_broker(algo->Params, account_conf->BrokerID);
         if (!broker_conf) {
-            // ERRORID: no broker info
             zs_log_error(algo->Log, "blotter: create not find broker conf for account:%s,broker:%s",
                 accountid, account_conf->BrokerID);
             return NULL;
@@ -62,23 +60,14 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     blotter->TradeArray = (ztl_array_t*)ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(blotter->TradeArray, NULL, 1024, sizeof(zs_trade_t*));
 
-    blotter->Positions = dictCreate(&uintHashDictType, blotter);
+    blotter->PositionDict = dictCreate(&uintHashDictType, blotter);
     blotter->PositionArray = (ztl_array_t*)ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(blotter->PositionArray, NULL, 64, sizeof(zs_position_engine_t*));
 
-    blotter->Account = zs_account_create(algo->Pool);
+    blotter->Account = zs_account_create(blotter);
     blotter->pPortfolio = (zs_portfolio_t*)ztl_pcalloc(algo->Pool, sizeof(zs_portfolio_t));
 
     blotter->Commission = zs_commission_create(blotter->Algorithm);
-
-#if 0
-    // demo debug
-    zs_fund_account_t* fund_account;
-    fund_account = &blotter->Account->FundAccount;
-    strcpy(fund_account->AccountID, account_conf->AccountID);
-    fund_account->Available = 1000000;
-    fund_account->Balance = 1000000;
-#endif
 
     blotter->RiskControl = algo->RiskControl;
 
@@ -150,9 +139,14 @@ void zs_blotter_release(zs_blotter_t* blotter)
         blotter->TradeArray = NULL;
     }
 
-    if (blotter->Positions) {
-        dictRelease(blotter->Positions);
-        blotter->Positions = NULL;
+    if (blotter->PositionDict) {
+        dictRelease(blotter->PositionDict);
+        blotter->PositionDict = NULL;
+    }
+
+    if (blotter->PositionArray) {
+        ztl_array_release(blotter->PositionArray);
+        blotter->PositionArray = NULL;
     }
 
     if (blotter->Commission) {
@@ -176,15 +170,13 @@ int zs_blotter_trade_connect(zs_blotter_t* blotter)
 
     zs_log_info(blotter->Log, "blotter: trade_connect for account:%s", blotter->Account->AccountID);
 
-    tdapi = zs_broker_get_tradeapi(blotter->Algorithm->Broker,
-        blotter->AccountConf->TradeAPIName);
+    tdapi = blotter->TradeApi;
     if (!tdapi) {
         // no trader api
         return -1;
     }
 
     tdapi->UserData = blotter->Algorithm;
-    blotter->TradeApi = tdapi;
 
     if (!tdapi->ApiInstance)
         tdapi->ApiInstance = tdapi->create("", 0);
@@ -200,15 +192,13 @@ int zs_blotter_md_connect(zs_blotter_t* blotter)
 
     zs_log_info(blotter->Log, "blotter: md_connect for account:%s", blotter->Account->AccountID);
 
-    mdapi = zs_broker_get_mdapi(blotter->Algorithm->Broker,
-        blotter->AccountConf->MDAPIName);
+    mdapi = blotter->MdApi;
     if (!mdapi) {
         // no trader api
         return -1;
     }
 
     mdapi->UserData = blotter->Algorithm;
-    blotter->MdApi = mdapi;
 
     if (!mdapi->ApiInstance)
         mdapi->ApiInstance = mdapi->create("", 0);
@@ -244,6 +234,7 @@ int zs_blotter_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
         // send order failed
         zs_order_t order = { 0 };
         zs_convert_order_req(&order, order_req);
+        order.OrderStatus = ZS_OS_Rejected;
 
         blotter->handle_order_rtn(blotter, &order);
         goto ORDER_END;
@@ -344,7 +335,7 @@ zs_position_engine_t* zs_position_engine_get(zs_blotter_t* blotter, zs_sid_t sid
 {
     dictEntry* entry;
     zs_position_engine_t* pos_engine;
-    entry = dictFind(blotter->Positions, (void*)sid);
+    entry = dictFind(blotter->PositionDict, (void*)sid);
     if (entry) {
         pos_engine = (zs_position_engine_t*)entry->v.val;
     }
@@ -365,7 +356,7 @@ zs_position_engine_t* zs_position_engine_get_ex(zs_blotter_t* blotter, zs_sid_t 
         pos_engine = zs_position_create(blotter, blotter->Algorithm->Pool, contract);
 
         if (pos_engine) {
-            dictAdd(blotter->Positions, (void*)sid, pos_engine);
+            dictAdd(blotter->PositionDict, (void*)sid, pos_engine);
             ztl_array_push_back(blotter->PositionArray, &pos_engine);
         }
     }
@@ -448,14 +439,12 @@ int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_
     sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos_detail->ExchangeID,
         pos_detail->Symbol, (int)strlen(pos_detail->Symbol));
     if (sid == ZS_SID_INVALID) {
-        // ERRORID: not find the asset
         return ZS_ERR_NoAsset;
     }
 
     pos_engine = zs_position_engine_get(blotter, sid);
     if (!pos_engine) {
-        // ERRORID: not position engine in processing pos detail
-        return ZS_ERROR;
+        return ZS_ERR_NoPosEngine;
     }
     pos_engine->handle_pos_detail_rsp(pos_engine, pos_detail);
 
@@ -481,30 +470,31 @@ int zs_blotter_handle_timer(zs_blotter_t* blotter, int64_t flag)
 // 订单回报事件
 int zs_blotter_handle_order_req(zs_blotter_t* blotter, zs_order_req_t* order_req)
 {
-    // 处理订单提交请求:
-    // 1. 风控
-    // 2. 开仓-冻结资金, 平仓-冻结持仓
-    // 3. 手续费
-    int                     rv;
-    zs_account_t*           account;
-    // zs_position_engine_t*   position;
-    zs_contract_t*          contract;
+    /*
+     * 处理订单提交请求:
+     * 1. 风控
+     * 2. 开仓-冻结资金,手续费
+     */
+    int             rv;
+    zs_account_t*   account;
+    zs_contract_t*  contract;
 
     if (order_req->Contract) {
         contract = (zs_contract_t*)order_req->Contract;
     }
     else {
         contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order_req->Sid);
+        order_req->Contract = contract;
     }
 
-    if (!contract) {
-        // ERRORID: not find the contract data
-        zs_log_error(blotter->Log, "blotter: handle_order_submit not find contract for account:%s, symbol:%s, sid:%ld\n",
+    if (!contract)
+    {
+        zs_log_error(blotter->Log, "blotter: handle_order_req not find contract for account:%s, symbol:%s, sid:%ld\n",
             order_req->AccountID, order_req->Symbol, order_req->Sid);
         return ZS_ERR_NoContract;
     }
 
-    zs_log_info(blotter->Log, "blotter: handle_order_submit for account:%s, symbol:%s, qty:%d, px:%.2lf, dir:%d, offset:%d, sid:%ld\n",
+    zs_log_info(blotter->Log, "blotter: handle_order_req for account:%s, symbol:%s, qty:%d, px:%.2lf, dir:%d, offset:%d, sid:%ld\n",
         order_req->AccountID, order_req->Symbol, order_req->OrderQty, order_req->OrderPrice, order_req->Direction, order_req->OffsetFlag, order_req->Sid);
 
     account = blotter->Account;
@@ -512,20 +502,7 @@ int zs_blotter_handle_order_req(zs_blotter_t* blotter, zs_order_req_t* order_req
     // 自成交检测
     // blotter->WorkWorkOrderList
 
-    // 平仓请求，待委托确认后再冻结
-#if 0
-    if (order_req->OffsetFlag != ZS_OF_Open)
-    {
-        position = zs_position_engine_get(blotter, order_req->Sid);
-        if (position)
-        {
-            rv = position->handle_order_req(position, order_req);
-            if (rv != ZS_OK) {
-                return rv;
-            }
-        }
-    }
-#endif//0
+    // 平仓请求，则待委托确认后再冻结
 
     // 资金
     rv = zs_account_handle_order_req(account, order_req, contract);
@@ -548,11 +525,13 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     zs_order_t*     old_order;
     zs_contract_t*  contract;
     ZSOrderStatus   order_status;
+    zs_position_engine_t* pos_engine;
 
-    zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s\n",
-        order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID);
+    zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s, status:%d\n",
+        order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID, order->OrderStatus);
 
     contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
+    pos_engine = NULL;
 
     // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
 
@@ -569,7 +548,11 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
             }
         }
 
-        // 更新订单状态等数据
+        // 订单确认回报
+        if (order->OffsetFlag != ZS_OF_Open && old_order->OrderStatus == ZS_OS_Unknown)
+        {
+            pos_engine = zs_position_engine_get(blotter, order->Sid);
+        }
     }
     else
     {
@@ -581,6 +564,11 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
         // the order maybe from other client
         zs_orderdict_add_order(blotter->OrderDict, dup_order);
         zs_orderlist_append(blotter->WorkOrderList, dup_order);
+
+        if (order->OffsetFlag != ZS_OF_Open)
+        {
+            pos_engine = zs_position_engine_get(blotter, order->Sid);
+        }
     }
 
     // working order
@@ -588,6 +576,12 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     if (!work_order)
     {
         return ZS_ERR_NoOrder;
+    }
+
+    // 首次委托确认，且为平仓单
+    if (pos_engine)
+    {
+        pos_engine->handle_order_req(pos_engine, order->Direction, order->OffsetFlag, order->OrderQty);
     }
 
     // 更新委托状态
@@ -607,15 +601,16 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
         return ZS_OK;
     }
 
-    zs_account_handle_order_rtn(blotter->Account, work_order, contract);
-
     if (is_finished_status(order->OrderStatus))
     {
-        zs_position_engine_t* position;
-        position = zs_position_engine_get(blotter, order->Sid);
-        if (position)
+        // 资金处理
+        zs_account_handle_order_finished(blotter->Account, work_order, contract);
+
+        // 持仓处理
+        pos_engine = zs_position_engine_get(blotter, order->Sid);
+        if (pos_engine)
         {
-            position->handle_order_rtn(position, order);
+            pos_engine->handle_order_rtn(pos_engine, order);
         }
     }
 
@@ -650,9 +645,7 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
 
     // 原始挂单
     work_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);
-    if (!work_order)
-    {
-        // ERRORID: not find original order
+    if (!work_order) {
         return ZS_ERR_NoOrder;
     }
 
@@ -664,30 +657,32 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
     else
         work_order->OrderStatus = ZS_OS_PartFilled;
 
+    trade->FrontID = work_order->FrontID;
+    trade->SessionID = work_order->SessionID;
+
     // 是否自动维护模式
     if (blotter->IsSelfCalc)
     {
         pos_engine = zs_position_engine_get_ex(blotter, trade->Sid);
         if (!pos_engine)
         {
-            // ERRORID: not find this asset
+            zs_log_warn(blotter->Log, "blotter: handle_trade_rtn get position engine failed for account:%s, symbol:%s, sid:%ld",
+                blotter->Account->AccountID, trade->Symbol, trade->Sid);
             return ZS_ERR_NoPosEngine;
         }
         pos_engine->handle_trade_rtn(pos_engine, trade);
+
+        zs_log_info(blotter->Log, "blotter: handle_trade_rtn now  position for account:%s, symbol:%s, long:%d,short:%d",
+            blotter->Account->AccountID, trade->Symbol, pos_engine->LongPos, pos_engine->ShortPos);
     }
 
-    // get commission model by asset type
-    zs_commission_model_t* comm_model;
-    comm_model = zs_commission_model_get(blotter->Commission, contract->ProductClass != ZS_PC_Future);
-    double comm = comm_model->calculate(comm_model, work_order, trade);
+    // FIXME: get commission
+    double commission;
+    commission = zs_commission_calculate(blotter->Commission, contract->ProductClass, work_order, trade);
+    trade->Commission = commission;
+    blotter->Account->FundAccount.Commission += commission;
 
-    trade->Commission = comm;
-    trade->FrontID = work_order->FrontID;
-    trade->SessionID = work_order->SessionID;
-
-    blotter->Account->FundAccount.Commission += comm;
-
-    return 0;
+    return ZS_OK;
 }
 
 
@@ -777,7 +772,7 @@ void zs_convert_order_req(zs_order_t* order, const zs_order_req_t* order_req)
     order->OffsetFlag   = order_req->OffsetFlag;
     order->OrderType    = order_req->OrderType;
     // order->TradingDay = blotter->TradingDay;
-    order->OrderStatus  = ZS_OS_Rejected;
+    order->OrderStatus  = ZS_OS_Unknown;
 
     order->FrontID      = order_req->FrontID;
     order->SessionID    = order_req->SessionID;

@@ -93,13 +93,13 @@ static inline ZSOrderStatus ctp2zs_order_status(char order_status)
 {
     switch (order_status)
     {
-    case THOST_FTDC_OST_AllTraded: return ZS_OS_Filled;
-    case THOST_FTDC_OST_PartTradedQueueing:   return ZS_OS_PartFilled;
-    case THOST_FTDC_OST_PartTradedNotQueueing: return ZS_OS_PartCancled;
-    case THOST_FTDC_OST_NoTradeQueueing:    return ZS_OS_Accepted;
-    case THOST_FTDC_OST_Canceled: return ZS_OS_Canceld;
-    case THOST_FTDC_OST_Unknown: return ZS_OS_NotSubmit;
-    default:                        return ZS_OS_Rejected;
+    case THOST_FTDC_OST_AllTraded:              return ZS_OS_Filled;
+    case THOST_FTDC_OST_PartTradedQueueing:     return ZS_OS_PartFilled;
+    case THOST_FTDC_OST_PartTradedNotQueueing:  return ZS_OS_PartCanclled;
+    case THOST_FTDC_OST_NoTradeQueueing:        return ZS_OS_Pending;
+    case THOST_FTDC_OST_Canceled:               return ZS_OS_Cancelld;
+    case THOST_FTDC_OST_Unknown:                return ZS_OS_Submiting;
+    default:                                    return ZS_OS_Rejected;
     }
 }
 
