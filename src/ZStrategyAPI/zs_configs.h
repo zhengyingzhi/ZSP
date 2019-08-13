@@ -134,6 +134,8 @@ struct zs_algo_param_s
  */
 int zs_configs_load(zs_algo_param_t* algo_param, ztl_pool_t* pool);
 
+int zs_algo_param_init(zs_algo_param_t* algo_param);
+
 
 /* ≤È’“≈‰÷√
  */

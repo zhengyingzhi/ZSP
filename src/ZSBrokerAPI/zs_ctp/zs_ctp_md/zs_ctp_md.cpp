@@ -344,7 +344,11 @@ void ZSCtpMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         ++i;
         ppinstruments[i] = iter->second.Symbol;
     }
-    m_pMdApi->SubscribeMarketData(ppinstruments, count);
+
+    if (count > 0) {
+        m_pMdApi->SubscribeMarketData(ppinstruments, count);
+    }
+    fprintf(stderr, "ctpmd auto sub %d instruments\n", count);
 #else
     char* pInstrument[] = { "rb1910" };
     m_pMdApi->SubscribeMarketData(pInstrument, 1);

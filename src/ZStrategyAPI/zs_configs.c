@@ -193,8 +193,6 @@ int zs_configs_load_account(zs_algo_param_t* algo_param, ztl_pool_t* pool,
         goto PARSE_END;
     }
 
-    ztl_array_init(&algo_param->AccountConf, NULL, 8, sizeof(zs_conf_account_t));
-
     zs_conf_account_t* account_conf;
     tnode = NULL;
     index = 0;
@@ -233,7 +231,6 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
     cJSON*  tnode;
     zs_conf_broker_t* broker_conf;
 
-    ztl_array_init(&algo_param->BrokerConf, NULL, 16, sizeof(zs_conf_broker_t));
     broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
     strcpy(broker_conf->BrokerID, "0000");
     strcpy(broker_conf->BrokerName, "INNER");
@@ -337,8 +334,6 @@ int zs_configs_load_strategy_setting(zs_algo_param_t* algo_param, ztl_pool_t* po
         goto PARSE_END;
     }
 
-    ztl_array_init(&algo_param->StrategyConf, NULL, 16, sizeof(zs_conf_strategy_t));
-
     zs_conf_strategy_t* strategy_conf;
     tnode = NULL;
     index = 0;
@@ -406,8 +401,6 @@ static int zs_configs_load_tradings(zs_algo_param_t* algo_param, ztl_pool_t* poo
         goto PARSE_END;
     }
 
-    ztl_array_init(&algo_param->TradingConf, NULL, 16, sizeof(zs_conf_trading_t));
-
     zs_conf_trading_t* trading_conf;
     tnode = NULL;
     index = 0;
@@ -448,6 +441,18 @@ PARSE_END:
         free(buffer);
     }
     return rv;
+}
+
+
+/// 初始化参数
+int zs_algo_param_init(zs_algo_param_t* algo_param)
+{
+    ztl_array_init(&algo_param->BrokerConf, NULL, 16, sizeof(zs_conf_broker_t));
+    ztl_array_init(&algo_param->AccountConf, NULL, 8, sizeof(zs_conf_account_t));
+    ztl_array_init(&algo_param->StrategyConf, NULL, 16, sizeof(zs_conf_strategy_t));
+    ztl_array_init(&algo_param->TradingConf, NULL, 16, sizeof(zs_conf_trading_t));
+
+    return ZS_OK;
 }
 
 

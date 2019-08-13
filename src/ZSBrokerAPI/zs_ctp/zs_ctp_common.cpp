@@ -56,6 +56,6 @@ void conv_rsp_info(zs_error_data_t* error, CThostFtdcRspInfoField *pRspInfo)
 int32_t conv_ctp_time(const char* stime)
 {
     int32_t t;
-    t = atoi(stime) * 10000 + atoi(stime + 2) * 100 + atoi(stime + 4);
+    t = atoi(stime) * 10000 + atoi(stime + 3) * 100 + atoi(stime + 6);
     return t;
 }

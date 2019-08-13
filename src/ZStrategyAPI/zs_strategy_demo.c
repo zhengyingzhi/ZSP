@@ -26,6 +26,7 @@ typedef struct my_strategy_demo_s
     char            account_id[16];     // 交易账号
     char            symbol[32];         // 交易合约
     int32_t         volume;             // 下单数量
+    double          last_price;
 }my_strategy_demo_t;
 
 
@@ -36,6 +37,7 @@ void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
 
     // some default values
     instance->volume = 1;
+    instance->last_price = 0.0;
 
     // parse the setting
     zs_json_t* zjson;
@@ -101,6 +103,84 @@ void stg_demo_on_stop(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
 void stg_demo_on_update(my_strategy_demo_t* instance, zs_cta_strategy_t* context, void* data, int size)
 {
     fprintf(stderr, "stg demo update\n");
+
+    zs_json_t* zjson;
+    zjson = zs_json_parse((char*)data, size);
+    if (!zjson) {
+        fprintf(stderr, "stg demo parse buffer failed\n");
+        return;
+    }
+
+    ZSDirection direction;
+    ZSOffsetFlag offset;
+
+    int flag = -1;
+    zs_json_get_int(zjson, "flag", &flag);
+    if (flag == 0)
+    {
+        zs_account_t* account = NULL;
+        context->get_trading_account(context, &account);
+        if (account)
+        {
+            zs_fund_account_t* fa = &account->FundAccount;
+            fprintf(stderr, "stg demo: bal:%.2lf, avail:%.2lf, frozen:%.2lf, margin:%.2lf\n",
+                fa->Balance, fa->Available, fa->FrozenCash, fa->Margin);
+        }
+
+        zs_position_engine_t* pos_engine = NULL;
+        context->get_account_position(context, &pos_engine, instance->sid);
+        if (pos_engine)
+        {
+            fprintf(stderr, "stg demo: long:%d,short:%d,lastpx:%.lf\n",
+                pos_engine->LongPos, pos_engine->ShortPos, pos_engine->LastPrice);
+        }
+    }
+    else if (flag == 1)
+    {
+        fprintf(stderr, "stg demo buy-open\n");
+        if (instance->last_price < 0.1)
+            return;
+
+        direction = ZS_D_Long;
+        offset = ZS_OF_Open;
+    }
+    else if (flag == 2)
+    {
+        fprintf(stderr, "stg demo sell-close\n");
+        if (instance->last_price < 0.1)
+            return;
+
+        direction = ZS_D_Short;
+        offset = ZS_OF_CloseToday;
+    }
+    else if (flag == 3)
+    {
+        fprintf(stderr, "stg demo sell-open\n");
+        if (instance->last_price < 0.1)
+            return;
+
+        direction = ZS_D_Short;
+        offset = ZS_OF_Open;
+    }
+    else if (flag == 4)
+    {
+        fprintf(stderr, "stg demo buy-close\n");
+        if (instance->last_price < 0.1)
+            return;
+
+        direction = ZS_D_Long;
+        offset = ZS_OF_CloseToday;
+    }
+    else {
+        return;
+    }
+
+    int rv;
+    rv = context->order(context, instance->sid, 1, instance->last_price,
+        direction, offset);
+    fprintf(stderr, "stg demo send order rv:%d\n", rv);
+
+    zs_json_release(zjson);
 }
 
 void stg_demo_handle_order(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_order_t* order)
@@ -128,6 +208,8 @@ void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* conte
     if (count2 & 7)
         fprintf(stderr, "demo handle_tick symbol:%s, lastpx:%.2lf, vol:%lld\n",
             tick->Symbol, tick->LastPrice, tick->Volume);
+
+    instance->last_price = tick->LastPrice;
 
     instance->index += 1;
     if (instance->index == 2)

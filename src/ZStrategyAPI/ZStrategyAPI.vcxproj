@@ -40,6 +40,7 @@
     <ClInclude Include="zs_algorithm.h" />
     <ClInclude Include="zs_algorithm_api.h" />
     <ClInclude Include="zs_api_object.h" />
+    <ClInclude Include="zs_backtest.h" />
     <ClInclude Include="zs_bar_generator.h" />
     <ClInclude Include="zs_bar_series.h" />
     <ClInclude Include="zs_blotter_manager.h" />
@@ -79,6 +80,7 @@
     <ClCompile Include="zs_account.c" />
     <ClCompile Include="zs_algorithm.c" />
     <ClCompile Include="zs_algorithm_api.c" />
+    <ClCompile Include="zs_backtest.c" />
     <ClCompile Include="zs_bar_generator.c" />
     <ClCompile Include="zs_bar_series.c" />
     <ClCompile Include="zs_blotter.c" />

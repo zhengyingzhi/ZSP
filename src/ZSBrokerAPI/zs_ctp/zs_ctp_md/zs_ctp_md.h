@@ -4,7 +4,6 @@
 #include <string>
 #include <mutex>
 
-#undef ZS_HAVE_SE
 #ifdef ZS_HAVE_SE
 #include <ctp_se/ThostFtdcMdApi.h>
 #else

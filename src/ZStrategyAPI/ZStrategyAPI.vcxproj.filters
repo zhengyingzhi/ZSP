@@ -116,6 +116,9 @@
     <ClInclude Include="zs_times.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="zs_backtest.h">
+      <Filter>Backtest</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -236,6 +239,9 @@
     </ClCompile>
     <ClCompile Include="zs_times.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_backtest.c">
+      <Filter>Backtest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

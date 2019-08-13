@@ -12,6 +12,7 @@
 #include <ZStrategyAPI/zs_data_portal.h>
 
 #include <ZStrategyAPI/zs_strategy_demo.h>
+#include <ZStrategyAPI/zs_strategy_engine.h>
 
 #include <ZStrategyAPI/zs_logger.h>
 
@@ -86,13 +87,14 @@ int main(int argc, char* argv[])
     // read config
     zs_algo_param_t params;
     memset(&params, 0, sizeof(params));
+    zs_algo_param_init(&params);
     rv = zs_configs_load(&params, pool);
     // assert(rv == 0);
 
     zs_data_portal_t* data_portal;
     data_portal = zs_data_portal_create();
 
-#if 1
+#if 0
     // load history ohlc, benchmark data
     ztl_array_t ohlc_datas;
     ztl_array_init(&ohlc_datas, NULL, 32000, sizeof(zs_tick_t*));
@@ -175,6 +177,21 @@ int main(int argc, char* argv[])
         }
 
         // TODO: input some cmds to operate zs algorithm
+        if (ch < '0' || ch > '5') {
+            continue;
+        }
+
+        zs_cta_strategy_t* strategy;
+        strategy = zs_strategy_find_byid(algo->StrategyEngine, 1);
+        if (!strategy) {
+            continue;
+        }
+
+        int flag = ch - '0';
+        char buffer[1000] = "";
+        sprintf(buffer, "{\"flag\":%d}", flag);
+
+        zs_strategy_update(algo->StrategyEngine, strategy, buffer);
     }
     fprintf(stderr, "zs algorithm stopping.");
     zs_algorithm_stop(algo);
