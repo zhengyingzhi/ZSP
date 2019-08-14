@@ -444,8 +444,7 @@ static void zs_td_on_qry_contract(zs_trade_api_t* tdctx, zs_contract_t* contract
     dst_contract = (zs_contract_t*)zd_data_body(zdh);
     set_zd_head_symbol(zdh, dst_contract);
 
-    // dst_contract->Sid = zs_asset_lookup(algo->AssetFinder,
-    //     dst_contract->ExchangeID, dst_contract->Symbol, zdh->SymbolLength);
+    dst_contract->IsLast = flag;
 
     // post to ee
     rv = zs_ee_post(algo->EventEngine, ZS_DT_QryContract, zdh);

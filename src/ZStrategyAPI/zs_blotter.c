@@ -530,8 +530,11 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s, status:%d\n",
         order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID, order->OrderStatus);
 
-    contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
     pos_engine = NULL;
+    contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
+    if (!contract) {
+        return ZS_ERR_NoContract;
+    }
 
     // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
 

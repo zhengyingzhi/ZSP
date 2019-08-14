@@ -206,11 +206,15 @@ int trade_order(void* instance, zs_order_req_t* order_req)
     tdspi = (ZSCtpTradeSpi*)instance;
 
     CThostFtdcInputOrderField input_order = { 0 };
-    strcpy(input_order.BrokerID, order_req->BrokerID);
+    if (order_req->BrokerID[0])
+        strcpy(input_order.BrokerID, order_req->BrokerID);
+    else
+        strcpy(input_order.BrokerID, tdspi->m_Conf.BrokerID);
     strcpy(input_order.InvestorID, order_req->AccountID);
     strcpy(input_order.UserID, order_req->UserID);
     strcpy(input_order.InstrumentID, order_req->Symbol);
-    // order_ref
+    strcpy(input_order.ExchangeID, get_exchange_name(order_req->ExchangeID));
+
     input_order.OrderPriceType = zs2ctp_pricetype(order_req->OrderType);
     input_order.Direction = zs2ctp_direction(order_req->Direction);
     input_order.CombOffsetFlag[0] = zs2ctp_offset(order_req->OffsetFlag);
@@ -222,16 +226,17 @@ int trade_order(void* instance, zs_order_req_t* order_req)
     input_order.VolumeCondition = THOST_FTDC_VC_AV;
     input_order.MinVolume = 1;
     input_order.ContingentCondition = THOST_FTDC_CC_Immediately;
+    input_order.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
     input_order.IsAutoSuspend = 0;
     input_order.RequestID = tdspi->NextReqID();
     input_order.UserForceClose = 0;
     input_order.IsSwapOrder = 0;
-    strcpy(input_order.ExchangeID, get_exchange_name(order_req->ExchangeID));
 
     int rv;
     rv = tdspi->ReqOrderInsert(&input_order);
     if (rv == 0)
     {
+        // fprintf(stderr, "ctp order insert ok for ref:%s\n", input_order.OrderRef);
         strcpy(order_req->OrderID, input_order.OrderRef);
         order_req->FrontID = tdspi->m_FrontID;
         order_req->SessionID = tdspi->m_SessionID;
@@ -700,7 +705,15 @@ void ZSCtpTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateF
     zs_margin_rate_t margin_rate = { 0 };
     if (pInstrumentMarginRate)
     {
+        std::string symbol(pInstrumentMarginRate->InstrumentID);
+
         margin_rate.ExchangeID = get_exchange_id(pInstrumentMarginRate->ExchangeID);
+        if (margin_rate.ExchangeID == ZS_EI_Unkown)
+        {
+            if (m_InstrumentDict.count(symbol)) {
+                margin_rate.ExchangeID = m_InstrumentDict[symbol].ExchangeID;
+            }
+        }
         strcpy(margin_rate.Symbol, pInstrumentMarginRate->InstrumentID);
         margin_rate.LongMarginRateByMoney = pInstrumentMarginRate->LongMarginRatioByMoney;
         margin_rate.LongMarginRateByVolume = pInstrumentMarginRate->LongMarginRatioByVolume;
@@ -712,7 +725,7 @@ void ZSCtpTradeSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateF
         else
             margin_rate.MarginRateType = ZS_RT_ByVolume;
 
-        m_MarginDict[std::string(margin_rate.Symbol)] = margin_rate;
+        m_MarginDict[symbol] = margin_rate;
     }
 
     conv_rsp_info(&error, pRspInfo);

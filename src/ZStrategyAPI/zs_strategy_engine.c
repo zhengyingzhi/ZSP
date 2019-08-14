@@ -238,8 +238,6 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
     // FIXME:
     zs_strategy_engine_load(zse, NULL);
 
-    zs_strategy_register_event(zse);
-
     return zse;
 }
 
@@ -295,6 +293,11 @@ void zs_strategy_engine_release(zs_strategy_engine_t* zse)
         ztl_destroy_pool(zse->Pool);
         zse->Pool = NULL;
     }
+}
+
+void zs_strategy_engine_start(zs_strategy_engine_t* zse)
+{
+    zs_strategy_register_event(zse);
 }
 
 void zs_strategy_engine_stop(zs_strategy_engine_t* zse)
@@ -534,6 +537,8 @@ int zs_strategy_create(zs_strategy_engine_t* zse, zs_cta_strategy_t** pstrategy,
         strategy->Instance = strategy->Entry->create(strategy, setting);
     }
 
+    strategy->RunStatus = ZS_RS_NotInit;
+
     zs_log_info(zse->Log, "ctas: strategy_create object:%p for name:%s, account:%s",
         strategy, strategy_name, strategy->pAccountID);
 
@@ -596,7 +601,10 @@ int zs_strategy_init(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
 
     // 初始化策略
     if (strategy->Entry->on_init)
+    {
         strategy->Entry->on_init(strategy, strategy);
+        strategy->RunStatus = ZS_RS_Inited;
+    }
 
     return ZS_OK;
 }
@@ -607,8 +615,10 @@ int zs_strategy_start(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
         strategy->pStrategyName, strategy);
 
     // 启动策略
-    if (strategy->Entry->on_start) {
+    if (strategy->Entry->on_start)
+    {
         strategy->Entry->on_start(strategy->Instance, strategy);
+        strategy->RunStatus = ZS_RS_Running;
     }
 
     return ZS_OK;
@@ -620,8 +630,11 @@ int zs_strategy_stop(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy)
         strategy->pStrategyName, strategy);
 
     // 停止策略
-    if (strategy->Entry->on_stop) {
+    if (strategy->Entry->on_stop)
+    {
+        strategy->RunStatus = ZS_RS_Stopping;
         strategy->Entry->on_stop(strategy->Instance, strategy);
+        strategy->RunStatus = ZS_RS_Stopped;
     }
 
     return ZS_OK;
@@ -633,6 +646,7 @@ int zs_strategy_pause(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, in
         strategy->pStrategyName, strategy, trading_flag);
 
     // 设置策略标志
+    strategy->RunStatus = ZS_RS_Paused;
     zs_cta_strategy_set_trading_flag(strategy, trading_flag);
     return ZS_OK;
 }
@@ -852,6 +866,7 @@ int zs_strategy_subscribe(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy
 
 int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sid)
 {
+    int             rv;
     ztl_array_t*    array;
     zs_contract_t*  contract;
     zs_subscribe_t  sub_req = { 0 };
@@ -866,7 +881,7 @@ int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* st
     }
     sub_req.Sid = sid;
 
-    strategy->Blotter->subscribe(strategy->Blotter, &sub_req);
+    rv = strategy->Blotter->subscribe(strategy->Blotter, &sub_req);
 
     array = zs_strategy_find_by_sid(zse, sid);
     if (!array)
@@ -878,8 +893,9 @@ int zs_strategy_subscribe_bysid(zs_strategy_engine_t* zse, zs_cta_strategy_t* st
 
     ztl_array_push_back(array, &strategy);
 
-    return ZS_OK;
+    return rv;
 }
+
 int zs_strategy_subscribe_bysid_batch(zs_strategy_engine_t* zse, zs_cta_strategy_t* strategy, zs_sid_t sids[], int count)
 {
     ztl_array_t*    array;

@@ -9,6 +9,7 @@
 #include "zs_broker_backtest.h"
 
 #include "zs_configs.h"
+#include "zs_constants_helper.h"
 #include "zs_core.h"
 #include "zs_data_portal.h"
 #include "zs_event_engine.h"
@@ -69,7 +70,7 @@ static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
 
 
-static int _zs_load_strategies(zs_algorithm_t* algo)
+static int _zs_algo_load_strategies(zs_algorithm_t* algo)
 {
     zs_strategy_engine_t* zse;
     zse = algo->StrategyEngine;
@@ -173,8 +174,6 @@ static int _zs_blotter_connect(zs_algorithm_t* algo)
  * 注册交易核心事件，风控事件，注册策略事件
  * 加载各接口zs_broker_entry_t(可根据名字获取接口实例)
  */
-void zs_algorithm_register(zs_algorithm_t* algo);
-
 zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
 {
     ztl_pool_t* pool;
@@ -274,7 +273,6 @@ int zs_algorithm_init(zs_algorithm_t* algo)
     zs_category_init(algo->Category);
     zs_category_load(algo->Category, "category.json");
 
-    zs_strategy_init_all(algo->StrategyEngine, NULL);
     return ZS_OK;
 }
 
@@ -284,10 +282,14 @@ void zs_algorithm_register(zs_algorithm_t* algo)
 
     zs_ee_register(ee, algo, ZS_DT_Order, _zs_algo_handle_order);
     zs_ee_register(ee, algo, ZS_DT_Trade, _zs_algo_handle_trade);
+    zs_ee_register(ee, algo, ZS_DT_QryOrder, _zs_algo_handle_qry_order);
+    zs_ee_register(ee, algo, ZS_DT_QryTrade, _zs_algo_handle_qry_trade);
     zs_ee_register(ee, algo, ZS_DT_QryPosition, _zs_algo_handle_position);
     zs_ee_register(ee, algo, ZS_DT_QryPositionDetail, _zs_algo_handle_position_detail);
     zs_ee_register(ee, algo, ZS_DT_QryAccount, _zs_algo_handle_account);
     zs_ee_register(ee, algo, ZS_DT_QryContract, _zs_algo_handle_contract);
+    zs_ee_register(ee, algo, ZS_DT_QryMarginRate, _zs_algo_handle_margin_rate);
+    zs_ee_register(ee, algo, ZS_DT_QryCommRate, _zs_algo_handle_comm_rate);
     zs_ee_register(ee, algo, ZS_DT_MD_Tick, _zs_algo_handle_tick);
     zs_ee_register(ee, algo, ZS_DT_MD_KLine, _zs_algo_handle_bar);
     zs_ee_register(ee, algo, ZS_DT_Timer, _zs_algo_handle_timer);
@@ -329,8 +331,9 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
     zs_algorithm_register(algo);
 
     // 加载策略并初始化（策略加载后，也需要注册策略关心的事件：订单事件，成交事件，行情事件）
-    _zs_load_strategies(algo);
-    zs_strategy_start_all(algo->StrategyEngine, NULL);
+    _zs_algo_load_strategies(algo);
+    zs_strategy_engine_start(algo->StrategyEngine);
+    zs_strategy_init_all(algo->StrategyEngine, NULL);
 
     // 启动事件引擎
     zs_ee_start(algo->EventEngine);
@@ -692,6 +695,17 @@ static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo
 
     zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID,
         contract->Symbol, (int)strlen(contract->Symbol), dup_contract);
+
+    // must set sid after added into asset finder
+    dup_contract->Sid = sid;
+
+    if (strcmp(contract->Symbol, "rb1910") == 0) {
+        fprintf(stderr, "algo: handle_contrat for symbol:%s, sid:%ld\n", contract->Symbol, (long)sid);
+    }
+
+    if (contract->IsLast) {
+        fprintf(stderr, "algo: handle_contract %dz\n", zs_asset_count(algo->AssetFinder));
+    }
 }
 
 static void _zs_algo_handle_margin_rate(zs_event_engine_t* ee, zs_algorithm_t* algo,
@@ -702,6 +716,14 @@ static void _zs_algo_handle_margin_rate(zs_event_engine_t* ee, zs_algorithm_t* a
     zs_margin_rate_t*   margin_rate;
 
     margin_rate = (zs_margin_rate_t*)zd_data_body(evdata);
+
+    if (margin_rate->ExchangeID == ZS_EI_Unkown)
+    {
+        zs_category_info_t* category_obj;
+        category_obj = zs_category_find(algo->Category, margin_rate->Symbol);
+        if (category_obj)
+            margin_rate->ExchangeID = zs_convert_exchange_name(category_obj->Exchange);
+    }
 
     contract = (zs_contract_t*)zs_asset_find(algo->AssetFinder, margin_rate->ExchangeID,
         margin_rate->Symbol, (int)strlen(margin_rate->Symbol));
@@ -726,6 +748,14 @@ static void _zs_algo_handle_comm_rate(zs_event_engine_t* ee, zs_algorithm_t* alg
     zs_commission_rate_t* comm_rate;
 
     comm_rate = (zs_commission_rate_t*)zd_data_body(evdata);
+
+    if (comm_rate->ExchangeID == ZS_EI_Unkown)
+    {
+        zs_category_info_t* category_obj;
+        category_obj = zs_category_find(algo->Category, comm_rate->Symbol);
+        if (category_obj)
+            comm_rate->ExchangeID = zs_convert_exchange_name(category_obj->Exchange);
+    }
 
     contract = (zs_contract_t*)zs_asset_find(algo->AssetFinder, comm_rate->ExchangeID,
         comm_rate->Symbol, (int)strlen(comm_rate->Symbol));
@@ -777,7 +807,7 @@ static void _zs_algo_handle_tick(zs_event_engine_t* ee, zs_algorithm_t* algo,
 
     static int count = 0;
     count += 1;
-    if (count & 127)
+    if ((count & 127) == 0)
         fprintf(stderr, "algo_handle_tick %s,%d\n", tick->Symbol, tick->UpdateTime);
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)

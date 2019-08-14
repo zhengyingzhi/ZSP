@@ -140,8 +140,8 @@ int main(int argc, char* argv[])
     strncpy(conf_broker.APIName, "CTP", sizeof(conf_broker.APIName));
     strncpy(conf_broker.BrokerID, "9999", sizeof(conf_broker.BrokerID));
     strncpy(conf_broker.BrokerName, "SimNow", sizeof(conf_broker.BrokerName));
-    strncpy(conf_broker.TradeAddr, "tcp://180.168.146.187:10100", sizeof(conf_broker.TradeAddr));
-    strncpy(conf_broker.MDAddr, "tcp://180.168.146.187:10110", sizeof(conf_broker.MDAddr));
+    strncpy(conf_broker.TradeAddr, "tcp://180.168.146.187:10101", sizeof(conf_broker.TradeAddr));
+    strncpy(conf_broker.MDAddr, "tcp://180.168.146.187:10111", sizeof(conf_broker.MDAddr));
     zs_algorithm_add_broker_info2(algo, &conf_broker);
 
     // account info
@@ -177,6 +177,13 @@ int main(int argc, char* argv[])
         }
 
         // TODO: input some cmds to operate zs algorithm
+
+        if (ch == 's')
+        {
+            zs_strategy_start_all(algo->StrategyEngine, NULL);
+            continue;
+        }
+
         if (ch < '0' || ch > '5') {
             continue;
         }

@@ -39,7 +39,7 @@ extern int32_t conv_ctp_time(const char* stime);
 static void conv_zs_dt(zs_dt_t* zsdt, int date, int update_time, int millisec)
 {
     zsdt->dt.year   = date / 10000;
-    zsdt->dt.month  = (date / 10000) % 100;
+    zsdt->dt.month  = (date / 100) % 10000;
     zsdt->dt.day    = date % 1000000;
     zsdt->dt.hour   = update_time / 10000;
     zsdt->dt.minute = (update_time / 100) % 100;

@@ -89,6 +89,7 @@ void stg_demo_on_start(my_strategy_demo_t* instance, zs_cta_strategy_t* context)
     instance->sid = context->lookup_sid(context, instance->exchangeid, instance->symbol, 6);
     if (instance->sid == ZS_SID_INVALID) {
         // ERRORID: unknown symbol
+        fprintf(stderr, "stg demo start but unknown symbol\n");
         return;
     }
 
@@ -134,6 +135,9 @@ void stg_demo_on_update(my_strategy_demo_t* instance, zs_cta_strategy_t* context
             fprintf(stderr, "stg demo: long:%d,short:%d,lastpx:%.lf\n",
                 pos_engine->LongPos, pos_engine->ShortPos, pos_engine->LastPrice);
         }
+
+        zs_order_t* orders[32] = { 0 };
+        context->get_open_orders(context, orders, 32, ZS_SID_WILDCARD);
     }
     else if (flag == 1)
     {
@@ -185,8 +189,8 @@ void stg_demo_on_update(my_strategy_demo_t* instance, zs_cta_strategy_t* context
 
 void stg_demo_handle_order(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_order_t* order)
 {
-    fprintf(stderr, "stg demo handle order: id:%s, symbol:%s,dir:%d,qty:%d,price:%.2f,offset:%d\n", 
-        order->OrderID, order->Symbol, order->Direction, order->OrderQty, order->OrderPrice, order->OffsetFlag);
+    fprintf(stderr, "stg demo handle order: id:%s, symbol:%s,dir:%d,qty:%d,price:%.2f,offset:%d,status:%d\n", 
+        order->OrderID, order->Symbol, order->Direction, order->OrderQty, order->OrderPrice, order->OffsetFlag, order->OrderStatus);
 }
 
 void stg_demo_handle_trade(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_trade_t* trade)
@@ -205,19 +209,21 @@ void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* conte
     // visit the tick data
     static int count2 = 0;
     count2 += 1;
-    if (count2 & 7)
+    if ((count2 & 7) == 0)
         fprintf(stderr, "demo handle_tick symbol:%s, lastpx:%.2lf, vol:%lld\n",
             tick->Symbol, tick->LastPrice, tick->Volume);
 
     instance->last_price = tick->LastPrice;
 
     instance->index += 1;
+#if 0
     if (instance->index == 2)
     {
         // try send an order
         int rv = context->order(context, instance->sid, 10, tick->LastPrice, ZS_D_Long, ZS_OF_Open);
         fprintf(stderr, "std demo send order rv:%d\n", rv);
     }
+#endif//0
 }
 
 

@@ -414,6 +414,7 @@ struct zs_contract_s
     ZSProductClass  ProductClass;
     int32_t         Multiplier;
     int32_t         Decimal;
+    int32_t         IsLast;
 
     ZSOptionType    OptionType;
     ZSStrikeType    StrikeType;

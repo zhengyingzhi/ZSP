@@ -36,5 +36,8 @@
 #define ZS_ERR_PlaceOpenPaused  -29
 #define ZS_ERR_NoMemory         -30
 
+#define ZS_ERR_FieldDirection   -31
+#define ZS_ERR_FieldOffset      -32
+#define ZS_ERR_FieldOrderType   -33
 
 #endif//_ZS_ERROR_H_INCLUDED_

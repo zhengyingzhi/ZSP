@@ -54,6 +54,7 @@ struct zs_strategy_engine_s
 zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo);
 void zs_strategy_engine_release(zs_strategy_engine_t* zse);
 
+void zs_strategy_engine_start(zs_strategy_engine_t* zse);
 void zs_strategy_engine_stop(zs_strategy_engine_t* zse);
 
 // process update trading day

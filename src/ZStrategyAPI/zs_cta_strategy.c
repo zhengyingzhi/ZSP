@@ -121,7 +121,7 @@ void zs_cta_strategy_release(zs_cta_strategy_t* strategy)
 int zs_cta_strategy_set_trading_flag(zs_cta_strategy_t* strategy, ZSTradingFlag trading_flag)
 {
     strategy->TradingFlag = trading_flag;
-    return 0;
+    return ZS_OK;
 }
 
 int zs_cta_strategy_print(zs_cta_strategy_t* strategy)
@@ -193,14 +193,45 @@ int zs_cta_subscribe_batch(zs_cta_strategy_t* strategy, zs_sid_t sids[], int cou
 
 int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, double order_price, ZSDirection direction, ZSOffsetFlag offset)
 {
-    zs_contract_t*  contract;
-    zs_order_req_t  order_req;
+    zs_position_engine_t*   pos_engine;
+    zs_contract_t*          contract;
+    zs_order_req_t          order_req;
     memset(&order_req, 0, sizeof(order_req));
 
     contract = zs_asset_find_by_sid(strategy->Engine->AssetFinder, sid);
     if (!contract) {
-        // ERRORID: not find the contract info
         return ZS_ERR_NoContract;
+    }
+
+    if (offset != ZS_OF_Open)
+    {
+        pos_engine = NULL;
+        zs_cta_get_account_position(strategy, &pos_engine, sid);
+        if (!pos_engine) {
+            return ZS_ERR_NoPosEngine;
+        }
+
+        if (direction == ZS_D_Long)
+        {
+            if (pos_engine->ShortTdPos - pos_engine->ShortTdFrozen > 0) {
+                offset = ZS_OF_CloseToday;
+            }
+            else {
+                offset = ZS_OF_Close;
+            }
+        }
+        else if (direction == ZS_D_Short)
+        {
+            if (pos_engine->LongTdPos - pos_engine->LongTdFrozen > 0) {
+                offset = ZS_OF_CloseToday;
+            }
+            else {
+                offset = ZS_OF_Close;
+            }
+        }
+        else {
+            return ZS_ERR_FieldDirection;
+        }
     }
 
     strcpy(order_req.Symbol, contract->Symbol);
