@@ -12,10 +12,10 @@ zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, uint64_t sid)
 
 void zs_bargen_init(zs_bar_generator_t* bargen, uint64_t sid)
 {
-    memset(bargen, 0, sizeof(bargen));
-    bargen->IsFinished = 1;
+    memset(bargen, 0, sizeof(zs_bar_generator_t));
+    bargen->IsFinished  = 1;
     bargen->IsFinishedX = 1;
-    bargen->Sid = sid;
+    bargen->Sid         = sid;
 }
 
 void zs_bargen_release(zs_bar_generator_t* bargen)

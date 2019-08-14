@@ -481,12 +481,6 @@ int zs_cta_write_log(zs_cta_strategy_t* strategy, const char* content, ...)
     length += vsnprintf(buffer + length, 4090 - length - 2, content, args);
     va_end(args);
 
-    // append line feed
-//     buffer[length] = '\r';
-//     buffer[length + 1] = '\n';
-//     length += 2;
-//     buffer[length] = '\0';
-
     // fprintf(stderr, buffer);
     zs_log_info(strategy->Log, buffer);
 

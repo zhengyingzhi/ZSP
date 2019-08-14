@@ -41,27 +41,31 @@ uint32_t zs_data_decre_release(zs_data_head_t* zdh)
 }
 
 
-ZSExchangeID zs_convert_exchange_name(const char* exchange_name)
+ZSExchangeID zs_convert_exchange_name(const char* exchange_name, int len)
 {
-    if (strcmp(exchange_name, ZS_EXCHANGE_SSE) == 0) {
+    if (len == 0) {
+        len = (int)strlen(exchange_name);
+    }
+
+    if (strncmp(exchange_name, ZS_EXCHANGE_SSE, len) == 0) {
         return ZS_EI_SSE;
     }
-    else if (strcmp(exchange_name, ZS_EXCHANGE_SZSE) == 0) {
+    else if (strncmp(exchange_name, ZS_EXCHANGE_SZSE, len) == 0) {
         return ZS_EI_SZSE;
     }
-    else if (strcmp(exchange_name, ZS_EXCHANGE_SHFE) == 0) {
+    else if (strncmp(exchange_name, ZS_EXCHANGE_SHFE, len) == 0) {
         return ZS_EI_SHFE;
     }
-    else if (strcmp(exchange_name, ZS_EXCHANGE_DCE) == 0) {
+    else if (strncmp(exchange_name, ZS_EXCHANGE_DCE, len) == 0) {
         return ZS_EI_DCE;
     }
-    else if (strcmp(exchange_name, ZS_EXCHANGE_CZCE) == 0) {
+    else if (strncmp(exchange_name, ZS_EXCHANGE_CZCE, len) == 0) {
         return ZS_EI_CZCE;
     }
-    else if (strcmp(exchange_name, ZS_EXCHANGE_INE) == 0) {
+    else if (strncmp(exchange_name, ZS_EXCHANGE_INE, len) == 0) {
         return ZS_EI_INE;
     }
-    else if (strcmp(exchange_name, ZS_EXCHANGE_CFFEX) == 0) {
+    else if (strncmp(exchange_name, ZS_EXCHANGE_CFFEX, len) == 0) {
         return ZS_EI_CFFEX;
     }
 

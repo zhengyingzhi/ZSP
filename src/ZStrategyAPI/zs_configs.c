@@ -231,12 +231,6 @@ int zs_configs_load_broker(zs_algo_param_t* algo_param, ztl_pool_t* pool,
     cJSON*  tnode;
     zs_conf_broker_t* broker_conf;
 
-    broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
-    strcpy(broker_conf->BrokerID, "0000");
-    strcpy(broker_conf->BrokerName, "INNER");
-    strcpy(broker_conf->APIName, "backtest");
-    ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
-
 #if 0
     broker_conf = (zs_conf_broker_t*)ztl_pcalloc(pool, sizeof(zs_conf_broker_t));
     strcpy(broker_conf->BrokerID, "2318");
@@ -451,6 +445,26 @@ int zs_algo_param_init(zs_algo_param_t* algo_param)
     ztl_array_init(&algo_param->AccountConf, NULL, 8, sizeof(zs_conf_account_t));
     ztl_array_init(&algo_param->StrategyConf, NULL, 16, sizeof(zs_conf_strategy_t));
     ztl_array_init(&algo_param->TradingConf, NULL, 16, sizeof(zs_conf_trading_t));
+
+    // auto have backtestor info
+    zs_conf_broker_t* broker_conf;
+    broker_conf = (zs_conf_broker_t*)malloc(sizeof(zs_conf_broker_t));
+    memset(broker_conf, 0, sizeof(zs_conf_broker_t));
+    strcpy(broker_conf->BrokerID, "0000");
+    strcpy(broker_conf->BrokerName, "INNER");
+    strcpy(broker_conf->APIName, "backtest");
+    ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
+
+    zs_conf_account_t* account_conf;
+    account_conf = (zs_conf_account_t*)malloc(sizeof(zs_conf_account_t));
+    memset(account_conf, 0, sizeof(zs_conf_account_t));
+    strncpy(account_conf->AccountID, "backtest", sizeof(account_conf->AccountID));
+    strncpy(account_conf->AccountName, "backtester", sizeof(account_conf->AccountName));
+    strncpy(account_conf->Password, "000000", sizeof(account_conf->Password));
+    strncpy(account_conf->BrokerID, "0000", sizeof(account_conf->BrokerID));
+    strncpy(account_conf->TradeAPIName, "backtest", sizeof(account_conf->TradeAPIName));
+    strncpy(account_conf->MDAPIName, "backtest", sizeof(account_conf->MDAPIName));
+    ztl_array_push_back(&algo_param->AccountConf, &account_conf);
 
     return ZS_OK;
 }

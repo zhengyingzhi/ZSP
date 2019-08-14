@@ -202,6 +202,10 @@ void stg_demo_handle_trade(my_strategy_demo_t* instance, zs_cta_strategy_t* cont
 // 行情通知
 void stg_demo_handle_bar(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
 {
+    zs_bar_t* bar;
+    bar = &bar_reader->Bar;
+    fprintf(stderr, "demo hanble_bar symbol:%s,o:%.2lf,h:%.2lf,l:%.2lf,c:%.2lf,time:%lld\n", 
+        bar->Symbol, bar->OpenPrice, bar->HighPrice, bar->LowPrice, bar->ClosePrice, bar->BarTime);
 }
 
 void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_tick_t* tick)

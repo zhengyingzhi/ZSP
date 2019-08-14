@@ -103,6 +103,7 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, zs_strategy_engine_t
     zs_tick_t*          tick;
     zs_sid_t            sid;
     dictEntry*          entry;
+    zs_bar_generator_t* bargen;
 
     tick = (zs_tick_t*)zd_data_body(evdata);
     sid = tick->Sid;
@@ -111,25 +112,73 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, zs_strategy_engine_t
     zs_log_trace(zse->Log, "ctas: handle_tick symbol:%s,lastpx:%.2lf,vol:%ld,time:%d",
         tick->Symbol, tick->LastPrice, tick->Volume, tick->UpdateTime);
 
+    entry = dictFind(zse->BarGenDict, (void*)sid);
+    if (entry) {
+        bargen = (zs_bar_generator_t*)entry->v.val;
+    }
+    else  {
+        bargen = zs_bargen_create(zse->Pool, sid);
+        dictAdd(zse->BarGenDict, (void*)sid, bargen);
+    }
+
+    strategy_array = NULL;
     entry = dictFind(zse->Tick2StrategyList, (void*)sid);
-    if (!entry) {
+    if (entry)
+    {
+        strategy_array = (ztl_array_t*)entry->v.val;
+        for (int index = 0; index < (int)ztl_array_size(strategy_array); ++index)
+        {
+            strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, index);
+            if (!strategy) {
+                continue;
+            }
+
+            if (strategy->Entry->handle_tick) {
+                strategy->Entry->handle_tick(strategy->Instance, strategy, tick);
+            }
+        }
+    }
+
+    if (!zse->AutoGenBar) {
         return;
     }
 
-    strategy_array = (ztl_array_t*)entry->v.val;
-    for (int index = 0; index < (int)ztl_array_size(strategy_array); ++index)
+    // generate minute bar, and try notify to each strategy
+    if (tick->TickDt.dt64 == 0)
     {
-        strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, index);
-        if (!strategy) {
-            continue;
-        }
-
-        if (strategy->Entry->handle_tick) {
-            strategy->Entry->handle_tick(strategy->Instance, strategy, tick);
-        }
+        zs_dt_t* zsdt = &tick->TickDt;
+        zsdt->dt.year = tick->ActionDay / 10000;
+        zsdt->dt.month = (tick->ActionDay / 100) % 100;
+        zsdt->dt.day = tick->ActionDay % 100;
+        zsdt->dt.hour = tick->UpdateTime / 10000000;
+        zsdt->dt.minute = (tick->UpdateTime / 100000) % 100;
+        zsdt->dt.second = (tick->UpdateTime / 1000) % 10000;
+        zsdt->dt.millisec = tick->UpdateTime % 1000;
     }
 
-    // TODO: generate minute bar, and try notify to each strategy
+    int hour = tick->TickDt.hour;
+    if ((hour > 2 && hour < 9) || (hour > 15 && hour < 21)) {
+        return;
+    }
+
+    zs_bargen_update_tick(bargen, tick);
+    if (bargen->IsFinished && strategy_array)
+    {
+        zs_bar_reader_t bar_reader = { 0 };
+        ztl_memcpy(&bar_reader.Bar, &bargen->CurrentBar, sizeof(zs_bar_t));
+
+        for (int index = 0; index < (int)ztl_array_size(strategy_array); ++index)
+        {
+            strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, index);
+            if (!strategy) {
+                continue;
+            }
+
+            if (strategy->Entry->handle_bar) {
+                strategy->Entry->handle_bar(strategy->Instance, strategy, &bar_reader);
+            }
+        }
+    }
 }
 
 static void _zs_strategy_handle_bar(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
@@ -219,6 +268,7 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
     zse->Log            = algo->Log;
     zse->StrategyBaseID = 1;
     zse->TradingDay     = 0;
+    zse->AutoGenBar     = 1;
 
     zse->StrategyEntries = ztl_pcalloc(algo->Pool, sizeof(ztl_array_t));
     ztl_array_init(zse->StrategyEntries, NULL, 64, sizeof(zs_strategy_entry_t*));

@@ -9,6 +9,7 @@
 #include <ZStrategyAPI/zs_common.h>
 #include <ZStrategyAPI/zs_core.h>
 #include <ZStrategyAPI/zs_configs.h>
+#include <ZStrategyAPI/zs_constants_helper.h>
 #include <ZStrategyAPI/zs_data_portal.h>
 
 #include <ZStrategyAPI/zs_strategy_demo.h>
@@ -16,8 +17,14 @@
 
 #include <ZStrategyAPI/zs_logger.h>
 
+static int32_t conv_time_str(const char* stime)
+{
+    int32_t t;
+    t = atoi(stime) * 10000 + atoi(stime + 3) * 100 + atoi(stime + 6);
+    return t;
+}
 
-static int _parse_line_tick_fdata(zs_csv_loader_t* csv_loader, int num, zditem_t fields[], int size)
+static int _parse_line_tick_data(zs_csv_loader_t* csv_loader, int num, zditem_t fields[], int size)
 {
     zs_tick_t*      tick;
     ztl_pool_t*     pool;
@@ -32,24 +39,34 @@ static int _parse_line_tick_fdata(zs_csv_loader_t* csv_loader, int num, zditem_t
     array = (ztl_array_t*)csv_loader->userdata2;
 
     alloc_size = ztl_align(sizeof(zs_tick_t), 8);
-    // tick = (zs_tick_t*)ztl_pcalloc(pool, alloc_size);
-    tick = (zs_tick_t*)calloc(1, alloc_size);
+    tick = (zs_tick_t*)ztl_pcalloc(pool, alloc_size);
+    // tick = (zs_tick_t*)calloc(1, alloc_size);
 
     // retrieve each field
-    strncpy(tick->Symbol, fields[1].ptr, fields[1].len);
-    tick->ExchangeID = ZS_EI_DCE;
-    tick->TradingDay = 0;       // FIXME
-    tick->UpdateTime = 0;
+    tick->ExchangeID = zs_convert_exchange_name(fields[1].ptr, fields[1].len);
+    strncpy(tick->Symbol, fields[2].ptr, fields[2].len);
+    tick->TradingDay = (int32_t)atoi_n(fields[3].ptr, fields[3].len);
+    tick->ActionDay = (int32_t)atoi_n(fields[4].ptr, fields[4].len);
+    tick->UpdateTime = conv_time_str(fields[5].ptr) * 1000 + (int32_t)atoi_n(fields[5].ptr + 9, 3);
 
-    tick->LastPrice = atof(fields[3].ptr);
-    tick->OpenInterest = atof(fields[4].ptr);
-    tick->Turnover = atof(fields[5].ptr);
-    tick->Volume = atoi(fields[7].ptr);
-
-    tick->BidPrice[0] = atof(fields[12].ptr);
-    tick->AskPrice[0] = atof(fields[13].ptr);
-    tick->BidVolume[0] = atoi(fields[12].ptr);
-    tick->AskVolume[0] = atoi(fields[13].ptr);
+    tick->OpenPrice = atof(fields[6].ptr);
+    tick->HighPrice = atof(fields[7].ptr);
+    tick->LowPrice = atof(fields[8].ptr);
+    tick->LastPrice = atof(fields[9].ptr);
+    tick->Volume = atoi(fields[10].ptr);
+    tick->Turnover = atof(fields[11].ptr);
+    tick->OpenInterest = atof(fields[13].ptr);
+    tick->ClosePrice = atof(fields[14].ptr);
+    tick->UpperLimit = atof(fields[15].ptr);
+    tick->LowerLimit = atof(fields[16].ptr);
+    tick->PreClosePrice = atof(fields[17].ptr);
+    tick->PreSettlementPrice = atof(fields[18].ptr);
+    tick->PreOpenInterest = atof(fields[19].ptr);
+    tick->SettlementPrice = atof(fields[20].ptr);
+    tick->BidPrice[0] = atof(fields[22].ptr);
+    tick->BidVolume[0] = atoi(fields[23].ptr);
+    tick->AskPrice[0] = atof(fields[24].ptr);
+    tick->AskVolume[0] = atoi(fields[25].ptr);
 
     ztl_array_push_back(array, &tick);
     return ZS_OK;
@@ -94,15 +111,15 @@ int main(int argc, char* argv[])
     zs_data_portal_t* data_portal;
     data_portal = zs_data_portal_create();
 
-#if 0
+#if 1
     // load history ohlc, benchmark data
     ztl_array_t ohlc_datas;
-    ztl_array_init(&ohlc_datas, NULL, 32000, sizeof(zs_tick_t*));
+    ztl_array_init(&ohlc_datas, NULL, 48000, sizeof(zs_tick_t*));
 
     zs_csv_loader_t csv_loader;
     memset(&csv_loader, 0, sizeof(csv_loader));
-    csv_loader.filename = "i1905_20180903-05.csv";
-    csv_loader.parse_line_fields = _parse_line_tick_fdata;
+    csv_loader.filename = "rb1910_md_20190731.csv";
+    csv_loader.parse_line_fields = _parse_line_tick_data;
     csv_loader.have_header = 1;
     csv_loader.is_tick_data = 1;
     csv_loader.sep = ",";
@@ -158,7 +175,13 @@ int main(int argc, char* argv[])
     zs_algorithm_add_account2(algo, &account_conf);
 
     // !example code! add one strategy (by json buffer)
-    const char* strategy_setting = "{\"Symbol\": \"rb1910\", \"StrategyName\": \"strategy_demo\", \"AccountID\": \"038313\"}";
+    const char* strategy_setting;
+    if (params.RunMode == ZS_RM_Backtest) {
+        strategy_setting = "{\"Symbol\": \"rb1910\", \"StrategyName\": \"strategy_demo\", \"AccountID\": \"backtest\"}";
+    }
+    else {
+        strategy_setting = "{\"Symbol\": \"rb1910\", \"StrategyName\": \"strategy_demo\", \"AccountID\": \"038313\"}";
+    }
     zs_algorithm_add_strategy(algo, strategy_setting);
 
     // init the algorithm
@@ -200,9 +223,9 @@ int main(int argc, char* argv[])
 
         zs_strategy_update(algo->StrategyEngine, strategy, buffer);
     }
-    fprintf(stderr, "zs algorithm stopping.");
+    fprintf(stderr, "zs algorithm stopping.\n");
     zs_algorithm_stop(algo);
-    fprintf(stderr, "zs algorithm stopped.");
+    fprintf(stderr, "zs algorithm stopped.\n");
 
     // get run result from algo
     ztl_array_t result;

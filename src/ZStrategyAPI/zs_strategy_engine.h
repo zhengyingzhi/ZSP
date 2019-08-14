@@ -14,6 +14,7 @@
 #include <ZToolLib/ztl_map.h>
 #include <ZToolLib/ztl_vector.h>
 
+#include "zs_bar_generator.h"
 #include "zs_core.h"
 #include "zs_cta_strategy.h"
 #include "zs_hashdict.h"
@@ -47,6 +48,7 @@ struct zs_strategy_engine_s
 
     uint32_t            StrategyBaseID;     // 策略编号
     int32_t             TradingDay;         // 交易日
+    int32_t             AutoGenBar;         // 自动合成分钟bar
 };
 
 /* cta engine related

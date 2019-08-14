@@ -27,7 +27,7 @@ static inline int is_finished_status(ZSOrderStatus status) {
 
 
 /// convert exchagne name as exchange id
-ZSExchangeID zs_convert_exchange_name(const char* exchange_name);
+ZSExchangeID zs_convert_exchange_name(const char* exchange_name, int len);
 
 /// convert exchagne name as exchange id
 const char* zs_convert_exchange_id(ZSExchangeID exchange_id);

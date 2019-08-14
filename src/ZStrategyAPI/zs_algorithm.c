@@ -139,11 +139,11 @@ static int _zs_load_brokers(zs_algorithm_t* algo)
 #endif
 
         if (tdapi->APIName) {
-            zs_log_info(algo->Log, "algo: load_broker add_tradeapi %s\n", tdapi->APIName);
+            zs_log_info(algo->Log, "algo: load_broker add_tradeapi %s", tdapi->APIName);
             zs_broker_add_tradeapi(algo->Broker, tdapi);
         }
         if (mdapi->APIName) {
-            zs_log_info(algo->Log, "algo: load_broker add_mdapi %s\n", mdapi->APIName);
+            zs_log_info(algo->Log, "algo: load_broker add_mdapi %s", mdapi->APIName);
             zs_broker_add_mdapi(algo->Broker, mdapi);
         }
     }
@@ -361,8 +361,12 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
         zs_simulator_regist_mdapi(simu, mdapi, &md_handlers);
         algo->Simulator = simu;
 
-        if (data_portal)
+        if (data_portal) {
             zs_simulator_set_mdseries(simu, data_portal->RawDatas, data_portal->IsTick);
+        }
+
+        zs_strategy_start_all(algo->StrategyEngine, NULL);
+
         zs_simulator_run(simu);
     }
     else
@@ -458,11 +462,11 @@ int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting
         blotter = zs_blotter_create(algo, acccount_id);
         if (!blotter)
         {
-            zs_log_error(algo->Log, "algo: add_strategy create blotter failed for %s\n", acccount_id);
+            zs_log_error(algo->Log, "algo: add_strategy create blotter failed for %s", acccount_id);
             zs_json_release(zjson);
             return ZS_ERROR;
         }
-        zs_log_info(algo->Log, "algo: dd_strategy create blotter for %s\n", acccount_id);
+        zs_log_info(algo->Log, "algo: dd_strategy create blotter for %s", acccount_id);
 
         zs_blotter_manager_add(&algo->BlotterMgr, blotter);
     }
@@ -477,7 +481,7 @@ int zs_algorithm_add_strategy(zs_algorithm_t* algo, const char* strategy_setting
     }
     else
     {
-        zs_log_error(algo->Log, "algo: add_strategy create strategy:%s failed\n", strategy_name);
+        zs_log_error(algo->Log, "algo: add_strategy create strategy:%s failed", strategy_name);
         zs_json_release(zjson);
         return ZS_ERROR;
     }
@@ -722,7 +726,7 @@ static void _zs_algo_handle_margin_rate(zs_event_engine_t* ee, zs_algorithm_t* a
         zs_category_info_t* category_obj;
         category_obj = zs_category_find(algo->Category, margin_rate->Symbol);
         if (category_obj)
-            margin_rate->ExchangeID = zs_convert_exchange_name(category_obj->Exchange);
+            margin_rate->ExchangeID = zs_convert_exchange_name(category_obj->Exchange, 0);
     }
 
     contract = (zs_contract_t*)zs_asset_find(algo->AssetFinder, margin_rate->ExchangeID,
@@ -754,7 +758,7 @@ static void _zs_algo_handle_comm_rate(zs_event_engine_t* ee, zs_algorithm_t* alg
         zs_category_info_t* category_obj;
         category_obj = zs_category_find(algo->Category, comm_rate->Symbol);
         if (category_obj)
-            comm_rate->ExchangeID = zs_convert_exchange_name(category_obj->Exchange);
+            comm_rate->ExchangeID = zs_convert_exchange_name(category_obj->Exchange, 0);
     }
 
     contract = (zs_contract_t*)zs_asset_find(algo->AssetFinder, comm_rate->ExchangeID,
@@ -829,7 +833,7 @@ static void _zs_algo_handle_bar(zs_event_engine_t* ee, zs_algorithm_t* algo,
     bar = (zs_bar_t*)zd_data_body(evdata);
     ztl_memcpy(&bar_reader, bar, sizeof(void*));
 
-    zs_log_trace(algo->Log, "algo: handler_bar symbol:%s, close:%.2lf, time:%ld\n", bar->Symbol, bar->ClosePrice, bar->BarTime);
+    zs_log_trace(algo->Log, "algo: handler_bar symbol:%s, close:%.2lf, time:%ld", bar->Symbol, bar->ClosePrice, bar->BarTime);
 
     for (uint32_t i = 0; i < ztl_array_size(algo->BlotterMgr.BlotterArray); ++i)
     {

@@ -74,7 +74,7 @@ zs_blotter_t* zs_blotter_create(zs_algorithm_t* algo, const char* accountid)
     // FIXME: the api object
     blotter->TradeApi = zs_broker_get_tradeapi(algo->Broker, account_conf->TradeAPIName);
     if (!blotter->TradeApi) {
-        zs_log_error(algo->Log, "blotter: create no tradeapi for account:%s, apiname:%s\n",
+        zs_log_error(algo->Log, "blotter: create no tradeapi for account:%s, apiname:%s",
             accountid, account_conf->TradeAPIName);
         return NULL;
     }
@@ -372,7 +372,7 @@ int zs_blotter_handle_account(zs_blotter_t* blotter, zs_fund_account_t* fund_acc
     blotter->TradingDay = fund_account->TradingDay;
     zs_account_fund_update(blotter->Account, fund_account);
 
-    zs_log_info(blotter->Log, "blotter: fund account bal:%.2lf, avail:%.2lf, frozen:%.2lf, margin:%.2lf\n",
+    zs_log_info(blotter->Log, "blotter: fund account bal:%.2lf, avail:%.2lf, frozen:%.2lf, margin:%.2lf",
         fund_account->Balance, fund_account->Available, fund_account->FrozenCash, fund_account->Margin);
     return ZS_OK;
 }
@@ -388,7 +388,7 @@ int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos)
         return ZS_OK;
     }
 
-    zs_log_info(blotter->Log, "blotter: position symbol:%s, pos:%d, price:%.2lf, margin:%.2lf\n",
+    zs_log_info(blotter->Log, "blotter: position symbol:%s, pos:%d, price:%.2lf, margin:%.2lf",
         pos->Symbol, pos->Position, pos->PositionPrice, pos->UseMargin);
 
     sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos->ExchangeID,
@@ -433,7 +433,7 @@ int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_
         return ZS_OK;
     }
 
-    zs_log_info(blotter->Log, "blotter: position detail symbol:%s, vol:%d, open_price:%.2lf, pos_price:%.2lf, open_date:%d\n",
+    zs_log_info(blotter->Log, "blotter: position detail symbol:%s, vol:%d, open_price:%.2lf, pos_price:%.2lf, open_date:%d",
          pos_detail->Symbol, pos_detail->Volume, pos_detail->OpenPrice, pos_detail->PositionPrice, pos_detail->OpenDate);
 
     sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos_detail->ExchangeID,
@@ -489,12 +489,12 @@ int zs_blotter_handle_order_req(zs_blotter_t* blotter, zs_order_req_t* order_req
 
     if (!contract)
     {
-        zs_log_error(blotter->Log, "blotter: handle_order_req not find contract for account:%s, symbol:%s, sid:%ld\n",
+        zs_log_error(blotter->Log, "blotter: handle_order_req not find contract for account:%s, symbol:%s, sid:%ld",
             order_req->AccountID, order_req->Symbol, order_req->Sid);
         return ZS_ERR_NoContract;
     }
 
-    zs_log_info(blotter->Log, "blotter: handle_order_req for account:%s, symbol:%s, qty:%d, px:%.2lf, dir:%d, offset:%d, sid:%ld\n",
+    zs_log_info(blotter->Log, "blotter: handle_order_req for account:%s, symbol:%s, qty:%d, px:%.2lf, dir:%d, offset:%d, sid:%ld",
         order_req->AccountID, order_req->Symbol, order_req->OrderQty, order_req->OrderPrice, order_req->Direction, order_req->OffsetFlag, order_req->Sid);
 
     account = blotter->Account;
@@ -527,7 +527,7 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     ZSOrderStatus   order_status;
     zs_position_engine_t* pos_engine;
 
-    zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s, status:%d\n",
+    zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s, status:%d",
         order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID, order->OrderStatus);
 
     pos_engine = NULL;
@@ -629,7 +629,7 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
     zs_position_engine_t*   pos_engine;
     char zs_tradeid[32];    // 过滤重复成交
 
-    zs_log_info(blotter->Log, "blotter: handle_trade symbol:%s, tid:%s, qty:%d, px:%.2lf\n",
+    zs_log_info(blotter->Log, "blotter: handle_trade symbol:%s, tid:%s, qty:%d, px:%.2lf",
         trade->Symbol, trade->TradeID, trade->Volume, trade->Price);
 
     int len = zs_make_id(zs_tradeid, trade->ExchangeID, trade->TradeID);
