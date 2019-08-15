@@ -265,7 +265,7 @@ int zs_bt_md_unsubscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* unsub_re
 //////////////////////////////////////////////////////////////////////////
 /* the backtest trader apis */
 zs_trade_api_t bt_tdapi = {
-    "backtest",
+    ZS_BACKTEST_APINAME,
     NULL,                   // dso handle
     NULL,                   // api user data
     NULL,                   // api instance
@@ -287,7 +287,7 @@ zs_trade_api_t bt_tdapi = {
 
 /* the backtest md apis */
 zs_md_api_t bt_mdapi = {
-    "backtest",
+    ZS_BACKTEST_APINAME,
     NULL,                   // dso handle
     NULL,                   // api user data
     NULL,                   // api instance

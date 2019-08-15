@@ -26,7 +26,9 @@ typedef struct my_strategy_demo_s
     char            account_id[16];     // 交易账号
     char            symbol[32];         // 交易合约
     int32_t         volume;             // 下单数量
+    double          price_tick;
     double          last_price;
+    zs_bar_t        last_bar;
 }my_strategy_demo_t;
 
 
@@ -37,6 +39,7 @@ void* stg_demo_create(zs_cta_strategy_t* context, const char* setting)
 
     // some default values
     instance->volume = 1;
+    instance->price_tick = 1.0;
     instance->last_price = 0.0;
 
     // parse the setting
@@ -202,20 +205,73 @@ void stg_demo_handle_trade(my_strategy_demo_t* instance, zs_cta_strategy_t* cont
 // 行情通知
 void stg_demo_handle_bar(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_bar_reader_t* bar_reader)
 {
+    int rv, placed;
     zs_bar_t* bar;
     bar = &bar_reader->Bar;
-    fprintf(stderr, "demo hanble_bar symbol:%s,o:%.2lf,h:%.2lf,l:%.2lf,c:%.2lf,time:%lld\n", 
-        bar->Symbol, bar->OpenPrice, bar->HighPrice, bar->LowPrice, bar->ClosePrice, bar->BarTime);
+
+    rv = -1;
+    placed = 0;
+
+    if (!instance->last_bar.Symbol[0])
+    {
+        memcpy(&instance->last_bar, bar, sizeof(zs_bar_t));
+    }
+    else
+    {
+        zs_position_engine_t* pos_engine = NULL;
+        context->get_account_position(context, &pos_engine, instance->sid);
+
+        if (bar->ClosePrice > instance->last_bar.ClosePrice)
+        {
+            if (!pos_engine || pos_engine->LongPos == 0)
+            {
+                placed = 1;
+                rv = context->order(context, instance->sid, 1, bar->ClosePrice + instance->price_tick,
+                    ZS_D_Long, ZS_OF_Open);
+                fprintf(stderr, " long-open rv:%d\n", rv);
+            }
+            else if (pos_engine && pos_engine->ShortPos > 0)
+            {
+                placed = 1;
+                rv = context->order(context, instance->sid, pos_engine->ShortPos, bar->ClosePrice + instance->price_tick,
+                    ZS_D_Long, ZS_OF_Close);
+                fprintf(stderr, " long-close rv:%d\n", rv);
+            }
+        }
+        else if (bar->ClosePrice + 1.0 < instance->last_bar.ClosePrice)
+        {
+            if (!pos_engine || pos_engine->ShortPos == 0)
+            {
+                placed = 1;
+                rv = context->order(context, instance->sid, 1, bar->ClosePrice - instance->price_tick, ZS_D_Short, ZS_OF_Open);
+                fprintf(stderr, " short-open rv:%d\n", rv);
+            }
+            else if (pos_engine && pos_engine->LongPos > 0)
+            {
+                placed = 1;
+                rv = context->order(context, instance->sid, pos_engine->LongPos, bar->ClosePrice - instance->price_tick, ZS_D_Short, ZS_OF_Close);
+                fprintf(stderr, " short-close rv:%d\n", rv);
+            }
+        }
+    }
+
+    if (placed)
+    {
+        fprintf(stderr, "demo hanble_bar symbol:%s,o:%.2lf,h:%.2lf,l:%.2lf,c:%.2lf,time:%lld\n",
+            bar->Symbol, bar->OpenPrice, bar->HighPrice, bar->LowPrice, bar->ClosePrice, bar->BarTime);
+    }
 }
 
 void stg_demo_handle_tick(my_strategy_demo_t* instance, zs_cta_strategy_t* context, zs_tick_t* tick)
 {
     // visit the tick data
+#if 0
     static int count2 = 0;
     count2 += 1;
     if ((count2 & 7) == 0)
         fprintf(stderr, "demo handle_tick symbol:%s, lastpx:%.2lf, vol:%lld\n",
             tick->Symbol, tick->LastPrice, tick->Volume);
+#endif//0
 
     instance->last_price = tick->LastPrice;
 

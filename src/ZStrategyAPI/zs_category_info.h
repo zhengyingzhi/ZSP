@@ -32,6 +32,7 @@ struct zs_category_info_s
     int32_t Decimal;
     int32_t Months[12];
     char    LastTradingDay[8];
+    double  MarginRatio;
     double  OpenRatio;
     double  CloseRatio;
     double  CloseTodayRatio;
@@ -64,6 +65,7 @@ zs_category_info_t* zs_category_find(zs_category_t* category_obj, const char* sy
 
 int32_t zs_category_last_trading_day(zs_category_t* category_obj, const char* symbol);
 
+void zs_category_to_contract(zs_contract_t* contract, const char* symbol, const zs_category_info_t* category_info);
 
 /* get variety code integer
  */

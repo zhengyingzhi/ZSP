@@ -53,13 +53,13 @@ static zs_slippage_model_t ZSVolumeShareSlippage = {
 
 static int _zs_next_order_sysid(zs_slippage_t* slippage, char order_sysid[])
 {
-    uint32_t sysid = ztl_atomic_add(&slippage->order_sysid, 1);
+    uint32_t sysid = ztl_atomic_add(&slippage->OrderSysID, 1);
     return sprintf(order_sysid, "%11u", sysid);
 }
 
 static int _zs_next_trade_id(zs_slippage_t* slippage, char trade_id[])
 {
-    uint32_t tid = ztl_atomic_add(&slippage->trade_id, 1);
+    uint32_t tid = ztl_atomic_add(&slippage->TradeID, 1);
     return sprintf(trade_id, "%u", tid);
 }
 
@@ -94,8 +94,9 @@ zs_slippage_t* zs_slippage_create(zs_slippage_handler_pt handler, void* userdata
     if (!slippage->Handler)
         slippage->Handler   = _zs_slippage_handler_empty;
 
-    slippage->order_sysid  = 1;
-    slippage->trade_id     = 1;
+    slippage->OrderID       = 1;
+    slippage->OrderSysID    = 1;
+    slippage->TradeID       = 1;
 
     return slippage;
 }
@@ -186,10 +187,10 @@ void zs_slippage_reset(zs_slippage_t* slippage)
 
 int zs_slippage_update_tradingday(zs_slippage_t* slippage, int32_t trading_day)
 {
-    if (slippage->trading_day == trading_day) {
+    if (slippage->TradingDay == trading_day) {
         return ZS_EXISTED;
     }
-    else if (slippage->trading_day < trading_day) {
+    else if (slippage->TradingDay < trading_day) {
         return ZS_ERROR;
     }
 
@@ -199,11 +200,17 @@ int zs_slippage_update_tradingday(zs_slippage_t* slippage, int32_t trading_day)
     return ZS_OK;
 }
 
-int zs_slippage_order(zs_slippage_t* slippage, 
-    const zs_order_req_t* order_req)
+int zs_slippage_order(zs_slippage_t* slippage, zs_order_req_t* order_req)
 {
     zs_order_t* order;
     order = (zs_order_t*)ztl_mp_alloc(slippage->MemPool);
+    memset(order, 0, sizeof(zs_order_t));
+
+    if (!order_req->OrderID[0])
+    {
+        sprintf(order_req->OrderID, "%d", slippage->OrderID++);
+    }
+
     zs_generate_order(order, order_req, 0);
 
     // add to new order firstly
@@ -212,15 +219,13 @@ int zs_slippage_order(zs_slippage_t* slippage,
     return 0;
 }
 
-int zs_slippage_quote_order(zs_slippage_t* slippage, 
-    const zs_quote_order_req_t* quoteOrderReq)
+int zs_slippage_quote_order(zs_slippage_t* slippage, zs_quote_order_req_t* quoteOrderReq)
 {
     return ZS_ERR_NotImpl;
 }
 
 
-int zs_slippage_cancel(zs_slippage_t* slippage,
-    const zs_cancel_req_t* cancel_req)
+int zs_slippage_cancel(zs_slippage_t* slippage, zs_cancel_req_t* cancel_req)
 {
     zs_cancel_req_t* cancel_req_dup;
     cancel_req_dup = (zs_cancel_req_t*)ztl_mp_alloc(slippage->MemPool);
@@ -372,7 +377,7 @@ int zs_slippage_process_order(zs_slippage_t* slippage,
         // get the order filled price & volume
         if (bar_reader)
         {
-            if (!bar_reader->DataPortal && bar_reader->Bar.Sid != cur_order->Sid) {
+            if (!bar_reader->DataPortal) {
                 continue;
             }
 
@@ -382,9 +387,9 @@ int zs_slippage_process_order(zs_slippage_t* slippage,
         }
         else if (tick)
         {
-            if (tick->Sid != cur_order->Sid) {
-                continue;
-            }
+            // if (tick->Sid != cur_order->Sid) {
+            //     continue;
+            // }
 
             rv = slippage->SlippageModel->process_order_by_tick(
                 slippage->SlippageModel, tick, cur_order,
@@ -445,7 +450,7 @@ int zs_slippage_session_start(zs_slippage_t* slippage, zs_bar_reader_t* current_
 
 int zs_slippage_session_before_trading(zs_slippage_t* slippage, zs_bar_reader_t* current_data)
 {
-    slippage->trading_day = zs_session_to_date(current_data->CurrentDt);
+    slippage->TradingDay = zs_session_to_date(current_data->CurrentDt);
     return ZS_OK;
 }
 
@@ -494,19 +499,22 @@ static void zs_generate_order(zs_order_t* order, const zs_order_req_t* order_req
 
     order->OrderStatus  = ZS_OS_Pending;
 
-    if ((filled_qty + order->FilledQty) < order_req->OrderQty) {
-        order->OrderStatus = ZS_OS_PartFilled;
-    }
-    else if ((filled_qty + order->FilledQty) == order_req->OrderQty) {
-        order->OrderStatus = ZS_OS_Filled;
+    if (filled_qty > 0)
+    {
+        if ((filled_qty + order->FilledQty) < order_req->OrderQty) {
+            order->OrderStatus = ZS_OS_PartFilled;
+        }
+        else if ((filled_qty + order->FilledQty) == order_req->OrderQty) {
+            order->OrderStatus = ZS_OS_Filled;
+        }
     }
 
     int64_t dt = ztl_intdatetime();
     order->OrderDate = (int32_t)(dt / 100000000);
     order->OrderTime = (int32_t)(dt % 100000000);
 
-    order->FrontID = 1;
-    order->SessionID = 1;
+    order->FrontID = 0;
+    order->SessionID = 0;
 }
 
 static void zs_update_order(zs_order_t* order, double filled_price, int filled_qty)
@@ -591,7 +599,7 @@ static int _zs_process_order_bar_volume_share(
 
     if (order->Direction == ZS_D_Long)
     {
-        if (price >= order->OrderPrice)
+        if (price <= order->OrderPrice)
         {
             *pfilled_price = price;
             *pfilled_qty = order->OrderQty;
@@ -600,7 +608,7 @@ static int _zs_process_order_bar_volume_share(
     }
     else if (order->Direction == ZS_D_Short)
     {
-        if (price <= order->OrderPrice)
+        if (price >= order->OrderPrice)
         {
             *pfilled_price = price;
             *pfilled_qty = order->OrderQty;
@@ -622,7 +630,7 @@ static int _zs_process_order_tick(
 
     if (order->Direction == ZS_D_Long)
     {
-        if (last_px >= order->OrderPrice)
+        if (last_px < order->OrderPrice)
         {
             *pfilled_price = last_px;
             *pfilled_qty = order->OrderQty;
@@ -631,7 +639,7 @@ static int _zs_process_order_tick(
     }
     else if (order->Direction == ZS_D_Short)
     {
-        if (last_px <= order->OrderPrice)
+        if (last_px > order->OrderPrice)
         {
             *pfilled_price = last_px;
             *pfilled_qty = order->OrderQty;

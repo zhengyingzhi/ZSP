@@ -450,20 +450,20 @@ int zs_algo_param_init(zs_algo_param_t* algo_param)
     zs_conf_broker_t* broker_conf;
     broker_conf = (zs_conf_broker_t*)malloc(sizeof(zs_conf_broker_t));
     memset(broker_conf, 0, sizeof(zs_conf_broker_t));
-    strcpy(broker_conf->BrokerID, "0000");
-    strcpy(broker_conf->BrokerName, "INNER");
-    strcpy(broker_conf->APIName, "backtest");
+    strcpy(broker_conf->BrokerID, ZS_BACKTEST_BROKERID);
+    strcpy(broker_conf->BrokerName, ZS_BACKTEST_BROKERNAME);
+    strcpy(broker_conf->APIName, ZS_BACKTEST_APINAME);
     ztl_array_push_back(&algo_param->BrokerConf, &broker_conf);
 
     zs_conf_account_t* account_conf;
     account_conf = (zs_conf_account_t*)malloc(sizeof(zs_conf_account_t));
     memset(account_conf, 0, sizeof(zs_conf_account_t));
-    strncpy(account_conf->AccountID, "backtest", sizeof(account_conf->AccountID));
-    strncpy(account_conf->AccountName, "backtester", sizeof(account_conf->AccountName));
-    strncpy(account_conf->Password, "000000", sizeof(account_conf->Password));
-    strncpy(account_conf->BrokerID, "0000", sizeof(account_conf->BrokerID));
-    strncpy(account_conf->TradeAPIName, "backtest", sizeof(account_conf->TradeAPIName));
-    strncpy(account_conf->MDAPIName, "backtest", sizeof(account_conf->MDAPIName));
+    strncpy(account_conf->AccountID, ZS_BACKTEST_ACCOUNTID, sizeof(account_conf->AccountID));
+    strncpy(account_conf->AccountName, ZS_BACKTEST_ACCOUNTNAME, sizeof(account_conf->AccountName));
+    strncpy(account_conf->Password, "", sizeof(account_conf->Password));
+    strncpy(account_conf->BrokerID, ZS_BACKTEST_BROKERID, sizeof(account_conf->BrokerID));
+    strncpy(account_conf->TradeAPIName, ZS_BACKTEST_APINAME, sizeof(account_conf->TradeAPIName));
+    strncpy(account_conf->MDAPIName, ZS_BACKTEST_APINAME, sizeof(account_conf->MDAPIName));
     ztl_array_push_back(&algo_param->AccountConf, &account_conf);
 
     return ZS_OK;

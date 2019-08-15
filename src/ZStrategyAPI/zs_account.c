@@ -115,7 +115,8 @@ static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDi
 {
     // 冻结保证金
     double frozen_margin = 0.0;
-    frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
+    double margin_ratio = (direction == ZS_D_Long) ? contract->LongMarginRateByMoney : contract->ShortMarginRateByMoney;
+    frozen_margin = calculate_margin(price, volume, contract->Multiplier, margin_ratio);
     if (frozen_margin > account->FundAccount.Available) {
         return ZS_ERR_AvailCash;
     }
@@ -147,7 +148,8 @@ static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid
 {
     // 释放保证金
     double frozen_margin = 0.0;
-    frozen_margin = calculate_margin(price, volume, contract->Multiplier, contract->OpenRatioByMoney);
+    double margin_ratio = (direction == ZS_D_Long) ? contract->LongMarginRateByMoney : contract->ShortMarginRateByMoney;
+    frozen_margin = calculate_margin(price, volume, contract->Multiplier, margin_ratio);
 
     if (direction == ZS_D_Long) {
         update_frozen_margin_long(account, -frozen_margin);

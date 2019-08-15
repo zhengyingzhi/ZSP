@@ -319,6 +319,7 @@ int zs_blotter_save_order(zs_blotter_t* blotter, zs_order_req_t* order_req)
 
 zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_id, const char* order_sysid)
 {
+    // FIXME: find from work order list ?
     zs_order_t* order;
     order = zs_order_find_by_sysid(blotter->WorkOrderList, exchange_id, order_sysid);
     return order;
@@ -327,7 +328,7 @@ zs_order_t* zs_get_order_by_sysid(zs_blotter_t* blotter, ZSExchangeID exchange_i
 zs_order_t* zs_get_order_by_id(zs_blotter_t* blotter, int32_t frontid, int32_t sessionid, const char* orderid)
 {
     zs_order_t* order;
-    order = zs_order_find(blotter->WorkOrderList, frontid, sessionid, orderid);
+    order = zs_orderdict_find(blotter->OrderDict, frontid, sessionid, orderid);
     return order;
 }
 
@@ -521,7 +522,6 @@ int zs_blotter_handle_quote_order_req(zs_blotter_t* blotter,
 
 int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
 {
-    zs_order_t*     work_order;
     zs_order_t*     old_order;
     zs_contract_t*  contract;
     ZSOrderStatus   order_status;
@@ -530,7 +530,6 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s, status:%d",
         order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID, order->OrderStatus);
 
-    pos_engine = NULL;
     contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
     if (!contract) {
         return ZS_ERR_NoContract;
@@ -539,6 +538,7 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     // 查找本地委托并更新，若为挂单，则更新到workorders中，否则从workorders中删除
 
     order_status = order->OrderStatus;
+    pos_engine = zs_position_engine_get_ex(blotter, order->Sid);
 
     old_order = zs_get_order_by_id(blotter, order->FrontID, order->SessionID, order->OrderID);
     if (old_order)
@@ -552,10 +552,6 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
         }
 
         // 订单确认回报
-        if (order->OffsetFlag != ZS_OF_Open && old_order->OrderStatus == ZS_OS_Unknown)
-        {
-            pos_engine = zs_position_engine_get(blotter, order->Sid);
-        }
     }
     else
     {
@@ -567,37 +563,25 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
         // the order maybe from other client
         zs_orderdict_add_order(blotter->OrderDict, dup_order);
         zs_orderlist_append(blotter->WorkOrderList, dup_order);
-
-        if (order->OffsetFlag != ZS_OF_Open)
-        {
-            pos_engine = zs_position_engine_get(blotter, order->Sid);
-        }
-    }
-
-    // working order
-    work_order = zs_get_order_by_sysid(blotter, order->ExchangeID, order->OrderSysID);
-    if (!work_order)
-    {
-        return ZS_ERR_NoOrder;
     }
 
     // 首次委托确认，且为平仓单
-    if (pos_engine)
+    if (pos_engine && order->OffsetFlag != ZS_OF_Open && old_order->OrderStatus == ZS_OS_Unknown)
     {
         pos_engine->handle_order_req(pos_engine, order->Direction, order->OffsetFlag, order->OrderQty);
     }
 
     // 更新委托状态
-    if (!work_order->OrderSysID[0])
+    if (!old_order->OrderSysID[0])
     {
-        strcpy(work_order->OrderSysID, order->OrderSysID);
-        work_order->OrderDate = order->OrderDate;
-        work_order->OrderTime = order->OrderTime;
+        strcpy(old_order->OrderSysID, order->OrderSysID);
+        old_order->OrderDate = order->OrderDate;
+        old_order->OrderTime = order->OrderTime;
     }
-    work_order->FilledQty   = order->FilledQty;
-    work_order->AvgPrice    = order->AvgPrice;
-    work_order->OrderStatus = order->OrderStatus;
-    work_order->CancelTime  = order->CancelTime;
+    old_order->FilledQty   = order->FilledQty;
+    old_order->AvgPrice    = order->AvgPrice;
+    old_order->OrderStatus = order->OrderStatus;
+    old_order->CancelTime  = order->CancelTime;
 
     // 是否自动维护模式
     if (!blotter->IsSelfCalc) {
@@ -607,10 +591,12 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     if (is_finished_status(order->OrderStatus))
     {
         // 资金处理
-        zs_account_handle_order_finished(blotter->Account, work_order, contract);
+        zs_account_handle_order_finished(blotter->Account, old_order, contract);
+
+        // 从挂单队列中移除 ?
+        // zs_orderlist_remove(blotter->WorkOrderList, old_order);
 
         // 持仓处理
-        pos_engine = zs_position_engine_get(blotter, order->Sid);
         if (pos_engine)
         {
             pos_engine->handle_order_rtn(pos_engine, order);
@@ -625,7 +611,7 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
     // 开仓单成交：调整持仓，重新计算占用资金，计算持仓成本
     // 平仓单成交：解冻持仓，回笼资金
     zs_contract_t*          contract;
-    zs_order_t*             work_order;
+    zs_order_t*             old_order;
     zs_position_engine_t*   pos_engine;
     char zs_tradeid[32];    // 过滤重复成交
 
@@ -647,25 +633,23 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
     ztl_array_push_back(blotter->TradeArray, &trade);
 
     // 原始挂单
-    work_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);
-    if (!work_order) {
+    old_order = zs_get_order_by_sysid(blotter, trade->ExchangeID, trade->OrderSysID);
+    if (!old_order) {
         return ZS_ERR_NoOrder;
     }
 
     contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, trade->Sid);
 
-    work_order->FilledQty += trade->Volume;
-    if (work_order->FilledQty == work_order->OrderQty)
-        work_order->OrderStatus = ZS_OS_Filled;
-    else
-        work_order->OrderStatus = ZS_OS_PartFilled;
-
-    trade->FrontID = work_order->FrontID;
-    trade->SessionID = work_order->SessionID;
+    trade->FrontID = old_order->FrontID;
+    trade->SessionID = old_order->SessionID;
 
     // 是否自动维护模式
     if (blotter->IsSelfCalc)
     {
+        // 更新账户资金
+        zs_account_handle_trade_rtn(blotter->Account, old_order, trade, contract);
+
+        // 更新账户持仓
         pos_engine = zs_position_engine_get_ex(blotter, trade->Sid);
         if (!pos_engine)
         {
@@ -679,9 +663,15 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
             blotter->Account->AccountID, trade->Symbol, pos_engine->LongPos, pos_engine->ShortPos);
     }
 
+    if (is_finished_status(old_order->OrderStatus))
+    {
+        // 从挂单队列中移除
+        zs_orderlist_remove(blotter->WorkOrderList, old_order);
+    }
+
     // FIXME: get commission
     double commission;
-    commission = zs_commission_calculate(blotter->Commission, contract->ProductClass, work_order, trade);
+    commission = zs_commission_calculate(blotter->Commission, contract->ProductClass, old_order, trade);
     trade->Commission = commission;
     blotter->Account->FundAccount.Commission += commission;
 

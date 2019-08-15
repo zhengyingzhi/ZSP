@@ -71,9 +71,10 @@ void zs_bargen_update_tick(zs_bar_generator_t* bargen, zs_tick_t* tick)
 
         if (tick->TickDt.minute != bargen->LastTick.TickDt.minute)
         {
-            bar->BarDt.second = 0;
+            bar->BarDt.second   = 0;
             bar->BarDt.millisec = 0;
-            bargen->IsFinished = 1;
+            bargen->IsFinished  = 1;
+            bar->BarTime = (int64_t)tick->ActionDay * 1000000 + bar->BarDt.hour * 10000 + bar->BarDt.minute * 100;
 
             if (bargen->handle_bar)
                 bargen->handle_bar(bargen->UserData, bar);
@@ -94,12 +95,13 @@ void zs_bargen_update_bar(zs_bar_generator_t* bargen, zs_bar_t* bar)
     if (bargen->IsFinishedX)
     {
         bargen->IsFinishedX = 0;
-        barx->OpenPrice = bar->OpenPrice;
-        barx->HighPrice = bar->HighPrice;
-        barx->LowPrice = bar->LowPrice;
-        barx->ClosePrice = bar->ClosePrice;
-        barx->Volume = 0;
-        barx->BarDt = bar->BarDt;
+        barx->OpenPrice     = bar->OpenPrice;
+        barx->HighPrice     = bar->HighPrice;
+        barx->LowPrice      = bar->LowPrice;
+        barx->ClosePrice    = bar->ClosePrice;
+        barx->Volume        = 0;
+        barx->BarDt         = bar->BarDt;
+        barx->BarTime       = bar->BarTime;
         sprintf(barx->Period, "%dm", bargen->XMin);
     }
     else
@@ -111,11 +113,11 @@ void zs_bargen_update_bar(zs_bar_generator_t* bargen, zs_bar_t* bar)
         barx->Volume += bar->Volume;
         bar->Volume = 0;
         bar->BarDt = bar->BarDt;
+        barx->BarTime = bar->BarTime;
 
         if (bar->BarDt.minute % bargen->XMin == 0)
         {
             bargen->IsFinishedX = 1;
-            barx->BarDt = bar->BarDt;
 
             if (bargen->handle_barx) {
                 bargen->handle_barx(bargen->UserData, barx);

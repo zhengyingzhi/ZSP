@@ -139,6 +139,14 @@ int main(int argc, char* argv[])
     data_portal->RawDatas = &ohlc_datas;
     data_portal->IsTick = 1;
     params.RunMode = ZS_RM_Backtest;
+
+    zs_conf_backtest_t* bkt_conf;
+    bkt_conf = &params.BacktestConf;
+    bkt_conf->DataFrequency = ZS_DF_Tick;
+    bkt_conf->ProductType = ZS_PC_Future;
+    bkt_conf->CapitalBase = 100000;
+    bkt_conf->VolumeLimit = 0;
+    bkt_conf->FillPolicy = 0;
 #endif
 
     // run algo
@@ -187,6 +195,13 @@ int main(int argc, char* argv[])
     // init the algorithm
     rv = zs_algorithm_init(algo);
     assert(rv == 0);
+
+    // for backtest here
+    char* instruments[] = { "rb1910" };
+    if (params.RunMode == ZS_RM_Backtest)
+    {
+        zs_algorithm_set_instruments(algo, instruments, 1);
+    }
 
     // start running
     rv = zs_algorithm_run(algo, data_portal);

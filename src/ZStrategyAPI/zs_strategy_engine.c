@@ -156,7 +156,7 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, zs_strategy_engine_t
         zsdt->dt.millisec = tick->UpdateTime % 1000;
     }
 
-    int hour = tick->TickDt.hour;
+    int hour = (int)tick->TickDt.hour;
     if ((hour > 2 && hour < 9) || (hour > 15 && hour < 21)) {
         return;
     }

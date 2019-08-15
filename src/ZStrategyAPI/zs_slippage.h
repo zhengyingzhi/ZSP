@@ -87,9 +87,10 @@ struct zs_slippage_s
     void*                   UserData;           // 通常是 zs_simulator_t
     ZS_PRICE_FIELD_FILL     PriceField;         // 参考成交价格Open/Close
 
-    int32_t                 trading_day;
-    uint32_t                order_sysid;
-    uint32_t                trade_id;
+    int32_t                 TradingDay;
+    int32_t                 OrderID;
+    uint32_t                OrderSysID;
+    uint32_t                TradeID;
 };
 
 
@@ -106,9 +107,9 @@ int zs_slippage_update_tradingday(zs_slippage_t* slippage, int32_t trading_day);
 
 
 /* 输入/撤销订单 */
-int zs_slippage_order(zs_slippage_t* slippage, const zs_order_req_t* order_req);
-int zs_slippage_quote_order(zs_slippage_t* slippage, const zs_quote_order_req_t* quote_order_req);
-int zs_slippage_cancel(zs_slippage_t* slippage, const zs_cancel_req_t* cancel_req);
+int zs_slippage_order(zs_slippage_t* slippage, zs_order_req_t* order_req);
+int zs_slippage_quote_order(zs_slippage_t* slippage, zs_quote_order_req_t* quote_order_req);
+int zs_slippage_cancel(zs_slippage_t* slippage, zs_cancel_req_t* cancel_req);
 
 /* 回测事件，进行订单处理：撮合/取消等 */
 int zs_slippage_session_start(zs_slippage_t* slippage, zs_bar_reader_t* current_data);

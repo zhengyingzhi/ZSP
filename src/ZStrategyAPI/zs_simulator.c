@@ -29,6 +29,8 @@ static void _zs_simu_newtick_handler(zs_simulator_t* simu, zs_tick_t* tick);
 static int zs_simulator_run_ticks(zs_simulator_t* simu);
 static int zs_simulator_run_bars(zs_simulator_t* simu);
 
+static void zs_simulator_simu_handler(zs_simulator_t* simu);
+
 //////////////////////////////////////////////////////////////////////////
 zs_simulator_t* zs_simulator_create(zs_algorithm_t* algo)
 {
@@ -95,16 +97,17 @@ int zs_simulator_run(zs_simulator_t* simu)
 {
     simu->Running = ZS_RS_Running;
 
+    // 模拟API事件
+    zs_simulator_simu_handler(simu);
+
 #if 0
     /* 根据起止日期，从交易日历的时间信息，及回测时间段，然后生成各个事件
      * 循环获取交易日历中的各个日期（更新currentdt），然后依次触发各种回测事件
      */
 
-    zs_conf_backtest_t* bktconf;
     zs_bar_reader_t     current_data;
     int64_t             current_dt;
 
-    bktconf = simu->BacktestConf;
     zs_bar_reader_init(&current_data, simu->Algorithm->DataPortal);
     current_dt = zs_tc_first_session(simu->TradingCalendar);
 
@@ -156,6 +159,46 @@ int zs_simulator_run(zs_simulator_t* simu)
 }
 
 
+static void zs_simulator_simu_handler(zs_simulator_t* simu)
+{
+    zs_conf_backtest_t* bktconf;
+    bktconf = simu->BacktestConf;
+
+    // simulate notify some api events
+    zs_trade_api_handlers_t* td_handlers;
+    td_handlers = simu->TdHandlers;
+
+    zs_error_data_t err = { 0 };
+
+    // 连接成功
+    if (td_handlers->on_connect)
+    {
+        td_handlers->on_connect(simu->TdApi);
+    }
+
+    // 登录成功
+    if (td_handlers->on_login)
+    {
+        zs_login_t login = { 0 };
+        strcpy(login.BrokerID, ZS_BACKTEST_BROKERID);
+        strcpy(login.AccountID, ZS_BACKTEST_ACCOUNTID);
+        login.Result = 0;
+        td_handlers->on_login(simu->TdApi, &login, &err);
+    }
+
+    // 资金信息
+    if (td_handlers->on_qry_trading_account)
+    {
+        zs_fund_account_t fa = { 0 };
+        strcpy(fa.BrokerID, ZS_BACKTEST_BROKERID);
+        strcpy(fa.AccountID, ZS_BACKTEST_ACCOUNTID);
+        fa.PreBalance = bktconf->CapitalBase;
+        fa.Balance = bktconf->CapitalBase;
+        fa.Available = bktconf->CapitalBase;
+        fa.TradingDay = (int32_t)0;
+        td_handlers->on_qry_trading_account(simu->TdApi, &fa, &err, 1);
+    }
+}
 
 static void _zs_slippage_td_handler(zs_slippage_t* slippage, 
     ZSSlippageDataType data_type, void* data, int size)

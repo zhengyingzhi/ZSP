@@ -202,6 +202,7 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param)
     algo->StrategyEngine= zs_strategy_engine_create(algo);
     algo->Broker        = zs_broker_create(algo);
     algo->RiskControl   = NULL;
+    // algo->Instruments   = NULL;
 
     // 加载API
     _zs_load_brokers(algo);
@@ -273,6 +274,37 @@ int zs_algorithm_init(zs_algorithm_t* algo)
     zs_category_init(algo->Category);
     zs_category_load(algo->Category, "category.json");
 
+    return ZS_OK;
+}
+
+int zs_algorithm_set_instruments(zs_algorithm_t* algo, char* instruments[], int count)
+{
+    zs_category_info_t* category_info;
+    zs_contract_t*      contract;
+    char*       instrument;
+    zs_sid_t    sid;
+    int i;
+    for (i = 0; i < count; ++i)
+    {
+        instrument = instruments[i];
+        if (!instrument || !instrument[0]) {
+            continue;
+        }
+
+        // support future firstly
+        category_info = zs_category_find(algo->Category, instrument);
+        if (!category_info) {
+            continue;
+        }
+
+        sid = ZS_SID_INVALID;
+        contract = (zs_contract_t*)ztl_pcalloc(algo->Pool, sizeof(zs_contract_t));
+        zs_category_to_contract(contract, instrument, category_info);
+        zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID, 
+            contract->Symbol, (int)strlen(contract->Symbol), contract);
+        if (sid != ZS_SID_INVALID)
+            contract->Sid = sid;
+    }
     return ZS_OK;
 }
 

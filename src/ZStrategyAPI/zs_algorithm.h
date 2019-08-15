@@ -45,6 +45,7 @@ struct zs_algorithm_s
     zs_strategy_engine_t*   StrategyEngine; // 各个策略的管理
     zs_broker_t*            Broker;         // 经纪商接口
     zs_risk_control_t*      RiskControl;    // 风控
+    // ztl_array_t*            Instruments;    // instruments mainly for backtest
 
     zs_log_t*               Log;
 };
@@ -54,6 +55,8 @@ zs_algorithm_t* zs_algorithm_create(zs_algo_param_t* algo_param);
 void zs_algorithm_release(zs_algorithm_t* algo);
 
 int zs_algorithm_init(zs_algorithm_t* algo);
+
+int zs_algorithm_set_instruments(zs_algorithm_t* algo, char* instruments[], int count);
 
 int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal);
 

@@ -6,6 +6,7 @@
 #include <ZToolLib/ztl_config.h>
 
 #include "zs_category_info.h"
+#include "zs_constants_helper.h"
 #include "zs_error.h"
 
 #ifdef _MSC_VER
@@ -140,11 +141,11 @@ int zs_category_load(zs_category_t* category_obj, const char* info_file)
 
         int32_t comm_type = 0;
         zs_get_int_object_value(tnode, "commission_type", &comm_type);
-
         ci->CommType = (comm_type == 1) ? ZS_COMMT_ByVolume : ZS_COMMT_ByMoney;
-        zs_get_double_object_value(tnode, "multiplier", &ci->OpenRatio);
+        zs_get_double_object_value(tnode, "commission_open", &ci->OpenRatio);
         zs_get_double_object_value(tnode, "commission_yesterday", &ci->CloseRatio);
         zs_get_double_object_value(tnode, "commission_today", &ci->CloseTodayRatio);
+        zs_get_double_object_value(tnode, "margin_rate", &ci->MarginRatio);
 
         variety_int = zs_get_variety_int(ci->Code);
         dictAdd(category_obj->Dict, (void*)variety_int, ci);
@@ -175,3 +176,34 @@ zs_category_info_t* zs_category_find(zs_category_t* category_obj, const char* co
     return NULL;
 }
 
+
+void zs_category_to_contract(zs_contract_t* contract, const char* symbol, const zs_category_info_t* category_info)
+{
+    contract->ExchangeID = zs_convert_exchange_name(category_info->Exchange, 0);
+    strncpy(contract->Symbol, symbol, sizeof(contract->Symbol) - 1);
+    strncpy(contract->SymbolName, category_info->Name, sizeof(contract->SymbolName) - 1);
+    contract->PriceTick     = category_info->PriceTick;
+    contract->Multiplier    = category_info->Multiplier;
+    contract->Decimal       = category_info->Decimal;
+    contract->LongMarginRateByMoney     = category_info->MarginRatio;
+    contract->ShortMarginRateByMoney    = category_info->MarginRatio;
+
+    if (category_info->CommType == ZS_COMMT_ByMoney)
+    {
+        contract->OpenRatioByMoney = category_info->OpenRatio;
+        contract->CloseRatioByMoney = category_info->CloseRatio;
+        contract->CloseTodayRatioByMoney = category_info->CloseTodayRatio;
+    }
+    else
+    {
+        contract->OpenRatioByVolume = category_info->OpenRatio;
+        contract->CloseRatioByVolume = category_info->CloseRatio;
+        contract->CloseTodayRatioByVolume = category_info->CloseTodayRatio;
+    }
+
+    // FIXME
+    if (strcmp(category_info->Product, "future") == 0)
+        contract->ProductClass = ZS_PC_Future;
+    else
+        contract->ProductClass = ZS_PC_Stock;
+}

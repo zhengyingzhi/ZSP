@@ -11,6 +11,14 @@
 #define _ZS_CONSTANTS_H_INCLUDED_
 
 
+/* some commons */
+#define ZS_BACKTEST_BROKERID    "0000"
+#define ZS_BACKTEST_BROKERNAME  "INNER"
+#define ZS_BACKTEST_ACCOUNTID   "backtest"
+#define ZS_BACKTEST_ACCOUNTNAME "backtester"
+#define ZS_BACKTEST_APINAME     "backtest_api"
+
+
 /* instrument length */
 #define ZS_SYMBOL_LEN       32
 #define ZS_SYMBOL_NAME_LEN  24
