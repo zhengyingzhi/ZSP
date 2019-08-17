@@ -715,11 +715,11 @@ int zs_blotter_handle_tick(zs_blotter_t* blotter, zs_tick_t* tick)
 int zs_blotter_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
 {
     double last_price;
+    zs_position_engine_t* pos_engine;
 
     // 遍历所有blotter的所有持仓，更新浮动盈亏等，最新价格等
     if (bar_reader->DataPortal)
     {
-        zs_position_engine_t* pos_engine;
         for (uint32_t i = 0; i < ztl_array_size(blotter->PositionArray); ++i)
         {
             pos_engine = (zs_position_engine_t*)ztl_array_at2(blotter->PositionArray, i);
@@ -736,14 +736,12 @@ int zs_blotter_handle_bar(zs_blotter_t* blotter, zs_bar_reader_t* bar_reader)
     else
     {
         zs_sid_t sid;
-        zs_position_engine_t* position;
-
         sid = bar_reader->Bar.Sid;
-        position = zs_position_engine_get(blotter, bar_reader->Bar.Sid);
-        if (position)
+        pos_engine = zs_position_engine_get(blotter, bar_reader->Bar.Sid);
+        if (pos_engine)
         {
             last_price = bar_reader->current2(bar_reader, sid, ZS_FT_Close);
-            zs_position_sync_last_price(position, last_price);
+            zs_position_sync_last_price(pos_engine, last_price);
         }
     }
 

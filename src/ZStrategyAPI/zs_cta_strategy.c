@@ -26,8 +26,9 @@ zs_cta_strategy_t* zs_cta_strategy_create(zs_strategy_engine_t* zse, const char*
 
     strategy = ztl_pcalloc(zse->Pool, sizeof(zs_cta_strategy_t));
 
-    strategy->StrategyID = strategy_id;
-    strategy->RunStatus = ZS_RS_Unknown;
+    strategy->StrategyID    = strategy_id;
+    strategy->RunStatus     = ZS_RS_Unknown;
+    strategy->CreateTime    = time(NULL);
 
     strategy->StrategySetting = setting;
 

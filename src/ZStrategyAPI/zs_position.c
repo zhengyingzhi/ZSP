@@ -222,6 +222,7 @@ double zs_position_handle_trade_rtn(zs_position_engine_t* pos_engine, zs_trade_t
 
     // 保证金
     margin_ratio = (direction == ZS_D_Long) ? pos_engine->LongMarginRatio : pos_engine->ShortMarginRatio;
+    margin = calculate_margin(price, volume, pos_engine->Contract->Multiplier, margin_ratio);
 
     // 开仓保存一条明细
     if (trade->OffsetFlag == ZS_OF_Open)
@@ -234,10 +235,10 @@ double zs_position_handle_trade_rtn(zs_position_engine_t* pos_engine, zs_trade_t
     if (direction == ZS_D_Long && offset == ZS_OF_Open)
     {
         // 买开仓
-        pos_engine->LongPos += volume;
-        pos_engine->LongTdPos += volume;
+        pos_engine->LongPos    += volume;
+        pos_engine->LongTdPos  += volume;
         pos_engine->LongMargin += margin;
-        pos_engine->LongCost += filled_money;
+        pos_engine->LongCost   += filled_money;
 
         // A股T+1
         if (pos_engine->Contract->ProductClass != ZS_PC_Stock) {
@@ -250,10 +251,10 @@ double zs_position_handle_trade_rtn(zs_position_engine_t* pos_engine, zs_trade_t
     else if (direction == ZS_D_Short && offset == ZS_OF_Open)
     {
         // 卖开仓
-        pos_engine->ShortPos += volume;
-        pos_engine->ShortTdPos += volume;
+        pos_engine->ShortPos    += volume;
+        pos_engine->ShortTdPos  += volume;
         pos_engine->ShortMargin += margin;
-        pos_engine->ShortCost += filled_money;
+        pos_engine->ShortCost   += filled_money;
 
         if (pos_engine->Contract->ProductClass != ZS_PC_Stock) {
             pos_engine->ShortAvail += volume;

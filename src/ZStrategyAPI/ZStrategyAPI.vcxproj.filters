@@ -61,12 +61,6 @@
     <ClInclude Include="zs_strategy_engine.h">
       <Filter>Strategy</Filter>
     </ClInclude>
-    <ClInclude Include="zs_data_feed.h">
-      <Filter>Backtest</Filter>
-    </ClInclude>
-    <ClInclude Include="zs_data_portal.h">
-      <Filter>Backtest</Filter>
-    </ClInclude>
     <ClInclude Include="zs_broker_backtest.h">
       <Filter>Brokerage</Filter>
     </ClInclude>
@@ -119,6 +113,12 @@
     <ClInclude Include="zs_backtest.h">
       <Filter>Backtest</Filter>
     </ClInclude>
+    <ClInclude Include="zs_data_portal.h">
+      <Filter>Data</Filter>
+    </ClInclude>
+    <ClInclude Include="zs_data_feed.h">
+      <Filter>Data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -144,6 +144,9 @@
     </Filter>
     <Filter Include="Event">
       <UniqueIdentifier>{28d11943-df4b-4834-8cde-e07094a44f37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{46d07d7e-2413-492b-b229-6b38ae252a9a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -195,12 +198,6 @@
     <ClCompile Include="zs_strategy_engine.c">
       <Filter>Strategy</Filter>
     </ClCompile>
-    <ClCompile Include="zs_data_feed.c">
-      <Filter>Backtest</Filter>
-    </ClCompile>
-    <ClCompile Include="zs_data_portal.c">
-      <Filter>Backtest</Filter>
-    </ClCompile>
     <ClCompile Include="zs_broker_backtest.c">
       <Filter>Brokerage</Filter>
     </ClCompile>
@@ -242,6 +239,12 @@
     </ClCompile>
     <ClCompile Include="zs_backtest.c">
       <Filter>Backtest</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_data_feed.c">
+      <Filter>Data</Filter>
+    </ClCompile>
+    <ClCompile Include="zs_data_portal.c">
+      <Filter>Data</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -16,6 +16,7 @@ void zs_bargen_init(zs_bar_generator_t* bargen, uint64_t sid)
     bargen->IsFinished  = 1;
     bargen->IsFinishedX = 1;
     bargen->Sid         = sid;
+    bargen->BarList     = NULL;
 }
 
 void zs_bargen_release(zs_bar_generator_t* bargen)
@@ -76,8 +77,14 @@ void zs_bargen_update_tick(zs_bar_generator_t* bargen, zs_tick_t* tick)
             bargen->IsFinished  = 1;
             bar->BarTime = (int64_t)tick->ActionDay * 1000000 + bar->BarDt.hour * 10000 + bar->BarDt.minute * 100;
 
-            if (bargen->handle_bar)
+            if (bargen->handle_bar) {
                 bargen->handle_bar(bargen->UserData, bar);
+            }
+
+            // keep every bar or not
+            if (bargen->BarList) {
+                ztl_array_push_back(bargen->BarList, bar);
+            }
         }
     }
 
@@ -121,6 +128,11 @@ void zs_bargen_update_bar(zs_bar_generator_t* bargen, zs_bar_t* bar)
 
             if (bargen->handle_barx) {
                 bargen->handle_barx(bargen->UserData, barx);
+            }
+
+            // keep every bar or not
+            if (bargen->BarList) {
+                ztl_array_push_back(bargen->BarList, bar);
             }
         }
     }

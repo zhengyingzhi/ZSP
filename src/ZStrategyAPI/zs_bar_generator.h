@@ -1,6 +1,7 @@
 ﻿/*
  * Copyright (C) Yingzhi Zheng.
  * Copyright (C) <zhengyingzhi112@163.com>
+ * ZStrategyAPI
  * define bar generator
  */
 
@@ -37,9 +38,11 @@ struct zs_bar_generator_s
     zs_bar_t    CurrentBarX;
     zs_tick_t   LastTick;
 
-    void*       UserData;
+    void*           UserData;
     handle_bar_pt   handle_bar;
     handle_bar_pt   handle_barx;
+
+    ztl_array_t*    BarList;
 };
 
 zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, uint64_t sid);

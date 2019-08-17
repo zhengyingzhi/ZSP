@@ -57,6 +57,28 @@ static void _zs_strategy_handle_order(zs_event_engine_t* ee, zs_strategy_engine_
     if (strategy && strategy->Entry->handle_order) {
         strategy->Entry->handle_order(strategy->Instance, strategy, order);
     }
+    else if (!strategy && zse->NotifyType == ZS_DN_All)
+    {
+        ztl_array_t* strategy_array;
+        strategy_array = zs_strategy_find_by_account(zse, order->AccountID);
+
+        for (uint32_t i = 0; strategy_array && i < ztl_array_size(strategy_array); ++i)
+        {
+            strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, i);
+            if (!strategy) {
+                continue;
+            }
+
+            if (strategy->Entry->is_trading_symbol && strategy->Entry->handle_order)
+            {
+                if (strategy->Entry->is_trading_symbol(strategy->Instance, strategy, order->Sid))
+                {
+                    strategy->Entry->handle_order(strategy->Instance, strategy, order);
+                }
+            }
+        }
+
+    }
 }
 
 static void _zs_strategy_handle_trade(zs_event_engine_t* ee, zs_strategy_engine_t* zse,
@@ -91,6 +113,28 @@ static void _zs_strategy_handle_trade(zs_event_engine_t* ee, zs_strategy_engine_
     strategy = zs_orderdict_find(zse->OrderStrategyDict, trade->FrontID, trade->SessionID, trade->OrderID);
     if (strategy && strategy->Entry->handle_trade) {
         strategy->Entry->handle_trade(strategy->Instance, strategy, trade);
+    }
+    else if (!strategy && zse->NotifyType == ZS_DN_All)
+    {
+        ztl_array_t* strategy_array;
+        strategy_array = zs_strategy_find_by_account(zse, trade->AccountID);
+
+        for (uint32_t i = 0; strategy_array && i < ztl_array_size(strategy_array); ++i)
+        {
+            strategy = (zs_cta_strategy_t*)ztl_array_at2(strategy_array, i);
+            if (!strategy) {
+                continue;
+            }
+
+            if (strategy->Entry->is_trading_symbol && strategy->Entry->handle_trade)
+            {
+                if (strategy->Entry->is_trading_symbol(strategy->Instance, strategy, trade->Sid))
+                {
+                    strategy->Entry->handle_trade(strategy->Instance, strategy, trade);
+                }
+            }
+        }
+
     }
 }
 
@@ -266,6 +310,8 @@ zs_strategy_engine_t* zs_strategy_engine_create(zs_algorithm_t* algo)
     zse->AssetFinder    = algo->AssetFinder;
     zse->Pool           = ztl_create_pool(ZTL_DEFAULT_POOL_SIZE);
     zse->Log            = algo->Log;
+
+    zse->NotifyType     = ZS_DN_All;
     zse->StrategyBaseID = 1;
     zse->TradingDay     = 0;
     zse->AutoGenBar     = 1;

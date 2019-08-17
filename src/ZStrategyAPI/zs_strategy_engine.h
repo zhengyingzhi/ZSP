@@ -46,6 +46,7 @@ struct zs_strategy_engine_s
 
     ztl_dict_t*         TradeDict;          // 成交ID集合 ExchangeID+TradeID
 
+    ZSDataNotifyType    NotifyType;         // 数据通知类型
     uint32_t            StrategyBaseID;     // 策略编号
     int32_t             TradingDay;         // 交易日
     int32_t             AutoGenBar;         // 自动合成分钟bar

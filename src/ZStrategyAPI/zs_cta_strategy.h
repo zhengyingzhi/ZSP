@@ -22,13 +22,40 @@
 extern "C" {
 #endif
 
+
+/* 策略信息 */
+typedef struct 
+{
+    int32_t             StrategyID;
+    ZSStrategyTypeType  StrategyType;   // single/multi asset type
+    ZSTradingFlag   TradingFlag;
+    ZSRunStatus     RunStatus;
+    char            CreateTime[24];     // YYYY-mm-dd HH:MM:SS
+    char            UpdateTime[24];     // YYYY-mm-dd HH:MM:SS
+    char            StrategyName[16];
+    char            AccountID[ACCOUNT_ID_LEN];
+    char            CustomID[ACCOUNT_ID_LEN];
+    // uint32_t        PlaceCount;         // 下单次数
+    // uint32_t        CancelCount;        // 撤单次数
+
+    char            Symbol[32];         // the trading symbol, maybe empty if multi asset
+    int32_t         LongPos;
+    int32_t         ShortPos;
+
+    char            Settings[1];        // 策略配置/策略参数等
+}zs_strategy_info_t;
+
+
 /* CTA策略 */
 typedef struct zs_cta_strategy_s zs_cta_strategy_t;
 struct zs_cta_strategy_s
 {
-    int32_t         StrategyID;     // the strategy id in cta engine
+    int32_t             StrategyID;     // the strategy id in cta engine
+    ZSStrategyTypeType  StrategyType;   // the strategy type
     ZSTradingFlag   TradingFlag;    // the strategy trading flag
     ZSRunStatus     RunStatus;      // the strategy running status
+    time_t          CreateTime;     // the strategy create time
+    time_t          UpdateTime;     // the strategy create time
 
     const char*     StrategySetting;// the strategy raw setting
     char*           pAccountID;
@@ -60,8 +87,8 @@ struct zs_cta_strategy_s
     int (*cancel_all)(zs_cta_strategy_t* context);
 
     // getters
-    int (*get_account_position)(zs_cta_strategy_t* context, zs_position_engine_t** pposengine, zs_sid_t sid);
-    int (*get_strategy_position)(zs_cta_strategy_t* context, zs_position_engine_t** pposengine, zs_sid_t sid);
+    int (*get_account_position)(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid);
+    int (*get_strategy_position)(zs_cta_strategy_t* context, zs_position_engine_t** ppos_engine, zs_sid_t sid);
     int (*get_trading_account)(zs_cta_strategy_t* context, zs_account_t** paccount);
     int (*get_open_orders)(zs_cta_strategy_t* context, zs_order_t* open_orders[], int size, zs_sid_t filter_sid);
     int (*get_orders)(zs_cta_strategy_t* context, zs_order_t* orders[], int size, zs_sid_t filter_sid);
@@ -69,7 +96,7 @@ struct zs_cta_strategy_s
     zs_contract_t* (*get_contract)(zs_cta_strategy_t* context, zs_sid_t sid);
 
     // get trading day, flag 0:current, 1:next, -1:prev
-    int32_t(*get_trading_day)(zs_cta_strategy_t* context, int flag);
+    int32_t (*get_trading_day)(zs_cta_strategy_t* context, int flag);
 
     // get strategy info
     const char* (*get_info)(zs_cta_strategy_t* context);

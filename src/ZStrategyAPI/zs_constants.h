@@ -282,6 +282,14 @@ typedef enum
     ZS_ST_AssetMulti
 }ZSStrategyTypeType;
 
+/* 数据通知类型 */
+typedef enum
+{
+    ZS_DN_OnlySelf,         // 只通知本策略
+    ZS_DN_WithManual,       // 可通知手动下单
+    ZS_DN_All               // 全部通知
+}ZSDataNotifyType;
+
 
 /* C数据类型 */
 typedef enum
