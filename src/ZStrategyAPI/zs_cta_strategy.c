@@ -158,24 +158,29 @@ void zs_cta_strategy_set_blotter(zs_cta_strategy_t* strategy, zs_blotter_t* blot
 
 zs_sid_t zs_cta_lookup_sid(zs_cta_strategy_t* strategy, ZSExchangeID exchangeid, const char* symbol, int len)
 {
-    zs_contract_t*  contract;
+    zs_contract_t* contract;
 
     contract = zs_asset_find(strategy->Engine->AssetFinder, exchangeid, symbol, len);
     if (!contract) {
         return ZS_SID_INVALID;
     }
 
-    return contract->Sid;
+    // return contract->Sid;
+    return contract;
 }
 
 const char* zs_cta_lookup_symbol(zs_cta_strategy_t* strategy, zs_sid_t sid, ZSExchangeID* pexchangeid)
 {
-    zs_contract_t*  contract;
+    zs_contract_t* contract;
 
+#if 0
     contract = zs_asset_find_by_sid(strategy->Engine->AssetFinder, sid);
     if (!contract) {
         return NULL;
     }
+#else
+    contract = (zs_contract_t*)sid;
+#endif
 
     if (pexchangeid)
         *pexchangeid = contract->ExchangeID;
@@ -199,10 +204,14 @@ int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, doubl
     zs_order_req_t          order_req;
     memset(&order_req, 0, sizeof(order_req));
 
+#if 0
     contract = zs_asset_find_by_sid(strategy->Engine->AssetFinder, sid);
     if (!contract) {
         return ZS_ERR_NoContract;
     }
+#else
+    contract = (zs_contract_t*)sid;
+#endif
 
     if (offset != ZS_OF_Open)
     {
@@ -246,9 +255,6 @@ int zs_cta_order(zs_cta_strategy_t* strategy, zs_sid_t sid, int order_qty, doubl
     order_req.Direction     = direction;
     order_req.OffsetFlag    = offset;
     order_req.OrderType     = order_price < 0.001 ? ZS_OT_Market : ZS_OT_Limit;
-
-    // set this member for easily process internally
-    order_req.Contract  = contract;
 
     return zs_cta_place_order(strategy, &order_req);
 }
@@ -454,9 +460,13 @@ zs_order_t* zs_cta_get_order_by_sysid(zs_cta_strategy_t* strategy,
 
 zs_contract_t* zs_cta_get_contract(zs_cta_strategy_t* strategy, zs_sid_t sid)
 {
-    zs_contract_t*  contract;
+#if 0
+    zs_contract_t* contract;
     contract = zs_asset_find_by_sid(strategy->Engine->AssetFinder, sid);
     return contract;
+#else
+    return (zs_contract_t*)sid;
+#endif
 }
 
 

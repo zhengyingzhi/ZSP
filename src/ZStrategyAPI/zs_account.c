@@ -22,7 +22,7 @@ static void update_frozen_margin_short(zs_account_t* account, double frozen_marg
     account->FrozenShortMargin += frozen_margin;
 }
 
-static void add_frozen_detail(zs_account_t* account, char* symbol, uint64_t sid,
+static void add_frozen_detail(zs_account_t* account, char* symbol, zs_sid_t sid,
     double margin, double price, int volume, char* userid)
 {
     zs_frozen_detail_t* detail;
@@ -35,23 +35,23 @@ static void add_frozen_detail(zs_account_t* account, char* symbol, uint64_t sid,
     strncpy(detail->UserID, userid, sizeof(detail->UserID) - 1);
 
     ztl_dlist_t* dlist;
-    dlist = ztl_map_find(account->FrozenDetails, sid);
+    dlist = ztl_map_find(account->FrozenDetails, (uint64_t)sid);
     if (!dlist)
     {
         dlist = ztl_dlist_create(8);
-        ztl_map_add(account->FrozenDetails, sid, dlist);
+        ztl_map_add(account->FrozenDetails, (uint64_t)sid, dlist);
     }
     ztl_dlist_insert_tail(dlist, detail);
 }
 
-static void update_frozen_detail(zs_account_t* account, char* symbol, uint64_t sid,
+static void update_frozen_detail(zs_account_t* account, char* symbol, zs_sid_t sid,
     double margin, double price, int volume, char* userid)
 {
     zs_frozen_detail_t*     detail;
     ztl_dlist_iterator_t*   iter;
     ztl_dlist_t* dlist;
     
-    dlist = ztl_map_find(account->FrozenDetails, sid);
+    dlist = ztl_map_find(account->FrozenDetails, (uint64_t)sid);
     if (!dlist) {
         return;
     }
@@ -110,7 +110,7 @@ static void update_avail_cash(zs_account_t* account, double cash)
     account->FundAccount.Available += cash;
 }
 
-static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirection direction,
+static int freeze_margin(zs_account_t* account, char* symbol, zs_sid_t sid, ZSDirection direction,
     double price, int volume, char* userid, zs_contract_t* contract, double* pmargin)
 {
     // 冻结保证金
@@ -143,7 +143,7 @@ static int freeze_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDi
     return ZS_OK;
 }
 
-static void free_frozen_margin(zs_account_t* account, char* symbol, uint64_t sid, ZSDirection direction,
+static void free_frozen_margin(zs_account_t* account, char* symbol, zs_sid_t sid, ZSDirection direction,
     double price, int volume, char* userid, zs_contract_t* contract, double* pmargin)
 {
     // 释放保证金
@@ -268,7 +268,7 @@ int zs_account_handle_order_req(zs_account_t* account, zs_order_req_t* order_req
     {
         // 手续费不够,释放刚才冻结的保证金
         free_frozen_margin(account, order_req->Symbol, order_req->Sid, order_req->Direction,
-            order_req->OrderPrice, order_req->OrderQty, order_req->UserID, order_req->Contract, &frozen_margin);
+            order_req->OrderPrice, order_req->OrderQty, order_req->UserID, contract, &frozen_margin);
     }
 
     return rv;

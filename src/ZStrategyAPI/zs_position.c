@@ -89,7 +89,8 @@ zs_position_engine_t* zs_position_create(zs_blotter_t* blotter, ztl_pool_t* pool
     pos_engine->Contract= contract;
     if (contract)
     {
-        pos_engine->Sid = contract->Sid;
+        // pos_engine->Sid = contract->Sid;
+        pos_engine->Sid = contract;
         pos_engine->Multiplier = contract->Multiplier;
         pos_engine->PriceTick = contract->PriceTick;
         pos_engine->LongMarginRatio = contract->LongMarginRateByMoney;

@@ -190,11 +190,11 @@ static void _zs_strategy_handle_tick(zs_event_engine_t* ee, zs_strategy_engine_t
     // generate minute bar, and try notify to each strategy
     if (tick->TickDt.dt64 == 0)
     {
-        zs_dt_t* zsdt = &tick->TickDt;
-        zsdt->dt.year = tick->ActionDay / 10000;
-        zsdt->dt.month = (tick->ActionDay / 100) % 100;
-        zsdt->dt.day = tick->ActionDay % 100;
-        zsdt->dt.hour = tick->UpdateTime / 10000000;
+        zs_dt_t* zsdt   = &tick->TickDt;
+        zsdt->dt.year   = tick->ActionDay / 10000;
+        zsdt->dt.month  = (tick->ActionDay / 100) % 100;
+        zsdt->dt.day    = tick->ActionDay % 100;
+        zsdt->dt.hour   = tick->UpdateTime / 10000000;
         zsdt->dt.minute = (tick->UpdateTime / 100000) % 100;
         zsdt->dt.second = (tick->UpdateTime / 1000) % 10000;
         zsdt->dt.millisec = tick->UpdateTime % 1000;

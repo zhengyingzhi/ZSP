@@ -2,9 +2,10 @@
 #include <ZToolLib/ztl_hash.h>
 
 #include "zs_api_object.h"
-#include "zs_constants.h"
 #include "zs_assets.h"
+#include "zs_constants.h"
 #include "zs_hashdict.h"
+#include "zs_error.h"
 
 
 zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder, 
@@ -109,18 +110,20 @@ void zs_asset_release(zs_asset_finder_t* asset_finder)
 int zs_asset_enable_default_equity(zs_asset_finder_t* asset_finder, int32_t enable)
 {
     asset_finder->EnableDefaultEquity = enable;
-    return 0;
+    return ZS_OK;
 }
 
 int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
     int exchangeid, const char* symbol, int len, void* data)
 {
     zs_sid_t sid;
+
+#if 0
     void* dst;
 
     sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_SID_INVALID) {
-        return -1;
+        return ZS_ERROR;
     }
 
     dst = zs_asset_find_by_sid(asset_finder, sid);
@@ -129,26 +132,38 @@ int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
     }
     else {
         // already exists
-        *psid = sid;
+        if (psid)
+            *psid = sid;
         return 1;
     }
 
-    *psid = sid;
+    if (psid)
+        *psid = sid;
+#else
+    sid = zs_asset_sid_get(asset_finder, exchangeid, symbol, len);
+    if (sid == ZS_SID_INVALID)
+    {
+        ZAssetKey key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
+        dictAdd(asset_finder->SymbolHashDict, &key, sid);
+    }
+#endif
 
     asset_finder->Count += 1;
 
-    return 0;
+    return ZS_OK;
 }
 
 int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
     int exchangeid, const char* symbol, int len, void* data, int size)
 {
     zs_sid_t sid;
+
+#if 0
     void* dst;
 
     sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_SID_INVALID) {
-        return -1;
+        return ZS_ERROR;
     }
 
     dst = zs_asset_find_by_sid(asset_finder, sid);
@@ -162,19 +177,37 @@ int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid,
     }
     else
     {
-        *psid = sid;
-        return 1;
+        if (psid)
+            *psid = sid;
+        return ZS_EXISTED;
     }
 
-    *psid = sid;
+    if (psid)
+        *psid = sid;
+#else
+    sid = zs_asset_sid_get(asset_finder, exchangeid, symbol, len);
+    if (sid == ZS_SID_INVALID)
+    {
+        // do a copy
+        sid = ztl_palloc(asset_finder->Pool, ztl_align(size, 8));
+        memcpy(sid, data, size);
+
+        ZAssetKey key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
+        dictAdd(asset_finder->SymbolHashDict, &key, sid);
+    }
+
+    if (psid)
+        *psid = sid;
+#endif//0
 
     asset_finder->Count += 1;
 
-    return 0;
+    return ZS_OK;
 }
 
 int zs_asset_del(zs_asset_finder_t* asset_finder, int exchangeid, const char* symbol, int len)
 {
+#if 0
     zs_sid_t sid;
     sid = zs_asset_lookup(asset_finder, exchangeid, symbol, len);
     if (sid == ZS_SID_INVALID)
@@ -182,8 +215,14 @@ int zs_asset_del(zs_asset_finder_t* asset_finder, int exchangeid, const char* sy
         return -1;
     }
 
-    // dictDelete(asset_finder->SymbolHashDict, dst->Symbol);
     return zs_asset_del_by_sid(asset_finder, sid);
+#else
+    ZAssetKey key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
+    if (0 == dictDelete(asset_finder->SymbolHashDict, &key)) {
+        asset_finder->Count -= 1;
+    }
+    return ZS_OK;
+#endif
 }
 
 int zs_asset_del_by_sid(zs_asset_finder_t* asset_finder, zs_sid_t sid)
@@ -219,11 +258,13 @@ void* zs_asset_find(zs_asset_finder_t* asset_finder, int exchangeid, const char*
         return NULL;
     }
 
-    return zs_asset_find_by_sid(asset_finder, sid);
+    // return zs_asset_find_by_sid(asset_finder, sid);
+    return sid;
 }
 
 void* zs_asset_find_by_sid(zs_asset_finder_t* asset_finder, zs_sid_t sid)
 {
+#if 0
     dictEntry* entry;
     entry = dictFind(asset_finder->AssetTable, (void*)sid);
     if (entry) {
@@ -231,6 +272,9 @@ void* zs_asset_find_by_sid(zs_asset_finder_t* asset_finder, zs_sid_t sid)
     }
 
     return entry;
+#else
+    return sid;
+#endif//0
 }
 
 uint32_t zs_asset_count(zs_asset_finder_t* asset_finder)
@@ -249,7 +293,7 @@ zs_sid_t zs_asset_sid_gen(zs_asset_finder_t* asset_finder,
     {
         // add new if not existed
         ZAssetKey key = { (uint16_t)exchangeid, (uint16_t)len, (char*)symbol };
-        sid = asset_finder->BaseSid++;
+        // sid = asset_finder->BaseSid++;
         dictAdd(asset_finder->SymbolHashDict, &key, (void*)sid);
     }
 
@@ -266,7 +310,8 @@ zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder,
     if (entry)
     {
         // found
-        sid = (zs_sid_t)entry->v.u64;
+        // sid = (zs_sid_t)entry->v.u64;
+        sid = entry->v.val;
     }
 
     if ((exchangeid == ZS_EI_SSE || exchangeid == ZS_EI_SZSE) &&
@@ -274,14 +319,14 @@ zs_sid_t zs_asset_sid_get(zs_asset_finder_t* asset_finder,
     {
         sid = zs_asset_sid_gen(asset_finder, exchangeid, symbol, len);
         if (sid == ZS_SID_INVALID) {
-            return -1;
+            return sid;
         }
 
         zs_contract_t* contract;
         contract = ztl_pcalloc(asset_finder->Pool, sizeof(zs_contract_t));
         strcpy(contract->Symbol, symbol);
         contract->ExchangeID = exchangeid;
-        contract->Sid = sid;
+        // contract->Sid = sid;
         contract->PriceTick = 0.01;     // FIXME AShare
         contract->ProductClass = ZS_PC_Stock;
         contract->Multiplier = 1;

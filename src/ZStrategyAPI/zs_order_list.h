@@ -35,7 +35,7 @@ int zs_orderlist_remove(zs_orderlist_t* orderlist, zs_order_t* order);
 
 int zs_orderlist_size(zs_orderlist_t* orderlist);
 
-int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size, uint64_t filter_sid);
+int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size, zs_sid_t filter_sid);
 
 zs_order_t* zs_order_find(zs_orderlist_t* orderlist, int32_t frontid, int32_t sessionid, 
     const char orderid[]);

@@ -30,7 +30,7 @@ typedef struct zs_bar_generator_s zs_bar_generator_t;
 struct zs_bar_generator_s
 {
     char        Symbol[32];
-    uint64_t    Sid;
+    zs_sid_t    Sid;
     int32_t     IsFinished;
     int32_t     IsFinishedX;
     uint32_t    XMin;
@@ -45,8 +45,8 @@ struct zs_bar_generator_s
     ztl_array_t*    BarList;
 };
 
-zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, uint64_t sid);
-void zs_bargen_init(zs_bar_generator_t* bargen, uint64_t sid);
+zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, zs_sid_t sid);
+void zs_bargen_init(zs_bar_generator_t* bargen, zs_sid_t sid);
 
 void zs_bargen_release(zs_bar_generator_t* bargen);
 

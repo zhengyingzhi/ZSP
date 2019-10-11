@@ -243,7 +243,7 @@ int zs_bt_md_subscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* sub_reqs[]
 
     for (int i = 0; i < count; ++i)
     {
-        ztl_set_add(md_instrance->SymbolSet, sub_reqs[i]->Sid);
+        ztl_set_add(md_instrance->SymbolSet, (uint64_t)sub_reqs[i]->Sid);
     }
 
     return 0;
@@ -255,7 +255,7 @@ int zs_bt_md_unsubscribe(zs_bt_md_impl_t* md_instrance, zs_subscribe_t* unsub_re
 
     for (int i = 0; i < count; ++i)
     {
-        ztl_set_del(md_instrance->SymbolSet, unsub_reqs[i]->Sid);
+        ztl_set_del(md_instrance->SymbolSet, (uint64_t)unsub_reqs[i]->Sid);
     }
 
     return 0;

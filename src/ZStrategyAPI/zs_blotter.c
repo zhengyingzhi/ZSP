@@ -353,7 +353,7 @@ zs_position_engine_t* zs_position_engine_get_ex(zs_blotter_t* blotter, zs_sid_t 
     if (!pos_engine)
     {
         zs_contract_t* contract;
-        contract = (zs_contract_t*)zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, sid);
+        contract = (zs_contract_t*)sid;
         pos_engine = zs_position_create(blotter, blotter->Algorithm->Pool, contract);
 
         if (pos_engine) {
@@ -392,8 +392,7 @@ int zs_blotter_handle_position(zs_blotter_t* blotter, zs_position_t* pos)
     zs_log_info(blotter->Log, "blotter: position symbol:%s, pos:%d, price:%.2lf, margin:%.2lf",
         pos->Symbol, pos->Position, pos->PositionPrice, pos->UseMargin);
 
-    sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos->ExchangeID,
-        pos->Symbol, (int)strlen(pos->Symbol));
+    sid = pos->Sid;
     if (sid == ZS_SID_INVALID) {
         // ERRORID: not find the asset
         return ZS_ERR_NoAsset;
@@ -437,8 +436,7 @@ int zs_blotter_handle_position_detail(zs_blotter_t* blotter, zs_position_detail_
     zs_log_info(blotter->Log, "blotter: position detail symbol:%s, vol:%d, open_price:%.2lf, pos_price:%.2lf, open_date:%d",
          pos_detail->Symbol, pos_detail->Volume, pos_detail->OpenPrice, pos_detail->PositionPrice, pos_detail->OpenDate);
 
-    sid = zs_asset_lookup(blotter->Algorithm->AssetFinder, pos_detail->ExchangeID,
-        pos_detail->Symbol, (int)strlen(pos_detail->Symbol));
+    sid = pos_detail->Sid;
     if (sid == ZS_SID_INVALID) {
         return ZS_ERR_NoAsset;
     }
@@ -480,14 +478,7 @@ int zs_blotter_handle_order_req(zs_blotter_t* blotter, zs_order_req_t* order_req
     zs_account_t*   account;
     zs_contract_t*  contract;
 
-    if (order_req->Contract) {
-        contract = (zs_contract_t*)order_req->Contract;
-    }
-    else {
-        contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order_req->Sid);
-        order_req->Contract = contract;
-    }
-
+    contract = (zs_contract_t*)order_req->Sid;
     if (!contract)
     {
         zs_log_error(blotter->Log, "blotter: handle_order_req not find contract for account:%s, symbol:%s, sid:%ld",
@@ -530,7 +521,7 @@ int zs_blotter_handle_order_rtn(zs_blotter_t* blotter, zs_order_t* order)
     zs_log_info(blotter->Log, "blotter: handle_order symbol:%s, qty:%d, price:%.2lf, dir:%d, offset:%d, oid:%s, status:%d",
         order->Symbol, order->OrderQty, order->OrderPrice, order->Direction, order->OffsetFlag, order->OrderID, order->OrderStatus);
 
-    contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, order->Sid);
+    contract = (zs_contract_t*)order->Sid;
     if (!contract) {
         return ZS_ERR_NoContract;
     }
@@ -638,7 +629,7 @@ int zs_blotter_handle_trade_rtn(zs_blotter_t* blotter, zs_trade_t* trade)
         return ZS_ERR_NoOrder;
     }
 
-    contract = zs_asset_find_by_sid(blotter->Algorithm->AssetFinder, trade->Sid);
+    contract = (zs_contract_t*)trade->Sid;
 
     trade->FrontID = old_order->FrontID;
     trade->SessionID = old_order->SessionID;

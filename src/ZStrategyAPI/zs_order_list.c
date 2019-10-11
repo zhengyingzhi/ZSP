@@ -54,7 +54,7 @@ int zs_orderlist_size(zs_orderlist_t* orderlist)
     return ztl_dlist_size(orderlist);
 }
 
-int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size, uint64_t filter_sid)
+int zs_orderlist_retrieve(zs_orderlist_t* orderlist, zs_order_t* orders[], int size, zs_sid_t filter_sid)
 {
     int index = 0;
     zs_order_t* order = NULL;

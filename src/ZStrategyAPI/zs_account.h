@@ -25,7 +25,7 @@ extern "C" {
 // ¶³½áÏ¸½Ú
 struct zs_frozen_detail_s
 {
-    uint64_t    Sid;
+    zs_sid_t    Sid;
     char        UserID[16];
     char        Symbol[32];
     double      Price;

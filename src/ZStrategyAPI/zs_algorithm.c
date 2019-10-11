@@ -280,9 +280,9 @@ int zs_algorithm_init(zs_algorithm_t* algo)
 int zs_algorithm_set_instruments(zs_algorithm_t* algo, char* instruments[], int count)
 {
     zs_category_info_t* category_info;
-    zs_contract_t*      contract;
-    char*       instrument;
-    zs_sid_t    sid;
+    zs_contract_t       contract;
+    char*               instrument;
+
     int i;
     for (i = 0; i < count; ++i)
     {
@@ -297,13 +297,10 @@ int zs_algorithm_set_instruments(zs_algorithm_t* algo, char* instruments[], int 
             continue;
         }
 
-        sid = ZS_SID_INVALID;
-        contract = (zs_contract_t*)ztl_pcalloc(algo->Pool, sizeof(zs_contract_t));
-        zs_category_to_contract(contract, instrument, category_info);
-        zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID, 
-            contract->Symbol, (int)strlen(contract->Symbol), contract);
-        if (sid != ZS_SID_INVALID)
-            contract->Sid = sid;
+        memset(&contract, 0, sizeof(contract));
+        zs_category_to_contract(&contract, instrument, category_info);
+        zs_asset_add_copy(algo->AssetFinder, NULL, contract.ExchangeID, 
+            contract.Symbol, (int)strlen(contract.Symbol), &contract, sizeof(zs_contract_t));
     }
     return ZS_OK;
 }
@@ -334,22 +331,6 @@ int zs_algorithm_run(zs_algorithm_t* algo, zs_data_portal_t* data_portal)
 
     algo->Running = ZS_RS_Running;
     // algo->DataPortal = data_portal;
-
-#if 0
-    // fake contract info
-    zs_contract_t* contract;
-    contract = (zs_contract_t*)ztl_pcalloc(algo->Pool, sizeof(zs_contract_t));
-    strcpy(contract->Symbol, "rb1910");
-    contract->ExchangeID = ZS_EI_SHFE;
-    contract->ProductClass = ZS_PC_Future;
-    contract->Multiplier = 10;
-    contract->PriceTick = 1.0;
-
-    zs_sid_t sid;
-    zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID, contract->Symbol,
-        (int)strlen(contract->Symbol), contract);
-    contract->Sid = sid;
-#endif//0
 
     /* 回测：
      * 0. 创建事件引擎
@@ -721,22 +702,15 @@ static void _zs_algo_handle_contract(zs_event_engine_t* ee, zs_algorithm_t* algo
     uint32_t evtype, zs_data_head_t* evdata)
 {
     // 合约事件
-    zs_contract_t* contract, *dup_contract;
-    zs_sid_t sid;
+    zs_contract_t* contract;
 
     contract = (zs_contract_t*)zd_data_body(evdata);
 
-    dup_contract = (zs_contract_t*)ztl_palloc(algo->Pool, sizeof(zs_contract_t));
-    ztl_memcpy(dup_contract, contract, sizeof(zs_contract_t));
-
-    zs_asset_add(algo->AssetFinder, &sid, contract->ExchangeID,
-        contract->Symbol, (int)strlen(contract->Symbol), dup_contract);
-
-    // must set sid after added into asset finder
-    dup_contract->Sid = sid;
+    zs_asset_add_copy(algo->AssetFinder, NULL, contract->ExchangeID,
+        contract->Symbol, (int)strlen(contract->Symbol), contract, sizeof(zs_contract_t));
 
     if (strcmp(contract->Symbol, "rb1910") == 0) {
-        fprintf(stderr, "algo: handle_contrat for symbol:%s, sid:%ld\n", contract->Symbol, (long)sid);
+        fprintf(stderr, "algo: handle_contrat for symbol:%s\n", contract->Symbol);
     }
 
     if (contract->IsLast) {

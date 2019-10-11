@@ -21,13 +21,15 @@ extern "C" {
 #endif
 
 
-typedef uint64_t zs_sid_t;
+/* the sid type */
+// typedef uint64_t zs_sid_t;
+typedef void*               zs_sid_t;
 
 #define ZS_ASSET_INIT_NUM   8192
 #define ZS_ASSET_START_SID  16
 
-#define ZS_SID_WILDCARD     0
-#define ZS_SID_INVALID      (-1)
+#define ZS_SID_WILDCARD     (void*)(-1)
+#define ZS_SID_INVALID      (void*)0
 
 
 /* global asset manager
@@ -38,7 +40,7 @@ struct zs_asset_finder_s
     ztl_pool_t*         Pool;
     ztl_dict_t*         SymbolHashDict;     // <symbol, sid>
     ztl_dict_t*         AssetTable;         // Table<sid, assetinfo>
-    zs_sid_t            BaseSid;            // start from ZS_ASSET_START_SID
+    uint64_t            BaseSid;            // start from ZS_ASSET_START_SID
     int32_t             CreatedSelf;
     int32_t             EnableDefaultEquity;
     uint32_t            Count;
@@ -56,7 +58,7 @@ void zs_asset_release(zs_asset_finder_t* asset_finder);
 int zs_asset_enable_default_equity(zs_asset_finder_t* asset_finder, int32_t enable);
 
 // add data, and will do a copy of it internally
-int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, int exchangeid, const char* symbol, int len, void* data);
+// int zs_asset_add(zs_asset_finder_t* asset_finder, zs_sid_t* psid, int exchangeid, const char* symbol, int len, void* data);
 int zs_asset_add_copy(zs_asset_finder_t* asset_finder, zs_sid_t* psid, int exchangeid, const char* symbol, int len, void* data, int size);
 
 // del data

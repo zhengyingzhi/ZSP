@@ -2,7 +2,7 @@
 #include "zs_bar_generator.h"
 
 
-zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, uint64_t sid)
+zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, zs_sid_t sid)
 {
     zs_bar_generator_t* bargen;
     bargen = (zs_bar_generator_t*)ztl_palloc(pool, sizeof(zs_bar_generator_t));
@@ -10,7 +10,7 @@ zs_bar_generator_t* zs_bargen_create(ztl_pool_t* pool, uint64_t sid)
     return bargen;
 }
 
-void zs_bargen_init(zs_bar_generator_t* bargen, uint64_t sid)
+void zs_bargen_init(zs_bar_generator_t* bargen, zs_sid_t sid)
 {
     memset(bargen, 0, sizeof(zs_bar_generator_t));
     bargen->IsFinished  = 1;
